@@ -1,6 +1,17 @@
 import React from "react";
 import { SafeAreaView, View, ScrollView, Image, Text, ImageBackground, TouchableOpacity, StyleSheet } from "react-native";
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
+type RootStackParamList = {
+  Home: undefined;
+  Map: undefined;
+};
+
+type HomeScreenProps = {
+  navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
+};
+
+//더미 데이터로 하드코딩함
 const shopData = [
   {
     tag: "인기",
@@ -32,9 +43,9 @@ type ShopCardProps = {
   paddingBottom: number;
 };
 
-function ShopCard({ tag, name, address, type, tagColor, tagMargin, paddingBottom }: ShopCardProps) {
+function ShopCard({ tag, name, address, type, tagColor, tagMargin, paddingBottom, style }: ShopCardProps & { style?: any }) {
   return (
-    <View style={styles.shopCard}>
+    <View style={[styles.shopCard, style]}>
       <View style={[styles.shopCardHeader, { backgroundColor: tagColor, paddingBottom }]}> 
         <TouchableOpacity
           style={[styles.shopTag, { backgroundColor: tagColor, marginBottom: tagMargin }]}
@@ -53,7 +64,7 @@ function ShopCard({ tag, name, address, type, tagColor, tagMargin, paddingBottom
   );
 }
 
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }: HomeScreenProps) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scrollView}>
@@ -65,7 +76,12 @@ export default function HomeScreen() {
           />
           <Text style={styles.headerTitle}>{"Zero Map : 제로 맵"}</Text>
         </View>
-        <View style={styles.locationContainer}>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          style={styles.locationContainer}
+          onPress={() => navigation.navigate('Map')}
+          accessibilityLabel="지도 화면으로 이동"
+        >
           <ImageBackground
             source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/AI1KD1CsF9/v2k8u0i0_expires_30_days.png" }}
             resizeMode="stretch"
@@ -79,26 +95,16 @@ export default function HomeScreen() {
             />
             <Text style={styles.locationText}>{"사용자의 대략적인 위치 (검색 기능 포함)"}</Text>
           </ImageBackground>
-        </View>
+        </TouchableOpacity>
         <Text style={styles.recommendTitle}>{"추천 : 신규 등록 제로웨이스트 샵"}</Text>
         <View style={styles.shopRow}>
           {shopData.map((shop, idx) => (
-            <ShopCard key={idx} {...shop} />
+            <ShopCard
+              key={idx}
+              {...shop}
+              style={idx === shopData.length - 1 ? styles.noMarginRight : undefined}
+            />
           ))}
-        </View>
-        <View style={styles.bottomNav}>
-          <View style={styles.bottomNavItem}>
-            <Text style={styles.bottomNavIcon}>{"🏠"}</Text>
-            <Text style={styles.bottomNavLabel}>{"홈"}</Text>
-          </View>
-          <View style={styles.bottomNavItem}>
-            <Text style={styles.bottomNavIcon}>{"📝"}</Text>
-            <Text style={styles.bottomNavLabel}>{"마이페이지"}</Text>
-          </View>
-          <View style={styles.bottomNavItem}>
-            <Text style={styles.bottomNavIcon}>{"⚙️"}</Text>
-            <Text style={styles.bottomNavLabel}>{"설정"}</Text>
-          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -173,9 +179,9 @@ const styles = StyleSheet.create({
   },
   shopRow: {
     flexDirection: "row",
-    paddingHorizontal: 12,
     marginBottom: 10,
-    marginHorizontal: 26,
+    marginHorizontal: 8,
+    // gap: 8, // RN 0.71+ 지원시 사용
   },
   shopCard: {
     flex: 1,
@@ -185,6 +191,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
     backgroundColor: "#fff",
     overflow: "hidden",
+    minWidth: 0, // flexbox shrink 방지
   },
   shopCardHeader: {
     backgroundColor: "#0000000D",
@@ -246,5 +253,8 @@ const styles = StyleSheet.create({
     color: "#000000",
     fontSize: 10,
     textAlign: "center",
+  },
+  noMarginRight: {
+    marginRight: 0,
   },
 });
