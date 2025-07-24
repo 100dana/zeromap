@@ -1,5 +1,7 @@
 import React from "react";
 import { SafeAreaView, View, ScrollView, Image, Text, TouchableOpacity, ImageBackground, StyleSheet } from "react-native";
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
 
 const categories = [
   {
@@ -43,7 +45,14 @@ function CategoryCard({ icon, label, iconBgMargin, textMargin, style }: Category
   );
 }
 
+type RootStackParamList = {
+  Home: undefined;
+  Map: undefined;
+  MapDetail: undefined;
+};
+
 export default function MapScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Map'>>();
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scrollView}>
@@ -76,19 +85,25 @@ export default function MapScreen() {
             />
           ))}
         </View>
-        <ImageBackground
-          source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/AI1KD1CsF9/4gn4pl9v_expires_30_days.png" }}
-          resizeMode="stretch"
-          imageStyle={styles.mapImageBg}
-          style={styles.mapImageBgWrap}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate('MapDetail')}
+          style={{ flex: 1 }}
         >
-          <Image
-            source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/AI1KD1CsF9/tp7elg95_expires_30_days.png" }}
+          <ImageBackground
+            source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/AI1KD1CsF9/4gn4pl9v_expires_30_days.png" }}
             resizeMode="stretch"
-            style={styles.mapIcon}
-          />
-          <Text style={styles.mapText}>{"사용자의 구체적인 위치"}</Text>
-        </ImageBackground>
+            imageStyle={styles.mapImageBg}
+            style={styles.mapImageBgWrap}
+          >
+            <Image
+              source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/AI1KD1CsF9/tp7elg95_expires_30_days.png" }}
+              resizeMode="stretch"
+              style={styles.mapIcon}
+            />
+            <Text style={styles.mapText}>{"사용자의 구체적인 위치"}</Text>
+          </ImageBackground>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
