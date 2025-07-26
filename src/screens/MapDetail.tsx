@@ -41,17 +41,7 @@ export default function MapDetail() {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.column}>
-          <Image
-            source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/AI1KD1CsF9/1ukv6izs_expires_30_days.png" }}
-            resizeMode="stretch"
-            style={styles.image}
-          />
           <View style={styles.row}>
-            <Image
-              source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/AI1KD1CsF9/4fhcogfl_expires_30_days.png" }}
-              resizeMode="stretch"
-              style={styles.image2}
-            />
             <Text style={styles.text}>{"장소 상세보기"}</Text>
           </View>
         </View>

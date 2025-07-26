@@ -72,11 +72,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.headerContainer}>
-          <Image
-            source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/AI1KD1CsF9/nvvkf6co_expires_30_days.png" }}
-            resizeMode="stretch"
-            style={styles.headerImage}
-          />
           <Text style={styles.headerTitle}>{"Zero Map : 제로 맵"}</Text>
         </View>
         <TouchableOpacity
