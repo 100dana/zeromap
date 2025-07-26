@@ -2,6 +2,7 @@ import React from "react";
 import { SafeAreaView, View, ScrollView, Image, Text, TouchableOpacity, ImageBackground, StyleSheet } from "react-native";
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
+import KakaoMap from '../components/KakaoMap';
 
 const categories = [
   {
@@ -55,7 +56,7 @@ export default function MapScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Map'>>();
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.scrollView}>
+      <View style={styles.container}>
         <View style={styles.headerContainer}>
           <Image
             source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/AI1KD1CsF9/wsr47kf8_expires_30_days.png" }}
@@ -85,26 +86,11 @@ export default function MapScreen() {
             />
           ))}
         </View>
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => navigation.navigate('MapDetail')}
-          style={{ flex: 1 }}
-        >
-          <ImageBackground
-            source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/AI1KD1CsF9/4gn4pl9v_expires_30_days.png" }}
-            resizeMode="stretch"
-            imageStyle={styles.mapImageBg}
-            style={styles.mapImageBgWrap}
-          >
-            <Image
-              source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/AI1KD1CsF9/tp7elg95_expires_30_days.png" }}
-              resizeMode="stretch"
-              style={styles.mapIcon}
-            />
-            <Text style={styles.mapText}>{"사용자의 구체적인 위치"}</Text>
-          </ImageBackground>
-        </TouchableOpacity>
-      </ScrollView>
+        {/* 지도 영역을 KakaoMap으로 대체 */}
+        <View style={{ flex: 1, height: 400, marginHorizontal: 16, marginBottom: 20, borderRadius: 6, overflow: 'hidden' }}>
+          <KakaoMap />
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
@@ -114,7 +100,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
-  scrollView: {
+  container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
   },

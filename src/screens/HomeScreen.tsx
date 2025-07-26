@@ -1,6 +1,8 @@
 import React from "react";
 import { SafeAreaView, View, ScrollView, Image, Text, ImageBackground, TouchableOpacity, StyleSheet } from "react-native";
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { WebView } from 'react-native-webview';
+import KakaoMap from '../components/KakaoMap';
 
 type RootStackParamList = {
   Home: undefined;
@@ -10,6 +12,7 @@ type RootStackParamList = {
 type HomeScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
 };
+
 
 //더미 데이터로 하드코딩함
 const shopData = [
@@ -82,27 +85,19 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           onPress={() => navigation.navigate('Map')}
           accessibilityLabel="지도 화면으로 이동"
         >
-          <ImageBackground
-            source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/AI1KD1CsF9/v2k8u0i0_expires_30_days.png" }}
-            resizeMode="stretch"
-            imageStyle={styles.locationImageBg}
-            style={styles.locationImageBgWrap}
-          >
-            <Image
-              source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/AI1KD1CsF9/0sww8m3n_expires_30_days.png" }}
-              resizeMode="stretch"
-              style={styles.locationIcon}
-            />
-            <Text style={styles.locationText}>{"사용자의 대략적인 위치 (검색 기능 포함)"}</Text>
-          </ImageBackground>
+          <View style={styles.mapPreviewContainer}>
+            <KakaoMap />
+          </View>
         </TouchableOpacity>
         <Text style={styles.recommendTitle}>{"추천 : 신규 등록 제로웨이스트 샵"}</Text>
         <View style={styles.shopRow}>
           {shopData.map((shop, idx) => (
+            //@ts-ignore
             <ShopCard
-              key={idx}
               {...shop}
               style={idx === shopData.length - 1 ? styles.noMarginRight : undefined}
+              key={idx}
+              //런타임에 오류없는, 타입 체크 오류 무시
             />
           ))}
         </View>
@@ -147,6 +142,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     marginBottom: 10,
     marginHorizontal: 38,
+  },
+  mapPreviewContainer: {
+    height: 200,
+    borderRadius: 6,
+    overflow: 'hidden',
+    opacity: 0.7,
   },
   locationImageBg: {
     borderRadius: 6,

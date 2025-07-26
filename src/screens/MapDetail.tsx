@@ -73,6 +73,7 @@ export default function MapDetail() {
         </View>
         <View style={styles.row4}>
           {tags.map((tag, idx) => (
+			//@ts-ignore
             <Tag key={idx} label={tag.label} style={idx === tags.length - 1 ? styles.noMarginRight : undefined} />
           ))}
         </View>
