@@ -16,7 +16,7 @@ export interface ThemeData {
 }
 
 export class SeoulApiService {
-  // 실제 발급받은 API 키로 교체하세요
+  // 수정할 부분
   private static API_KEY = 'YOUR_ACTUAL_API_KEY';
   
   // 서울시 스마트서울맵 OpenAPI 기본 URL

@@ -3,6 +3,11 @@ import { SafeAreaView, View, ScrollView, Image, Text, ImageBackground, Touchable
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { WebView } from 'react-native-webview';
 import KakaoMap from '../components/KakaoMap';
+import BottomTabBar from '../components/BottomTabBar';
+import { colors } from '../styles/colors';
+import { typography } from '../styles/typography';
+import { spacing } from '../styles/spacing';
+import { shadows } from '../styles/shadows';
 
 type RootStackParamList = {
   Home: undefined;
@@ -97,6 +102,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           ))}
         </View>
       </ScrollView>
+      <BottomTabBar currentRoute="Home" />
     </SafeAreaView>
   );
 }
@@ -104,45 +110,41 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.background,
   },
   scrollView: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.background,
   },
   headerContainer: {
-    backgroundColor: "#FFFFFF",
-    marginBottom: 10,
-    marginHorizontal: 26,
-    shadowColor: "#0000001C",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 6,
-    elevation: 6,
+    backgroundColor: colors.card,
+    marginBottom: spacing.md,
+    marginHorizontal: spacing.screenPaddingHorizontal,
+    paddingVertical: spacing.paddingMedium,
+    paddingHorizontal: spacing.paddingLarge,
+    borderRadius: spacing.borderRadiusLarge,
+    ...shadows.card,
   },
   headerImage: {
     height: 24,
   },
   headerTitle: {
-    color: "#000000",
-    fontSize: 20,
-    fontWeight: "bold",
+    ...typography.h2,
     textAlign: "center",
-    marginVertical: 12,
-    marginHorizontal: 16,
   },
   locationContainer: {
-    backgroundColor: "#0000000D",
-    borderRadius: 6,
-    paddingVertical: 14,
-    marginBottom: 10,
-    marginHorizontal: 38,
+    backgroundColor: colors.surface,
+    borderRadius: spacing.borderRadiusLarge,
+    paddingVertical: spacing.paddingMedium,
+    marginBottom: spacing.elementSpacing,
+    marginHorizontal: spacing.screenPaddingHorizontal,
+    ...shadows.card,
   },
   mapPreviewContainer: {
     height: 200,
-    borderRadius: 6,
+    borderRadius: spacing.borderRadiusLarge,
     overflow: 'hidden',
-    opacity: 0.7,
+    backgroundColor: colors.surface,
   },
   locationImageBg: {
     borderRadius: 6,
@@ -165,66 +167,59 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   recommendTitle: {
-    color: "#000000",
-    fontSize: 18,
-    fontWeight: "bold",
+    ...typography.h3,
     textAlign: "center",
-    marginTop: 16,
-    marginBottom: 11,
-    marginHorizontal: 38,
+    marginTop: spacing.elementSpacingLarge,
+    marginBottom: spacing.elementSpacing,
+    marginHorizontal: spacing.screenPaddingHorizontal,
   },
   shopRow: {
     flexDirection: "row",
-    marginBottom: 10,
-    marginHorizontal: 8,
+    marginBottom: spacing.elementSpacing,
+    marginHorizontal: spacing.screenPaddingHorizontal,
     // gap: 8, // RN 0.71+ 지원시 사용
   },
   shopCard: {
     flex: 1,
-    borderColor: "#0000001A",
-    borderRadius: 6,
+    borderColor: colors.border,
+    borderRadius: spacing.borderRadiusLarge,
     borderWidth: 1,
-    marginRight: 8,
-    backgroundColor: "#fff",
+    marginRight: spacing.elementSpacingSmall,
+    backgroundColor: colors.card,
     overflow: "hidden",
     minWidth: 0, // flexbox shrink 방지
+    ...shadows.card,
   },
   shopCardHeader: {
-    backgroundColor: "#0000000D",
+    backgroundColor: colors.surface,
     // paddingBottom: 72, // dynamic
   },
   shopTag: {
-    borderTopLeftRadius: 6,
-    borderBottomRightRadius: 6,
-    padding: 4,
+    borderTopLeftRadius: spacing.borderRadiusLarge,
+    borderBottomRightRadius: spacing.borderRadiusLarge,
+    padding: spacing.paddingSmall,
     // marginBottom: 48, // dynamic
     alignSelf: "flex-start",
   },
   shopTagText: {
-    color: "#000000",
-    fontSize: 12,
+    ...typography.caption,
     fontWeight: "bold",
   },
   shopName: {
-    color: "#000000",
-    fontSize: 16,
-    fontWeight: "bold",
-    marginHorizontal: 16,
+    ...typography.h4,
+    marginHorizontal: spacing.paddingLarge,
   },
   shopCardFooter: {
-    paddingVertical: 12,
+    paddingVertical: spacing.paddingMedium,
   },
   shopAddress: {
-    color: "#000000",
-    fontSize: 12,
-    marginBottom: 4,
-    marginLeft: 12,
+    ...typography.caption,
+    marginBottom: spacing.xs,
+    marginLeft: spacing.paddingMedium,
   },
   shopType: {
-    color: "#000000",
-    fontSize: 16,
-    fontWeight: "bold",
-    marginLeft: 12,
+    ...typography.h4,
+    marginLeft: spacing.paddingMedium,
   },
   bottomNav: {
     flexDirection: "row",

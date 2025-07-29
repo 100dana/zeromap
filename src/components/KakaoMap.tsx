@@ -92,7 +92,7 @@ const KakaoMap: React.FC<KakaoMapProps> = ({ places = [], onMarkerClick }) => {
         var mapContainer = document.getElementById('map');
         var mapOption = {
           center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울시청
-          level: 1 // 확대 레벨
+          level: 2 // 확대 레벨
         };
         var map = new kakao.maps.Map(mapContainer, mapOption);
         
