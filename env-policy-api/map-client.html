@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>서울시 환경정책 지도</title>
+    <script type="text/javascript" src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=YOUR_CLIENT_ID&submodules=geocoder"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .search-box button {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .search-box button:hover {
+            transform: translateY(-2px);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .map-container {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            height: 500px;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .policy-list {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .policy-item {
+            border-bottom: 1px solid #e1e5e9;
+            padding: 15px 0;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .policy-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .policy-item:last-child {
+            border-bottom: none;
+        }
+
+        .policy-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .policy-summary {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+
+        .policy-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .tag {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error {
+            background: #ff6b6b;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗺️ 서울시 환경정책 지도</h1>
+            <p>서울시의 다양한 환경정책을 지도에서 확인하세요</p>
+        </div>
+
+        <div class="controls">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="정책 키워드를 입력하세요 (예: 탄소중립, 전기차, 분리배출)">
+                <button onclick="searchPolicies()">🔍 검색</button>
+            </div>
+
+            <div class="stats" id="stats">
+                <div class="stat-card">
+                    <h3 id="totalPolicies">-</h3>
+                    <p>전체 정책</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="seoulPolicies">-</h3>
+                    <p>서울시 정책</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="recentPolicies">-</h3>
+                    <p>최근 정책</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+
+        <div class="policy-list">
+            <h3>📋 정책 목록</h3>
+            <div id="policyList">
+                <div class="loading">정책 데이터를 불러오는 중...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let map;
+        let markers = [];
+        let currentPolicies = [];
+
+        // API 기본 URL
+        const API_BASE = 'http://localhost:3000/api';
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            loadStats();
+            loadPolicies();
+        });
+
+        // 지도 초기화
+        function initMap() {
+            // 서울시청 좌표
+            const seoulCenter = new naver.maps.LatLng(37.5665, 126.9780);
+            
+            map = new naver.maps.Map('map', {
+                center: seoulCenter,
+                zoom: 11,
+                mapTypeControl: true,
+                mapTypeControlOptions: {
+                    style: naver.maps.MapTypeControlStyle.DROPDOWN
+                }
+            });
+
+            // 서울시청 마커 추가
+            const seoulMarker = new naver.maps.Marker({
+                position: seoulCenter,
+                map: map,
+                title: '서울특별시청'
+            });
+
+            // 서울시청 정보창
+            const infoWindow = new naver.maps.InfoWindow({
+                content: `
+                    <div style="padding: 10px;">
+                        <h3>서울특별시청</h3>
+                        <p>환경정책 총괄 기관</p>
+                    </div>
+                `
+            });
+
+            naver.maps.Event.addListener(seoulMarker, 'click', function() {
+                if (infoWindow.getMap()) {
+                    infoWindow.close();
+                } else {
+                    infoWindow.open(map, seoulMarker);
+                }
+            });
+        }
+
+        // 통계 데이터 로드
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE}/policies/stats`);
+                const stats = await response.json();
+                
+                document.getElementById('totalPolicies').textContent = stats.total;
+                document.getElementById('seoulPolicies').textContent = stats.byRegion['서울특별시'] || 0;
+                document.getElementById('recentPolicies').textContent = stats.recentPolicies.length;
+            } catch (error) {
+                console.error('통계 로드 실패:', error);
+                showError('통계 데이터를 불러오는데 실패했습니다.');
+            }
+        }
+
+        // 정책 데이터 로드
+        async function loadPolicies(keyword = '') {
+            try {
+                const url = keyword 
+                    ? `${API_BASE}/policies?keyword=${encodeURIComponent(keyword)}`
+                    : `${API_BASE}/policies`;
+                
+                const response = await fetch(url);
+                const policies = await response.json();
+                
+                currentPolicies = policies;
+                displayPolicies(policies);
+                updateMapMarkers(policies);
+            } catch (error) {
+                console.error('정책 로드 실패:', error);
+                showError('정책 데이터를 불러오는데 실패했습니다.');
+            }
+        }
+
+        // 정책 목록 표시
+        function displayPolicies(policies) {
+            const policyList = document.getElementById('policyList');
+            
+            if (policies.length === 0) {
+                policyList.innerHTML = '<div class="loading">검색 결과가 없습니다.</div>';
+                return;
+            }
+
+            const html = policies.map(policy => `
+                <div class="policy-item" onclick="showPolicyDetail('${policy.title}')">
+                    <div class="policy-title">${policy.title}</div>
+                    <div class="policy-summary">${policy.summary}</div>
+                    <div class="policy-tags">
+                        ${policy.tags ? policy.tags.map(tag => `<span class="tag">${tag}</span>`).join('') : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            policyList.innerHTML = html;
+        }
+
+        // 지도 마커 업데이트
+        function updateMapMarkers(policies) {
+            // 기존 마커 제거
+            markers.forEach(marker => marker.setMap(null));
+            markers = [];
+
+            if (policies.length > 0) {
+                // 서울시청 위치에 정책 개수 표시
+                const seoulCenter = new naver.maps.LatLng(37.5665, 126.9780);
+                
+                const marker = new naver.maps.Marker({
+                    position: seoulCenter,
+                    map: map,
+                    title: `서울시 환경정책 (${policies.length}개)`
+                });
+
+                const infoWindow = new naver.maps.InfoWindow({
+                    content: `
+                        <div style="padding: 15px; max-width: 300px;">
+                            <h3>서울시 환경정책</h3>
+                            <p>총 ${policies.length}개의 정책이 있습니다.</p>
+                            <p style="font-size: 0.9rem; color: #666;">
+                                최근 정책: ${policies[0]?.title || '없음'}
+                            </p>
+                        </div>
+                    `
+                });
+
+                naver.maps.Event.addListener(marker, 'click', function() {
+                    if (infoWindow.getMap()) {
+                        infoWindow.close();
+                    } else {
+                        infoWindow.open(map, marker);
+                    }
+                });
+
+                markers.push(marker);
+            }
+        }
+
+        // 정책 검색
+        function searchPolicies() {
+            const keyword = document.getElementById('searchInput').value.trim();
+            loadPolicies(keyword);
+        }
+
+        // 정책 상세 정보 표시
+        function showPolicyDetail(title) {
+            const policy = currentPolicies.find(p => p.title === title);
+            if (policy) {
+                alert(`
+정책 상세 정보:
+제목: ${policy.title}
+요약: ${policy.summary}
+태그: ${policy.tags ? policy.tags.join(', ') : '없음'}
+발행일: ${policy.publishedAt}
+URL: ${policy.url}
+                `);
+            }
+        }
+
+        // 에러 표시
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            document.querySelector('.container').insertBefore(errorDiv, document.querySelector('.controls'));
+        }
+
+        // Enter 키로 검색
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchPolicies();
+            }
+        });
+    </script>
+</body>
+</html> 

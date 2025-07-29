@@ -1,410 +1,414 @@
-import React from "react";
-import { SafeAreaView, View, ScrollView, Image, Text, ImageBackground, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import { SafeAreaView, View, ScrollView, Image, Text, TouchableOpacity, StyleSheet, Dimensions } from "react-native";
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import KakaoMap from '../components/KakaoMap';
 
-// 더미 데이터 구조화
-const tags = [
-  { label: "제로웨이스트샵" },
-  { label: "비건 식당" },
-  { label: "리필스테이션" },
-];
+type RootStackParamList = {
+  Home: undefined;
+  Map: undefined;
+  MapDetail: undefined;
+  WriteReview: undefined;
+};
 
-const reviews = [
-  { user: "사용자1", text: "이 장소는 훌륭했습니다!" },
-  { user: "사용자2", text: "서비스가 아주 마음에 들었습니다." },
-];
+// 가데이터
+const placeData = {
+  name: "제로웨이스트 마켓",
+  isApproved: true,
+  description: "친환경 제품을 판매하는 제로웨이스트 마켓입니다. 플라스틱 없는 생활을 위한 다양한 제품을 만나보세요.",
+  address: "서울시 종로구 홍파동 123-45",
+  images: [
+    "https://via.placeholder.com/400x300/4CAF50/FFFFFF?text=제로웨이스트+마켓+1",
+    "https://via.placeholder.com/400x300/81C784/FFFFFF?text=제로웨이스트+마켓+2",
+    "https://via.placeholder.com/400x300/A5D6A7/FFFFFF?text=제로웨이스트+마켓+3",
+  ],
+  categories: ["제로웨이스트샵", "비건 식당"],
+  reviews: [
+    { user: "사용자1", text: "이 장소는 훌륭했습니다! 친환경 제품들이 정말 다양하고 품질도 좋아요.", rating: 5 },
+    { user: "사용자2", text: "서비스가 아주 마음에 들어요. 직원들이 친절하고 설명도 잘해주세요.", rating: 4 },
+    { user: "사용자3", text: "가격대비 만족도가 높습니다. 자주 방문하게 될 것 같아요.", rating: 5 },
+  ]
+};
 
-function Tag({ label, style }: { label: string; style?: any }) {
+function ImageSlider({ images }: { images: string[] }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
   return (
-    <View style={[styles.row5, style]}>
-      <View style={styles.view}>
-        <Text style={styles.text5}>🏷️</Text>
+    <View style={styles.imageSliderContainer}>
+      <Image 
+        source={{ uri: images[currentIndex] }}
+        style={styles.mainImage}
+        resizeMode="cover"
+      />
+      <View style={styles.imageDots}>
+        {images.map((_, index) => (
+          <View
+            key={index}
+            style={[
+              styles.dot,
+              index === currentIndex ? styles.activeDot : styles.inactiveDot
+            ]}
+          />
+        ))}
       </View>
-      <Text style={styles.text6}>{label}</Text>
     </View>
   );
 }
 
-function Review({ user, text, style, userStyle, textStyle }: { user: string; text: string; style?: any; userStyle?: any; textStyle?: any }) {
+function CategoryTag({ label }: { label: string }) {
   return (
-    <View style={style}>
-      <View style={styles.row7}>
-        <View style={styles.box6} />
-        <Text style={[styles.text11, userStyle]}>{user}</Text>
+    <View style={styles.categoryTag}>
+      <Text style={styles.categoryTagText}>{label}</Text>
+    </View>
+  );
+}
+
+function ReviewCard({ user, text, rating }: { user: string; text: string; rating: number }) {
+  return (
+    <View style={styles.reviewCard}>
+      <View style={styles.reviewHeader}>
+        <View style={styles.userAvatar} />
+        <View style={styles.userInfo}>
+          <Text style={styles.userName}>{user}</Text>
+          <View style={styles.ratingContainer}>
+            {[...Array(5)].map((_, index) => (
+              <Text key={index} style={styles.star}>
+                {index < rating ? "⭐" : "☆"}
+              </Text>
+            ))}
+          </View>
+        </View>
       </View>
-      <Text style={[styles.text12, textStyle]}>{text}</Text>
+      <Text style={styles.reviewText}>{text}</Text>
     </View>
   );
 }
 
 export default function MapDetail() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'MapDetail'>>();
+
+  const handleReviewWrite = () => {
+    navigation.navigate('WriteReview');
+  };
+
+  const handleSave = () => {
+    // TODO: 저장 기능
+    console.log('저장하기');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
+      {/* 상단 헤더 */}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backButtonText}>←</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>장소 상세보기</Text>
+        <View style={styles.headerRight}>
+          <Text style={styles.timeText}>12:30</Text>
+          <View style={styles.statusIcons}>
+            <Text style={styles.statusIcon}>📶</Text>
+            <Text style={styles.statusIcon}>🔋</Text>
+          </View>
+        </View>
+      </View>
+
       <ScrollView style={styles.scrollView}>
-        <View style={styles.column}>
-          <Image
-            source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/AI1KD1CsF9/1ukv6izs_expires_30_days.png" }}
-            resizeMode="stretch"
-            style={styles.image}
-          />
-          <View style={styles.row}>
-            <Image
-              source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/AI1KD1CsF9/4fhcogfl_expires_30_days.png" }}
-              resizeMode="stretch"
-              style={styles.image2}
-            />
-            <Text style={styles.text}>{"장소 상세보기"}</Text>
-          </View>
-        </View>
-        <View style={styles.column2}>
-          <Text style={styles.text2}>{"대상 장소 이미지 슬라이드"}</Text>
-          <View style={styles.row2}>
-            <View style={styles.box} />
-            <View style={styles.box2} />
-            <View style={styles.box2} />
-            <View style={styles.box3} />
-          </View>
-        </View>
-        <View style={styles.row3}>
-          <View style={styles.box4} />
-          <View style={styles.column3}>
-            <Text style={styles.text3}>{"장소 이름"}</Text>
-            <Text style={styles.text4}>{"승인됨 🔖"}</Text>
-          </View>
-        </View>
-        <View style={styles.row4}>
-          {tags.map((tag, idx) => (
-            <Tag key={idx} label={tag.label} style={idx === tags.length - 1 ? styles.noMarginRight : undefined} />
-          ))}
-        </View>
-        <View style={styles.column4}>
-          <View style={styles.row6}>
-            <View style={styles.box5} />
-            <View style={styles.column5}>
-              <Text style={styles.text3}>{"장소 설명"}</Text>
-              <Text style={styles.text4}>{"여기에 장소에 대한 설명이 들어갑니다."}</Text>
+        {/* 이미지 슬라이더 */}
+        <ImageSlider images={placeData.images} />
+
+        {/* 장소 정보 */}
+        <View style={styles.placeInfo}>
+          <View style={styles.placeHeader}>
+            <View style={styles.placeIcon} />
+            <View style={styles.placeDetails}>
+              <Text style={styles.placeName}>{placeData.name}</Text>
+              {placeData.isApproved && (
+                <View style={styles.approvedBadge}>
+                  <Text style={styles.approvedText}>승인됨 🔖</Text>
+                </View>
+              )}
             </View>
           </View>
-          <Image
-            source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/AI1KD1CsF9/vgx7ybfv_expires_30_days.png" }}
-            resizeMode="stretch"
-            style={styles.image3}
-          />
+
+          {/* 카테고리 태그 */}
+          <View style={styles.categoryContainer}>
+            {placeData.categories.map((category, index) => (
+              <CategoryTag key={index} label={category} />
+            ))}
+          </View>
         </View>
-        <ImageBackground
-          source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/AI1KD1CsF9/97v6l4m9_expires_30_days.png" }}
-          resizeMode="stretch"
-          imageStyle={styles.column7}
-          style={styles.column6}
-        >
-          <Image
-            source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/AI1KD1CsF9/5mea19wq_expires_30_days.png" }}
-            resizeMode="stretch"
-            style={styles.image4}
-          />
-          <Text style={styles.text8}>{"장소 위치"}</Text>
-        </ImageBackground>
-        <View style={styles.row3}>
-          <TouchableOpacity style={styles.button} onPress={() => {}}>
-            <Text style={styles.text3}>{"리뷰 작성하기"}</Text>
+
+        {/* 장소 설명 */}
+        <View style={styles.descriptionSection}>
+          <Text style={styles.sectionTitle}>장소 설명</Text>
+          <Text style={styles.descriptionText}>{placeData.description}</Text>
+        </View>
+
+        {/* 장소 위치 */}
+        <View style={styles.locationSection}>
+          <Text style={styles.sectionTitle}>장소 위치</Text>
+          <View style={styles.mapContainer}>
+            <KakaoMap />
+          </View>
+          <Text style={styles.addressText}>{placeData.address}</Text>
+        </View>
+
+        {/* 액션 버튼 */}
+        <View style={styles.actionButtons}>
+          <TouchableOpacity style={styles.reviewButton} onPress={handleReviewWrite}>
+            <Text style={styles.reviewButtonText}>리뷰 작성하기</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.button2} onPress={() => {}}>
-            <Text style={styles.text9}>{"저장하기"}</Text>
+          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+            <Text style={styles.saveButtonText}>저장하기</Text>
           </TouchableOpacity>
         </View>
-        <Text style={styles.text10}>{"리뷰"}</Text>
-        <View style={styles.row4}>
-          <Review user={reviews[0].user} text={reviews[0].text} style={styles.column8} />
-          <Review user={reviews[1].user} text={reviews[1].text} style={styles.column9} userStyle={styles.text13} textStyle={styles.text14} />
+
+        {/* 리뷰 섹션 */}
+        <View style={styles.reviewsSection}>
+          <Text style={styles.sectionTitle}>리뷰</Text>
+          {placeData.reviews.map((review, index) => (
+            <ReviewCard key={index} {...review} />
+          ))}
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-// 스타일은 기존 유지, noMarginRight 추가
+const { width } = Dimensions.get('window');
+
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#FFFFFF",
-	},
-	box: {
-		width: 20,
-		height: 4,
-		backgroundColor: "#FFFFFF",
-		borderRadius: 100,
-		marginRight: 4,
-	},
-	box2: {
-		width: 4,
-		height: 4,
-		backgroundColor: "#0000004D",
-		borderRadius: 100,
-		marginRight: 4,
-	},
-	box3: {
-		width: 4,
-		height: 4,
-		backgroundColor: "#0000004D",
-		borderRadius: 100,
-	},
-	box4: {
-		width: 40,
-		height: 40,
-		backgroundColor: "#0000001A",
-		borderRadius: 40,
-		marginTop: 16,
-		marginRight: 12,
-	},
-	box5: {
-		width: 80,
-		height: 80,
-		backgroundColor: "#0000000D",
-		marginRight: 12,
-	},
-	box6: {
-		width: 24,
-		height: 24,
-		backgroundColor: "#0000001A",
-		borderRadius: 24,
-		marginRight: 8,
-	},
-	button: {
-		flex: 1,
-		alignItems: "center",
-		backgroundColor: "#FFFFFF",
-		borderColor: "#000000",
-		borderRadius: 8,
-		borderWidth: 1,
-		paddingVertical: 10,
-		marginRight: 8,
-	},
-	button2: {
-		flex: 1,
-		alignItems: "center",
-		backgroundColor: "#000000",
-		borderRadius: 8,
-		paddingVertical: 10,
-	},
-	column: {
-		backgroundColor: "#FFFFFF",
-		marginBottom: 12,
-		shadowColor: "#0000001C",
-		shadowOpacity: 0.1,
-		shadowOffset: {
-		    width: 0,
-		    height: 0
-		},
-		shadowRadius: 6,
-		elevation: 6,
-	},
-	column2: {
-		alignItems: "center",
-		backgroundColor: "#0000000D",
-		borderRadius: 6,
-		paddingTop: 172,
-		paddingBottom: 8,
-		paddingHorizontal: 16,
-		marginBottom: 12,
-		marginHorizontal: 12,
-	},
-	column3: {
-		flex: 1,
-		marginTop: 16,
-	},
-	column4: {
-		paddingVertical: 8,
-		paddingHorizontal: 12,
-		marginBottom: 12,
-	},
-	column5: {
-		flex: 1,
-	},
-	column6: {
-		alignItems: "center",
-		paddingVertical: 36,
-		paddingHorizontal: 16,
-		marginBottom: 12,
-		marginHorizontal: 12,
-	},
-	column7: {
-		borderRadius: 6,
-	},
-	column8: {
-		backgroundColor: "#0000000D",
-		borderRadius: 6,
-		paddingVertical: 12,
-		marginRight: 8,
-	},
-	column9: {
-		backgroundColor: "#0000000D",
-		borderRadius: 6,
-		paddingVertical: 12,
-	},
-	image: {
-		height: 24,
-	},
-	image2: {
-		width: 24,
-		height: 24,
-		marginRight: 8,
-	},
-	image3: {
-		height: 1,
-	},
-	image4: {
-		borderRadius: 6,
-		width: 24,
-		height: 24,
-		marginBottom: 8,
-	},
-	row: {
-		flexDirection: "row",
-		paddingVertical: 12,
-		paddingHorizontal: 8,
-	},
-	row2: {
-		flexDirection: "row",
-	},
-	row3: {
-		flexDirection: "row",
-		paddingHorizontal: 12,
-		marginBottom: 12,
-	},
-	row4: {
-		flexDirection: "row",
-		marginBottom: 12,
-		marginLeft: 12,
-	},
-	row5: {
-		flexDirection: "row",
-		borderColor: "#0000001A",
-		borderRadius: 6,
-		borderWidth: 1,
-		padding: 12,
-		marginRight: 8,
-	},
-	row6: {
-		flexDirection: "row",
-		marginBottom: 8,
-	},
-	row7: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginBottom: 8,
-		marginHorizontal: 12,
-	},
-	row8: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginBottom: 8,
-		marginLeft: 12,
-	},
-	scrollView: {
-		flex: 1,
-		backgroundColor: "#FFFFFF",
-	},
-	text: {
-		color: "#000000",
-		fontSize: 20,
-		fontWeight: "bold",
-	},
-	text2: {
-		color: "#000000",
-		fontSize: 16,
-		fontWeight: "bold",
-		textAlign: "center",
-		marginBottom: 160,
-	},
-	text3: {
-		color: "#000000",
-		fontSize: 16,
-		fontWeight: "bold",
-	},
-	text4: {
-		color: "#000000",
-		fontSize: 12,
-	},
-	text5: {
-		color: "#000000",
-		fontSize: 20,
-	},
-	text6: {
-		color: "#000000",
-		fontSize: 14,
-		fontWeight: "bold",
-		width: 89,
-	},
-	text7: {
-		color: "#000000",
-		fontSize: 14,
-		fontWeight: "bold",
-		width: 53,
-	},
-	text8: {
-		color: "#000000",
-		fontSize: 16,
-		fontWeight: "bold",
-		textAlign: "center",
-	},
-	text9: {
-		color: "#FFFFFF",
-		fontSize: 16,
-		fontWeight: "bold",
-	},
-	text10: {
-		color: "#000000",
-		fontSize: 18,
-		fontWeight: "bold",
-		marginTop: 16,
-		marginBottom: 9,
-		marginHorizontal: 12,
-	},
-	text11: {
-		color: "#000000",
-		fontSize: 12,
-		fontWeight: "bold",
-		marginBottom: 1,
-		marginRight: 127,
-	},
-	text12: {
-		color: "#000000",
-		fontSize: 14,
-		marginLeft: 12,
-		width: 137,
-	},
-	text13: {
-		color: "#000000",
-		fontSize: 12,
-		fontWeight: "bold",
-	},
-	text14: {
-		color: "#000000",
-		fontSize: 14,
-		marginLeft: 12,
-		width: 107,
-	},
-	view: {
-		backgroundColor: "#0000000D",
-		borderRadius: 16,
-		paddingBottom: 1,
-		paddingRight: 12,
-		marginRight: 8,
-	},
-	view2: {
-		borderColor: "#0000001A",
-		borderRadius: 6,
-		borderWidth: 1,
-		paddingVertical: 12,
-		paddingLeft: 12,
-		paddingRight: 106,
-	},
-	view3: {
-		backgroundColor: "#0000000D",
-		borderRadius: 16,
-		paddingBottom: 1,
-		paddingRight: 26,
-	},
-	noMarginRight: {
-		marginRight: 0,
-	},
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+  },
+  backButton: {
+    padding: 8,
+  },
+  backButtonText: {
+    fontSize: 24,
+    color: "#000000",
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#000000",
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  timeText: {
+    fontSize: 14,
+    color: "#000000",
+    marginRight: 8,
+  },
+  statusIcons: {
+    flexDirection: "row",
+  },
+  statusIcon: {
+    fontSize: 16,
+    marginLeft: 4,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  imageSliderContainer: {
+    position: "relative",
+    height: 250,
+  },
+  mainImage: {
+    width: "100%",
+    height: "100%",
+  },
+  imageDots: {
+    position: "absolute",
+    bottom: 16,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "center",
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: 4,
+  },
+  activeDot: {
+    backgroundColor: "#FFFFFF",
+  },
+  inactiveDot: {
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+  },
+  placeInfo: {
+    padding: 16,
+  },
+  placeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  placeIcon: {
+    width: 40,
+    height: 40,
+    backgroundColor: "#4CAF50",
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  placeDetails: {
+    flex: 1,
+  },
+  placeName: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#000000",
+    marginBottom: 4,
+  },
+  approvedBadge: {
+    alignSelf: "flex-start",
+  },
+  approvedText: {
+    fontSize: 12,
+    color: "#4CAF50",
+    fontWeight: "500",
+  },
+  categoryContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  categoryTag: {
+    backgroundColor: "#E8F5E8",
+    borderColor: "#4CAF50",
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  categoryTagText: {
+    fontSize: 12,
+    color: "#4CAF50",
+    fontWeight: "500",
+  },
+  descriptionSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#000000",
+    marginBottom: 8,
+  },
+  descriptionText: {
+    fontSize: 14,
+    color: "#666666",
+    lineHeight: 20,
+  },
+  locationSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  mapContainer: {
+    height: 150,
+    borderRadius: 8,
+    overflow: "hidden",
+    marginBottom: 8,
+  },
+  addressText: {
+    fontSize: 14,
+    color: "#666666",
+    textAlign: "center",
+  },
+  actionButtons: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    gap: 12,
+  },
+  reviewButton: {
+    flex: 1,
+    borderColor: "#000000",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+  },
+  reviewButtonText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#000000",
+  },
+  saveButton: {
+    flex: 1,
+    backgroundColor: "#000000",
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+  },
+  reviewsSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  reviewCard: {
+    backgroundColor: "#F8F8F8",
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
+  },
+  reviewHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  userAvatar: {
+    width: 32,
+    height: 32,
+    backgroundColor: "#E0E0E0",
+    borderRadius: 16,
+    marginRight: 12,
+  },
+  userInfo: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#000000",
+    marginBottom: 2,
+  },
+  ratingContainer: {
+    flexDirection: "row",
+  },
+  star: {
+    fontSize: 12,
+    marginRight: 2,
+  },
+  reviewText: {
+    fontSize: 14,
+    color: "#666666",
+    lineHeight: 18,
+  },
 });
