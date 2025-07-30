@@ -12,6 +12,7 @@ type RootStackParamList = {
   Map: undefined;
   MyPage: undefined;
   Settings: undefined;
+  Campaign: undefined;
 };
 
 type TabItem = {
@@ -22,24 +23,10 @@ type TabItem = {
 };
 
 const tabItems: TabItem[] = [
-  {
-    key: 'home',
-    title: '홈',
-    icon: '🏠',
-    route: 'Home'
-  },
-  {
-    key: 'mypage',
-    title: '마이페이지',
-    icon: '👤',
-    route: 'MyPage'
-  },
-  {
-    key: 'settings',
-    title: '설정',
-    icon: '⚙️',
-    route: 'Settings'
-  }
+  { key: 'home', title: '홈', icon: '🏠', route: 'Home' },
+  { key: 'campaign', title: '캠페인', icon: '🎯', route: 'Campaign' },
+  { key: 'mypage', title: '마이페이지', icon: '👤', route: 'MyPage' },
+  { key: 'settings', title: '설정', icon: '⚙', route: 'Settings' }
 ];
 
 type BottomTabBarProps = {
@@ -90,22 +77,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderTopWidth: 1,
     borderTopColor: colors.divider,
-    paddingBottom: 20, // iPhone의 홈 인디케이터 영역 고려
-    paddingTop: spacing.paddingSmall,
+    paddingBottom: 15, // 높이 줄임
+    paddingTop: 8, // 높이 줄임
     ...shadows.header,
   },
   tabItem: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: spacing.paddingSmall,
+    paddingVertical: 6, // 높이 줄임
   },
   activeTabItem: {
     // 활성 탭 스타일링
   },
   tabIcon: {
-    fontSize: spacing.iconSizeLarge,
-    marginBottom: spacing.xs,
+    fontSize: 20, // 아이콘 크기 줄임
+    marginBottom: 2, // 간격 줄임
     color: colors.textSecondary,
   },
   activeTabIcon: {
@@ -114,10 +101,12 @@ const styles = StyleSheet.create({
   tabTitle: {
     ...typography.caption,
     fontWeight: "500",
+    fontSize: 10, // 폰트 크기 줄임
   },
   activeTabTitle: {
     ...typography.caption,
     color: colors.primary,
     fontWeight: "bold",
+    fontSize: 10, // 폰트 크기 줄임
   },
 }); 

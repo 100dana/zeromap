@@ -7,9 +7,10 @@ const KAKAO_API_KEY = '504f485ba32aedc877afaa80a956af83';
 interface KakaoMapProps {
   places?: PlaceData[];
   onMarkerClick?: (place: PlaceData) => void;
+  opacity?: number; // 투명도 옵션 추가
 }
 
-const KakaoMap: React.FC<KakaoMapProps> = ({ places = [], onMarkerClick }) => {
+const KakaoMap: React.FC<KakaoMapProps> = ({ places = [], onMarkerClick, opacity = 1 }) => {
   const webViewRef = useRef<WebView>(null);
 
   // 마커 데이터를 JavaScript로 전달하는 함수
@@ -83,7 +84,13 @@ const KakaoMap: React.FC<KakaoMapProps> = ({ places = [], onMarkerClick }) => {
     <head>
       <meta charset="utf-8" />
       <title>Kakao Map</title>
-      <style>html,body,#map {height:100%;margin:0;padding:0;}</style>
+      <style>
+        html,body {height:100%;margin:0;padding:0;}
+        #map {
+          height:100%;
+          opacity: ${opacity}; /* 투명도 적용 */
+        }
+      </style>
       <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_API_KEY}"></script>
     </head>
     <body>
