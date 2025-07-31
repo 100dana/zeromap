@@ -104,7 +104,7 @@ export default function MapDetail() {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.backButtonText}>←</Text>
+          <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>장소 상세보기</Text>
         <View style={styles.headerRight}>

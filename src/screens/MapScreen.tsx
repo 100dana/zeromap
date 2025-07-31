@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { SafeAreaView, View, ScrollView, Image, Text, TouchableOpacity, ImageBackground, StyleSheet, Alert } from "react-native";
+import { SafeAreaView, View, ScrollView, Text, TouchableOpacity, StyleSheet, Alert, TextInput } from "react-native";
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import KakaoMap from '../components/KakaoMap';
@@ -14,53 +14,65 @@ const categories = [
   {
     icon: "🛒",
     label: "제로웨이스트샵",
-    iconBgMargin: 38,
-    textMargin: 4,
-    type: 'zeroWaste'
+    type: 'zeroWaste',
+    color: '#4CAF50',
+    description: '[착한소비] 제로웨이스트상점'
+  },
+  {
+    icon: "☕",
+    label: "개인컵할인카페",
+    type: 'cafe',
+    color: '#607D8B',
+    description: '[착한소비] 개인 컵 할인 카페'
+  },
+  {
+    icon: "🌱",
+    label: "착한소비",
+    type: 'goodConsumption',
+    color: '#8BC34A',
+    description: '모든 착한소비 관련 장소'
   },
   {
     icon: "🍽️",
     label: "제로식당",
-    iconBgMargin: 38,
-    textMargin: 3,
-    type: 'zeroRestaurant'
+    type: 'zeroRestaurant',
+    color: '#FF9800',
+    description: '친환경 식당 및 카페'
   },
   {
     icon: "🔄",
     label: "리필스테이션",
-    iconBgMargin: 38,
-    textMargin: 3,
-    type: 'refillStation'
-  },
+    type: 'refillStation',
+    color: '#2196F3',
+    description: '리필 서비스를 제공하는 곳'
+  }
 ];
 
 type CategoryCardProps = {
   icon: string;
   label: string;
-  iconBgMargin: number;
-  textMargin: number;
   type: string;
-  style?: any;
+  color: string;
+  description: string;
   isSelected?: boolean;
   onPress?: () => void;
 };
 
-function CategoryCard({ icon, label, iconBgMargin, textMargin, type, style, isSelected, onPress }: CategoryCardProps) {
+function CategoryCard({ icon, label, type, color, description, isSelected, onPress }: CategoryCardProps) {
   return (
     <TouchableOpacity 
       style={[
         styles.categoryCard, 
-        style, 
         isSelected && styles.selectedCategoryCard
       ]} 
       onPress={onPress}
     >
-      <View style={[styles.categoryIconWrap, { marginHorizontal: iconBgMargin }]}> 
-        <View style={[styles.categoryIconBg, isSelected && styles.selectedCategoryIconBg]}>
-          <Text style={styles.categoryIcon}>{icon}</Text>
-        </View>
+      <View style={[styles.categoryIconBg, isSelected && styles.selectedCategoryIconBg]}>
+        <Text style={styles.categoryIcon}>{icon}</Text>
       </View>
-      <Text style={[styles.categoryLabel, { marginHorizontal: textMargin }]}>{label}</Text>
+      <Text style={[styles.categoryLabel, isSelected && { color: color }]}>
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -76,9 +88,13 @@ export default function MapScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Map'>>();
   const [places, setPlaces] = useState<PlaceData[]>([]);
   const [localPlaces, setLocalPlaces] = useState<LocalPlaceData[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('zeroWaste');
+  const [selectedCategory, setSelectedCategory] = useState<string>('goodConsumption');
   const [loading, setLoading] = useState(false);
-  const [dataSource, setDataSource] = useState<'api' | 'local' | 'both'>('both');
+
+  // 컴포넌트 마운트 시 기본 데이터 로드
+  useEffect(() => {
+    loadPlaces(selectedCategory);
+  }, []);
 
   // 데이터 로드 함수
   const loadPlaces = async (category: string) => {
@@ -92,18 +108,21 @@ export default function MapScreen() {
           apiData = await SeoulApiService.getZeroWasteShops();
           break;
         case 'zeroRestaurant':
-          // CSV 데이터와 API 데이터를 함께 가져오기
           const [csvData, apiRestaurantData] = await Promise.all([
             LocalDataService.getZeroRestaurants(),
-            SeoulApiService.getZeroWasteShops() // 제로식당 관련 API 데이터도 함께 가져오기
+            SeoulApiService.getZeroWasteShops()
           ]);
-          console.log('CSV 제로식당 데이터:', csvData);
-          console.log('API 제로식당 데이터:', apiRestaurantData);
           localData = csvData;
           apiData = apiRestaurantData;
           break;
         case 'refillStation':
           localData = await LocalDataService.getRefillStations();
+          break;
+        case 'cafe':
+          apiData = await SeoulApiService.getCupDiscountCafes();
+          break;
+        case 'goodConsumption':
+          apiData = await SeoulApiService.getGoodConsumptionPlaces();
           break;
         default:
           apiData = [];
@@ -119,19 +138,7 @@ export default function MapScreen() {
       }
     } catch (error) {
       console.error('데이터 로드 실패:', error);
-      Alert.alert(
-        '오류', 
-        '데이터를 불러오는데 실패했습니다.\n\nAPI 키와 엔드포인트를 확인해주세요.',
-        [
-          { text: '확인', style: 'default' },
-          { 
-            text: 'API 설정 확인', 
-            onPress: () => {
-              console.log('현재 API 키:', SeoulApiService.getApiKey());
-            }
-          }
-        ]
-      );
+      Alert.alert('오류', '데이터를 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
     }
@@ -160,11 +167,6 @@ export default function MapScreen() {
     );
   };
 
-  // 컴포넌트 마운트 시 초기 데이터 로드
-  useEffect(() => {
-    loadPlaces(selectedCategory);
-  }, []);
-
   // 모든 장소 데이터 (API + 로컬)
   const allPlaces = [...places, ...localPlaces];
 
@@ -178,33 +180,34 @@ export default function MapScreen() {
               style={styles.backButton}
               onPress={() => navigation.navigate('Home')}
             >
-              <Text style={styles.backButtonText}>←</Text>
+              <Text style={styles.backButtonText}>‹</Text>
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>{"Zero Map : 제로 맵"}</Text>
-            <View style={styles.headerRight} />
+            <View style={styles.headerTitleContainer}>
+              <Text style={styles.headerIcon}>🌱</Text>
+              <View style={styles.headerTextContainer}>
+                <Text style={styles.headerTitle}>ZeroMap</Text>
+                <Text style={styles.headerSubtitle}>제로웨이스트 맵</Text>
+              </View>
+            </View>
           </View>
-          <TouchableOpacity
-            style={styles.locationSearchBtn}
-            onPress={() => {}}
-            accessibilityLabel="위치 기반 검색 버튼"
-          >
-            <Text style={styles.locationSearchText}>{"위치 기반 검색"}</Text>
-            <Image
-              source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/AI1KD1CsF9/986qyqnx_expires_30_days.png" }}
-              resizeMode="stretch"
-              style={styles.locationSearchIcon}
-            />
-          </TouchableOpacity>
-          <View style={styles.categoryRow}>
-            {categories.map((cat, idx) => (
-              <CategoryCard
-                key={idx}
-                {...cat}
-                style={idx === categories.length - 1 ? styles.noMarginRight : undefined}
-                isSelected={selectedCategory === cat.type}
-                onPress={() => handleCategoryPress(cat.type)}
-              />
-            ))}
+
+          {/* 카테고리 스크롤 영역 */}
+          <View style={styles.categoryContainer}>
+            <Text style={styles.categoryTitle}>카테고리 선택</Text>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoryScrollContainer}
+            >
+              {categories.map((cat, idx) => (
+                <CategoryCard
+                  key={idx}
+                  {...cat}
+                  isSelected={selectedCategory === cat.type}
+                  onPress={() => handleCategoryPress(cat.type)}
+                />
+              ))}
+            </ScrollView>
           </View>
           
           {/* 로딩 상태 표시 */}
@@ -215,7 +218,7 @@ export default function MapScreen() {
           )}
           
           {/* 지도 영역 */}
-          <View style={{ flex: 1, height: 400, marginHorizontal: 16, marginBottom: 20, borderRadius: 6, overflow: 'hidden' }}>
+          <View style={styles.mapContainer}>
             <KakaoMap 
               places={allPlaces}
               onMarkerClick={handleMarkerClick}
@@ -239,7 +242,6 @@ export default function MapScreen() {
             onPress={() => {
               navigation.navigate('ReportPlace');
             }}
-            accessibilityLabel="장소 제보 버튼"
           >
             <Text style={styles.reportButtonText}>+ 장소 제보</Text>
           </TouchableOpacity>
@@ -262,59 +264,67 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: colors.card,
-    marginBottom: spacing.elementSpacing,
-    marginHorizontal: spacing.screenPaddingHorizontal,
-    paddingHorizontal: spacing.paddingLarge,
-    paddingVertical: spacing.paddingMedium,
-    borderRadius: spacing.borderRadiusLarge,
-    ...shadows.card,
+    paddingHorizontal: spacing.screenPaddingHorizontal,
+    paddingVertical: spacing.paddingLarge,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 2,
+    borderBottomColor: '#F0F0F0',
+    ...shadows.header,
   },
   backButton: {
-    padding: spacing.paddingSmall,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F8F9FA',
+    alignItems: "center",
+    justifyContent: "center",
+    ...shadows.button,
   },
   backButtonText: {
-    fontSize: spacing.iconSizeLarge,
+    fontSize: 18,
     color: colors.textPrimary,
+    fontWeight: "600",
   },
-  headerRight: {
-    width: 40,
-  },
-  headerImage: {
-    height: 24,
-  },
-  headerTitle: {
-    ...typography.h3,
-    textAlign: "center",
-  },
-  locationSearchBtn: {
+  headerTitleContainer: {
     flexDirection: "row",
     alignItems: "center",
-    borderColor: "#0000001A",
-    borderRadius: 6,
-    borderWidth: 1,
-    paddingVertical: 4,
-    paddingHorizontal: 11,
-    marginBottom: 10,
-    marginHorizontal: 36,
-  },
-  locationSearchText: {
-    color: "#000000",
-    fontSize: 14,
     flex: 1,
+    justifyContent: "center",
   },
-  locationSearchIcon: {
-    borderRadius: 6,
-    width: 36,
-    height: 28,
+  headerIcon: {
+    fontSize: 32,
+    marginRight: 12,
   },
-  categoryRow: {
-    flexDirection: "row",
-    marginBottom: 10,
-    marginHorizontal: 35,
+  headerTextContainer: {
+    flexDirection: "column",
+    alignItems: "center",
+  },
+  headerTitle: {
+    ...typography.h2,
+    color: colors.textPrimary,
+    fontWeight: "700",
+    letterSpacing: -0.5,
+  },
+  headerSubtitle: {
+    ...typography.body2,
+    color: colors.textSecondary,
+    marginTop: 2,
+    fontWeight: "500",
+  },
+  categoryContainer: {
+    marginBottom: spacing.paddingMedium,
+    marginHorizontal: spacing.screenPaddingHorizontal,
+  },
+  categoryTitle: {
+    ...typography.h4,
+    color: colors.textPrimary,
+    marginBottom: spacing.paddingSmall,
+    fontWeight: '600',
+  },
+  categoryScrollContainer: {
+    paddingRight: spacing.paddingMedium,
   },
   categoryCard: {
-    flex: 1,
     borderColor: "#0000001A",
     borderRadius: 6,
     borderWidth: 1,
@@ -322,15 +332,12 @@ const styles = StyleSheet.create({
     marginRight: 9,
     backgroundColor: "#fff",
     minWidth: 0,
+    width: 80,
+    alignItems: 'center',
   },
   selectedCategoryCard: {
     borderColor: "#4CAF50",
     backgroundColor: "#E8F5E8",
-  },
-  categoryIconWrap: {
-    marginBottom: 7,
-    alignItems: "center",
-    justifyContent: "center",
   },
   categoryIconBg: {
     height: 50,
@@ -362,6 +369,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
+  mapContainer: {
+    flex: 1,
+    height: 400,
+    marginHorizontal: 16,
+    marginBottom: 20,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
   resultInfo: {
     paddingHorizontal: 16,
     paddingBottom: 10,
@@ -370,31 +385,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
-  },
-  mapImageBg: {
-    borderRadius: 6,
-  },
-  mapImageBgWrap: {
-    alignItems: "center",
-    paddingVertical: 137,
-    paddingHorizontal: 16,
-    marginBottom: 25,
-    marginHorizontal: 38,
-  },
-  mapIcon: {
-    borderRadius: 6,
-    width: 24,
-    height: 24,
-    marginBottom: 8,
-  },
-  mapText: {
-    color: "#000000",
-    fontSize: 16,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  noMarginRight: {
-    marginRight: 0,
   },
   reportButton: {
     backgroundColor: "#4CAF50",
