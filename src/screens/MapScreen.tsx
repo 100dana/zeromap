@@ -1,130 +1,76 @@
 import React, { useState, useEffect } from "react";
-import { SafeAreaView, View, ScrollView, Image, Text, TouchableOpacity, ImageBackground, StyleSheet, Alert, TextInput, FlatList } from "react-native";
+import { SafeAreaView, View, ScrollView, Text, TouchableOpacity, StyleSheet, Alert, TextInput } from "react-native";
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import KakaoMap from '../components/KakaoMap';
 import { SeoulApiService, PlaceData } from '../services/seoulApi';
 import { LocalDataService, LocalPlaceData } from '../services/localDataService';
-import { SearchService, SearchResult } from '../services/searchService';
 import { colors } from '../styles/colors';
 import { typography } from '../styles/typography';
 import { spacing } from '../styles/spacing';
 import { shadows } from '../styles/shadows';
 
 const categories = [
-  // {
-  //   icon: "🛒",
-  //   label: "제로웨이스트샵",
-  //   iconBgMargin: 38,
-  //   textMargin: 4,
-  //   type: 'zeroWaste',
-  //   color: '#4CAF50',
-  //   description: '친환경 제품을 판매하는 상점'
-  // },
-  // {
-  //   icon: "🍽️",
-  //   label: "제로식당",
-  //   iconBgMargin: 38,
-  //   textMargin: 3,
-  //   type: 'zeroRestaurant',
-  //   color: '#FF9800',
-  //   description: '친환경 식당 및 카페'
-  // },
-  // {
-  //   icon: "🔄",
-  //   label: "리필스테이션",
-  //   iconBgMargin: 38,
-  //   textMargin: 3,
-  //   type: 'refillStation',
-  //   color: '#2196F3',
-  //   description: '리필 서비스를 제공하는 곳'
-  // },
   {
-    icon: "💧",
-    label: "리필샵",
-    iconBgMargin: 38,
-    textMargin: 3,
-    type: 'refillShop',
-    color: '#9C27B0',
-    description: '리필 제품을 판매하는 상점'
-  },
-  {
-    icon: "🍽",
-    label: "식당",
-    iconBgMargin: 38,
-    textMargin: 3,
-    type: 'restaurant',
-    color: '#F44336',
-    description: '친환경 식당'
-  },
-  {
-    icon: "🧴",
-    label: "친환경생필품점",
-    iconBgMargin: 38,
-    textMargin: 3,
-    type: 'ecoSupplies',
-    color: '#795548',
-    description: '친환경 생필품을 판매하는 곳'
+    icon: "🛒",
+    label: "제로웨이스트샵",
+    type: 'zeroWaste',
+    color: '#4CAF50',
+    description: '[착한소비] 제로웨이스트상점'
   },
   {
     icon: "☕",
-    label: "카페",
-    iconBgMargin: 38,
-    textMargin: 3,
+    label: "개인컵할인카페",
     type: 'cafe',
     color: '#607D8B',
-    description: '친환경 카페'
+    description: '[착한소비] 개인 컵 할인 카페'
   },
   {
-    icon: "⋯",
-    label: "기타",
-    iconBgMargin: 38,
-    textMargin: 3,
-    type: 'others',
-    color: '#9E9E9E',
-    description: '기타 친환경 시설'
+    icon: "🌱",
+    label: "착한소비",
+    type: 'goodConsumption',
+    color: '#8BC34A',
+    description: '모든 착한소비 관련 장소'
   },
+  {
+    icon: "🍽️",
+    label: "제로식당",
+    type: 'zeroRestaurant',
+    color: '#FF9800',
+    description: '친환경 식당 및 카페'
+  },
+  {
+    icon: "🔄",
+    label: "리필스테이션",
+    type: 'refillStation',
+    color: '#2196F3',
+    description: '리필 서비스를 제공하는 곳'
+  }
 ];
 
 type CategoryCardProps = {
   icon: string;
   label: string;
-  iconBgMargin: number;
-  textMargin: number;
   type: string;
   color: string;
   description: string;
-  style?: any;
   isSelected?: boolean;
   onPress?: () => void;
 };
 
-function CategoryCard({ icon, label, iconBgMargin, textMargin, type, color, description, style, isSelected, onPress }: CategoryCardProps) {
+function CategoryCard({ icon, label, type, color, description, isSelected, onPress }: CategoryCardProps) {
   return (
     <TouchableOpacity 
       style={[
         styles.categoryCard, 
-        style, 
         isSelected && styles.selectedCategoryCard
       ]} 
       onPress={onPress}
-      accessibilityLabel={`${label} 카테고리 선택`}
-      accessibilityHint={description}
     >
-      <View style={[styles.categoryIconWrap, { marginHorizontal: iconBgMargin }]}> 
-        <View style={[
-          styles.categoryIconBg, 
-          isSelected && styles.selectedCategoryIconBg,
-          { backgroundColor: isSelected ? color : colors.surface }
-        ]}>
-          <Text style={styles.categoryIcon}>{icon}</Text>
-        </View>
+      <View style={[styles.categoryIconBg, isSelected && styles.selectedCategoryIconBg]}>
+        <Text style={styles.categoryIcon}>{icon}</Text>
       </View>
-      <Text style={[
-        styles.categoryLabel, 
-        { marginHorizontal: textMargin },
-        isSelected && { color: color }
-      ]}>
+      <Text style={[styles.categoryLabel, isSelected && { color: color }]}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -142,16 +88,13 @@ export default function MapScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Map'>>();
   const [places, setPlaces] = useState<PlaceData[]>([]);
   const [localPlaces, setLocalPlaces] = useState<LocalPlaceData[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('refillShop');
+  const [selectedCategory, setSelectedCategory] = useState<string>('goodConsumption');
   const [loading, setLoading] = useState(false);
-  const [dataSource, setDataSource] = useState<'api' | 'local' | 'both'>('both');
-  
-  // 검색 관련 상태
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [showSearchResults, setShowSearchResults] = useState(false);
+
+  // 컴포넌트 마운트 시 기본 데이터 로드
+  useEffect(() => {
+    loadPlaces(selectedCategory);
+  }, []);
 
   // 데이터 로드 함수
   const loadPlaces = async (category: string) => {
@@ -165,38 +108,21 @@ export default function MapScreen() {
           apiData = await SeoulApiService.getZeroWasteShops();
           break;
         case 'zeroRestaurant':
-          // CSV 데이터와 API 데이터를 함께 가져오기
           const [csvData, apiRestaurantData] = await Promise.all([
             LocalDataService.getZeroRestaurants(),
-            SeoulApiService.getZeroWasteShops() // 제로식당 관련 API 데이터도 함께 가져오기
+            SeoulApiService.getZeroWasteShops()
           ]);
-          console.log('CSV 제로식당 데이터:', csvData);
-          console.log('API 제로식당 데이터:', apiRestaurantData);
           localData = csvData;
           apiData = apiRestaurantData;
           break;
         case 'refillStation':
           localData = await LocalDataService.getRefillStations();
           break;
-        case 'refillShop':
-          // 리필샵 데이터 로드 (현재는 빈 배열, 추후 데이터 추가 예정)
-          localData = [];
-          break;
-        case 'restaurant':
-          // 식당 데이터 로드 (현재는 빈 배열, 추후 데이터 추가 예정)
-          localData = [];
-          break;
-        case 'ecoSupplies':
-          // 친환경생필품점 데이터 로드 (현재는 빈 배열, 추후 데이터 추가 예정)
-          localData = [];
-          break;
         case 'cafe':
-          // 카페 데이터 로드 (현재는 빈 배열, 추후 데이터 추가 예정)
-          localData = [];
+          apiData = await SeoulApiService.getCupDiscountCafes();
           break;
-        case 'others':
-          // 기타 데이터 로드 (현재는 빈 배열, 추후 데이터 추가 예정)
-          localData = [];
+        case 'goodConsumption':
+          apiData = await SeoulApiService.getGoodConsumptionPlaces();
           break;
         default:
           apiData = [];
@@ -212,19 +138,7 @@ export default function MapScreen() {
       }
     } catch (error) {
       console.error('데이터 로드 실패:', error);
-      Alert.alert(
-        '오류', 
-        '데이터를 불러오는데 실패했습니다.\n\nAPI 키와 엔드포인트를 확인해주세요.',
-        [
-          { text: '확인', style: 'default' },
-          { 
-            text: 'API 설정 확인', 
-            onPress: () => {
-              console.log('현재 API 키:', SeoulApiService.getApiKey());
-            }
-          }
-        ]
-      );
+      Alert.alert('오류', '데이터를 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
     }
@@ -253,90 +167,6 @@ export default function MapScreen() {
     );
   };
 
-  // 검색 처리
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    
-    if (!query.trim()) {
-      setSearchResults([]);
-      setSearchSuggestions([]);
-      setShowSearchResults(false);
-      return;
-    }
-
-    setIsSearching(true);
-    
-    // 모든 장소 데이터에서 검색
-    const allPlaces = [...places, ...localPlaces];
-    const results = SearchService.searchPlaces(query, allPlaces);
-    const suggestions = SearchService.getSearchSuggestions(query, allPlaces);
-    
-    setSearchResults(results);
-    setSearchSuggestions(suggestions);
-    setShowSearchResults(true);
-    setIsSearching(false);
-  };
-
-  // 검색 결과 선택
-  const handleSearchResultSelect = (result: SearchResult) => {
-    setShowSearchResults(false);
-    setSearchQuery(result.place.name);
-    
-    // 선택된 장소로 지도 이동 (KakaoMap 컴포넌트에서 처리)
-    handleMarkerClick(result.place);
-  };
-
-  // 검색 제안 선택
-  const handleSuggestionSelect = (suggestion: string) => {
-    setSearchQuery(suggestion);
-    handleSearch(suggestion);
-  };
-
-  // 검색 취소
-  const handleSearchCancel = () => {
-    setSearchQuery('');
-    setSearchResults([]);
-    setSearchSuggestions([]);
-    setShowSearchResults(false);
-  };
-
-  // 검색 결과 아이템 컴포넌트
-  const SearchResultItem = ({ result }: { result: SearchResult }) => (
-    <TouchableOpacity
-      style={styles.searchResultItem}
-      onPress={() => handleSearchResultSelect(result)}
-    >
-      <View style={styles.searchResultContent}>
-        <Text style={styles.searchResultName}>{result.place.name}</Text>
-        <Text style={styles.searchResultAddress}>{result.place.address}</Text>
-        <View style={styles.searchResultMeta}>
-          <Text style={styles.searchResultMatchType}>
-            {result.matchType === 'exact' ? '정확한 매치' : 
-             result.matchType === 'partial' ? '부분 매치' : '유사한 매치'}
-          </Text>
-          <Text style={styles.searchResultRelevance}>
-            {Math.round(result.relevance * 100)}% 일치
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-
-  // 검색 제안 아이템 컴포넌트
-  const SearchSuggestionItem = ({ suggestion }: { suggestion: string }) => (
-    <TouchableOpacity
-      style={styles.searchSuggestionItem}
-      onPress={() => handleSuggestionSelect(suggestion)}
-    >
-      <Text style={styles.searchSuggestionText}>💡 {suggestion}</Text>
-    </TouchableOpacity>
-  );
-
-  // 컴포넌트 마운트 시 초기 데이터 로드
-  useEffect(() => {
-    loadPlaces(selectedCategory);
-  }, []);
-
   // 모든 장소 데이터 (API + 로컬)
   const allPlaces = [...places, ...localPlaces];
 
@@ -359,75 +189,6 @@ export default function MapScreen() {
                 <Text style={styles.headerSubtitle}>제로웨이스트 맵</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.headerActionButton}>
-              <Text style={styles.headerActionIcon}>🔍</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* 검색바 */}
-          <View style={styles.searchContainer}>
-            <View style={styles.searchInputContainer}>
-              <TextInput
-                style={styles.searchInput}
-                placeholder="가게 이름으로 검색..."
-                placeholderTextColor={colors.textSecondary}
-                value={searchQuery}
-                onChangeText={handleSearch}
-                onFocus={() => setShowSearchResults(true)}
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity
-                  style={styles.searchClearButton}
-                  onPress={handleSearchCancel}
-                >
-                  <Text style={styles.searchClearText}>×</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-            
-            {/* 검색 결과 및 제안 */}
-            {showSearchResults && (
-              <View style={styles.searchResultsContainer}>
-                {isSearching ? (
-                  <View style={styles.searchLoading}>
-                    <Text style={styles.searchLoadingText}>검색 중...</Text>
-                  </View>
-                ) : (
-                  <>
-                    {/* 검색 제안 */}
-                    {searchSuggestions.length > 0 && searchQuery.length > 0 && (
-                      <View style={styles.searchSuggestionsContainer}>
-                        <Text style={styles.searchSuggestionsTitle}>검색 제안</Text>
-                        {searchSuggestions.map((suggestion, index) => (
-                          <SearchSuggestionItem key={index} suggestion={suggestion} />
-                        ))}
-                      </View>
-                    )}
-                    
-                    {/* 검색 결과 */}
-                    {searchResults.length > 0 && (
-                      <View style={styles.searchResultsList}>
-                        <Text style={styles.searchResultsTitle}>
-                          검색 결과 ({searchResults.length}개)
-                        </Text>
-                        {searchResults.map((result, index) => (
-                          <SearchResultItem key={index} result={result} />
-                        ))}
-                      </View>
-                    )}
-                    
-                    {/* 검색 결과가 없을 때 */}
-                    {searchQuery.length > 0 && searchResults.length === 0 && searchSuggestions.length === 0 && (
-                      <View style={styles.noSearchResults}>
-                        <Text style={styles.noSearchResultsText}>
-                          "{searchQuery}"에 대한 검색 결과가 없습니다.
-                        </Text>
-                      </View>
-                    )}
-                  </>
-                )}
-              </View>
-            )}
           </View>
 
           {/* 카테고리 스크롤 영역 */}
@@ -442,7 +203,6 @@ export default function MapScreen() {
                 <CategoryCard
                   key={idx}
                   {...cat}
-                  style={idx === categories.length - 1 ? styles.noMarginRight : undefined}
                   isSelected={selectedCategory === cat.type}
                   onPress={() => handleCategoryPress(cat.type)}
                 />
@@ -458,7 +218,7 @@ export default function MapScreen() {
           )}
           
           {/* 지도 영역 */}
-          <View style={{ flex: 1, height: 400, marginHorizontal: 16, marginBottom: 20, borderRadius: 6, overflow: 'hidden' }}>
+          <View style={styles.mapContainer}>
             <KakaoMap 
               places={allPlaces}
               onMarkerClick={handleMarkerClick}
@@ -482,7 +242,6 @@ export default function MapScreen() {
             onPress={() => {
               navigation.navigate('ReportPlace');
             }}
-            accessibilityLabel="장소 제보 버튼"
           >
             <Text style={styles.reportButtonText}>+ 장소 제보</Text>
           </TouchableOpacity>
@@ -526,12 +285,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontWeight: "600",
   },
-  headerRight: {
-    width: 40,
-  },
-  headerImage: {
-    height: 24,
-  },
   headerTitleContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -557,96 +310,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
     fontWeight: "500",
-  },
-  headerActionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F8F9FA',
-    alignItems: "center",
-    justifyContent: "center",
-    ...shadows.button,
-  },
-  headerActionIcon: {
-    fontSize: 20,
-    color: colors.textPrimary,
-  },
-  searchContainer: {
-    marginHorizontal: spacing.screenPaddingHorizontal,
-    marginBottom: spacing.paddingMedium,
-    paddingHorizontal: spacing.paddingMedium,
-    paddingVertical: spacing.paddingSmall,
-    backgroundColor: colors.surface,
-    borderRadius: spacing.borderRadiusLarge,
-    borderColor: "#0000001A",
-    borderWidth: 1,
-    borderBottomWidth: 2,
-    borderBottomColor: '#E0E0E0',
-    ...shadows.card,
-  },
-  searchInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  searchInput: {
-    ...typography.body1,
-    flex: 1,
-    color: colors.textPrimary,
-    paddingVertical: 0,
-  },
-  searchClearButton: {
-    padding: 5,
-  },
-  searchClearText: {
-    fontSize: 18,
-    color: colors.textSecondary,
-  },
-  searchResultsContainer: {
-    marginTop: spacing.paddingSmall,
-    paddingHorizontal: spacing.paddingSmall,
-  },
-  searchResultsList: {
-    marginTop: spacing.paddingSmall,
-  },
-  searchResultsTitle: {
-    ...typography.body1,
-    color: colors.textPrimary,
-    marginBottom: spacing.paddingSmall,
-    fontWeight: "600",
-  },
-  searchSuggestionsContainer: {
-    marginBottom: spacing.paddingSmall,
-  },
-  searchSuggestionsTitle: {
-    ...typography.body1,
-    color: colors.textSecondary,
-    marginBottom: spacing.paddingSmall,
-    fontWeight: "600",
-  },
-  searchLoading: {
-    paddingVertical: spacing.paddingSmall,
-    alignItems: 'center',
-  },
-  searchLoadingText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  noSearchResults: {
-    paddingVertical: spacing.paddingSmall,
-    alignItems: 'center',
-  },
-  noSearchResultsText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  categoryRow: {
-    flexDirection: "row",
-    marginBottom: 10,
-    marginHorizontal: 35,
   },
   categoryContainer: {
     marginBottom: spacing.paddingMedium,
@@ -675,11 +338,6 @@ const styles = StyleSheet.create({
   selectedCategoryCard: {
     borderColor: "#4CAF50",
     backgroundColor: "#E8F5E8",
-  },
-  categoryIconWrap: {
-    marginBottom: 7,
-    alignItems: "center",
-    justifyContent: "center",
   },
   categoryIconBg: {
     height: 50,
@@ -711,6 +369,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
+  mapContainer: {
+    flex: 1,
+    height: 400,
+    marginHorizontal: 16,
+    marginBottom: 20,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
   resultInfo: {
     paddingHorizontal: 16,
     paddingBottom: 10,
@@ -719,31 +385,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
-  },
-  mapImageBg: {
-    borderRadius: 6,
-  },
-  mapImageBgWrap: {
-    alignItems: "center",
-    paddingVertical: 137,
-    paddingHorizontal: 16,
-    marginBottom: 25,
-    marginHorizontal: 38,
-  },
-  mapIcon: {
-    borderRadius: 6,
-    width: 24,
-    height: 24,
-    marginBottom: 8,
-  },
-  mapText: {
-    color: "#000000",
-    fontSize: 16,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  noMarginRight: {
-    marginRight: 0,
   },
   reportButton: {
     backgroundColor: "#4CAF50",
@@ -763,47 +404,5 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "bold",
-  },
-  searchResultItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-  },
-  searchResultContent: {
-    flexDirection: "column",
-  },
-  searchResultName: {
-    ...typography.body1,
-    fontWeight: "bold",
-    color: colors.textPrimary,
-  },
-  searchResultAddress: {
-    ...typography.body2,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  searchResultMeta: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 5,
-  },
-  searchResultMatchType: {
-    ...typography.body2,
-    color: colors.textSecondary,
-  },
-  searchResultRelevance: {
-    ...typography.body2,
-    color: colors.textSecondary,
-  },
-  searchSuggestionItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-  },
-  searchSuggestionText: {
-    ...typography.body2,
-    color: colors.textSecondary,
   },
 });

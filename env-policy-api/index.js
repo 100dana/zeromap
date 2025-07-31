@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
@@ -18,7 +19,10 @@ try {
   const policies = JSON.parse(rawData);
   console.log(`✅ ${policies.length}개의 정책 데이터 로딩 완료`);
 
-  app.use(cors());
+  app.use(cors({
+    origin: process.env.CORS_ORIGIN || 'http://localhost:8081',
+    credentials: true
+  }));
 
   // 🔎 정책 목록 조회 + 필터
   app.get("/api/policies", (req, res) => {
@@ -105,7 +109,7 @@ try {
       console.log(`📍 주소 변환 요청: ${address}`);
       
       // 스마트서울맵 OpenAPI 호출
-      const SMART_SEOUL_API_KEY = process.env.SMART_SEOUL_API_KEY || 'YOUR_API_KEY';
+      const SMART_SEOUL_API_KEY = process.env.SMART_SEOUL_API_KEY || 'KEY218_ae66cb26032d46a3a91d570c6e5cf87c';
       const response = await fetch(
         `https://map.seoul.go.kr/smgis2/smap/geocoding?apiKey=${SMART_SEOUL_API_KEY}&format=json&address=${encodeURIComponent(address)}`
       );
@@ -159,7 +163,7 @@ try {
       console.log(`🗺️ 스마트서울맵 데이터 요청: ${category}`);
       
       // 스마트서울맵 OpenAPI 호출
-      const SMART_SEOUL_API_KEY = process.env.SMART_SEOUL_API_KEY || 'YOUR_API_KEY';
+      const SMART_SEOUL_API_KEY = process.env.SMART_SEOUL_API_KEY || 'KEY219_5fef8bdf0db54014960b99eb89c4be07';
       const response = await fetch(
         `https://map.seoul.go.kr/smgis2/smap/contentList?apiKey=${SMART_SEOUL_API_KEY}&format=json&category=${encodeURIComponent(category)}`
       );

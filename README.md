@@ -1,6 +1,32 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# ZeroMap - 제로웨이스트 지도 앱
 
-# Getting Started
+서울시 착한소비 관련 정보를 제공하는 React Native 앱입니다.
+
+## 주요 기능
+
+### 서울시 착한소비 API 연동
+- **[착한소비] 제로웨이스트상점** (ID: 11103395)
+- **[착한소비] 개인 컵 할인 카페** (ID: 1693986134109)
+
+### 카테고리별 장소 검색
+- 🌱 **착한소비**: 모든 착한소비 관련 장소
+- 🛒 **제로웨이스트샵**: 제로웨이스트상점 정보
+- ☕ **개인컵할인카페**: 개인 컵 사용 시 할인 카페
+- 🍽️ **제로식당**: 친환경 식당 및 카페
+- 🔄 **리필스테이션**: 리필 서비스 제공 장소
+- 💧 **리필샵**: 리필 제품 판매 상점
+- 🍽 **식당**: 친환경 식당
+- 🧴 **친환경생필품점**: 친환경 생필품 판매점
+- ⋯ **기타**: 기타 친환경 시설
+
+## 기술 스택
+
+- **React Native** - 모바일 앱 개발
+- **TypeScript** - 타입 안전성
+- **KakaoMap API** - 지도 서비스
+- **서울시 스마트서울맵 OpenAPI** - 착한소비 데이터
+
+## Getting Started
 
 > **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
 
@@ -66,12 +92,37 @@ This is one way to run your app — you can also build it directly from Android 
 
 Now that you have successfully run the app, let's make changes!
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
 
 When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
 
 - **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
 - **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+
+## API 설정
+
+### 서울시 스마트서울맵 OpenAPI
+- **API 키**: `KEY219_5fef8bdf0db54014960b99eb89c4be07`
+- **기본 URL**: `https://map.seoul.go.kr/openapi/v5`
+- **테마 ID**:
+  - 제로웨이스트상점: `11103395`
+  - 개인 컵 할인 카페: `1693986134109`
+
+## 파일 구조
+
+```
+src/
+├── services/
+│   ├── seoulApi.ts          # 서울시 API 서비스
+│   ├── localDataService.ts  # 로컬 데이터 서비스
+│   └── searchService.ts     # 검색 서비스
+├── screens/
+│   ├── MapScreen.tsx        # 지도 화면
+│   └── ...
+└── components/
+    ├── KakaoMap.tsx         # 카카오맵 컴포넌트
+    └── ...
+```
 
 ## Congratulations! :tada:
 

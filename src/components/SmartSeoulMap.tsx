@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { WebView } from 'react-native-webview';
 import { PlaceData } from '../services/seoulApi';
+import { SEOUL_CENTER_COORDS } from '../config/env';
 
 interface SmartSeoulMapProps {
   places?: PlaceData[];
@@ -15,7 +16,7 @@ const SmartSeoulMap: React.FC<SmartSeoulMapProps> = ({
   places = [], 
   onMarkerClick,
   onMapClick,
-  initialCenter = { latitude: 37.5665, longitude: 126.9780 }, // 서울시청
+  initialCenter = SEOUL_CENTER_COORDS, // 서울시청
   initialZoom = 2, // KakaoMap과 동일한 확대 배율로 변경
   opacity = 1 // 기본값은 완전 불투명
 }) => {
