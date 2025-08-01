@@ -1,4 +1,4 @@
-package com.zeromap
+package com.zeromap.zeromap
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
