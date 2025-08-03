@@ -11,11 +11,16 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import BottomTabBar from '../components/BottomTabBar';
+import { colors } from '../styles/colors';
+import { spacing } from '../styles/spacing';
+import { shadows } from '../styles/shadows';
 
 type RootStackParamList = {
   Home: undefined;
   Map: undefined;
   MyPage: undefined;
+  Campaign: undefined;
+  PolicyInfo: undefined;
 };
 
 // 가데이터
@@ -147,8 +152,11 @@ export default function MyPage() {
   };
 
   const handleViewCampaigns = () => {
-    // TODO: 캠페인 목록 화면으로 이동
-    console.log('캠페인 보기');
+    navigation.navigate('Campaign');
+  };
+
+  const handleViewPolicyInfo = () => {
+    navigation.navigate('PolicyInfo');
   };
 
   return (
@@ -159,21 +167,15 @@ export default function MyPage() {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.backButtonText}>←</Text>
+          <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>마이페이지</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity 
-            style={styles.headerIcon}
-            onPress={handleNotifications}
-          >
-            <Text style={styles.headerIconText}>🔔</Text>
+          <TouchableOpacity style={styles.notificationButton}>
+            <Text style={styles.notificationIcon}>🔔</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.headerIcon}
-            onPress={handleSettings}
-          >
-            <Text style={styles.headerIconText}>⚙️</Text>
+          <TouchableOpacity style={styles.settingsButton}>
+            <Text style={styles.settingsIcon}>⚙</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -261,6 +263,28 @@ export default function MyPage() {
             ))}
           </View>
         </View>
+
+        {/* 지역 정책 정보 섹션 */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleContainer}>
+              <Text style={styles.sectionTitle}>지역 정책 정보</Text>
+              <Text style={styles.sectionSubtitle}>Local Policy Information</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.viewMoreButton}
+              onPress={handleViewPolicyInfo}
+            >
+              <Text style={styles.viewMoreText}>View Policy {'>'}</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.policyInfoContainer}>
+            <View style={styles.policyInfoItem}>
+              <Text style={styles.policyIcon}>📋</Text>
+              <Text style={styles.policyText}>서울시 강남구 제로 웨이스트 정책</Text>
+            </View>
+          </View>
+        </View>
       </ScrollView>
       <BottomTabBar currentRoute="MyPage" />
     </SafeAreaView>
@@ -273,14 +297,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.screenPaddingHorizontal,
+    paddingVertical: spacing.paddingMedium,
+    backgroundColor: colors.card,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.divider,
+    ...shadows.header,
   },
   backButton: {
     padding: 8,
@@ -481,5 +506,35 @@ const styles = StyleSheet.create({
   campaignName: {
     fontSize: 14,
     color: "#000000",
+  },
+  policyInfoContainer: {
+    gap: 12,
+  },
+  policyInfoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  policyIcon: {
+    fontSize: 16,
+    marginRight: 12,
+  },
+  policyText: {
+    fontSize: 14,
+    color: "#000000",
+  },
+  notificationButton: {
+    padding: 8,
+    marginLeft: 4,
+  },
+  notificationIcon: {
+    fontSize: 20,
+  },
+  settingsButton: {
+    padding: 8,
+    marginLeft: 4,
+  },
+  settingsIcon: {
+    fontSize: 20,
   },
 }); 

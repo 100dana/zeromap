@@ -13,6 +13,10 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useState } from "react";
 import BottomTabBar from '../components/BottomTabBar';
+import { colors } from '../styles/colors';
+import { spacing } from '../styles/spacing';
+import { shadows } from '../styles/shadows';
+import { typography } from '../styles/typography';
 
 type RootStackParamList = {
   Home: undefined;
@@ -30,31 +34,17 @@ type SettingItem = {
 const settingItems: SettingItem[] = [
   {
     id: 'notifications',
-    title: '알림 설정',
-    subtitle: '푸시 알림을 관리합니다',
+    title: '알람',
+    subtitle: '알림 설정을 관리합니다',
     type: 'toggle',
     icon: '🔔'
   },
   {
-    id: 'privacy',
-    title: '개인정보 보호',
-    subtitle: '개인정보 처리방침',
+    id: 'password',
+    title: '비밀번호 변경',
+    subtitle: '비밀번호를 변경합니다',
     type: 'navigate',
-    icon: '🔒'
-  },
-  {
-    id: 'terms',
-    title: '이용약관',
-    subtitle: '서비스 이용약관',
-    type: 'navigate',
-    icon: '📋'
-  },
-  {
-    id: 'about',
-    title: '앱 정보',
-    subtitle: '버전 1.0.0',
-    type: 'navigate',
-    icon: 'ℹ️'
+    icon: '🔐'
   },
   {
     id: 'logout',
@@ -62,6 +52,13 @@ const settingItems: SettingItem[] = [
     subtitle: '계정에서 로그아웃합니다',
     type: 'action',
     icon: '🚪'
+  },
+  {
+    id: 'delete',
+    title: '계정 삭제하기',
+    subtitle: '계정을 영구적으로 삭제합니다',
+    type: 'action',
+    icon: '❌'
   }
 ];
 
@@ -156,9 +153,9 @@ export default function Settings() {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.backButtonText}>←</Text>
+          <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>설정</Text>
+        <Text style={styles.headerTitle}>환경 설정</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -181,6 +178,29 @@ export default function Settings() {
           <Text style={styles.appInfoSubtext}>친환경 장소 탐색 앱</Text>
         </View>
       </ScrollView>
+
+      {/* 하단 액션 버튼 */}
+      <View style={styles.bottomActionContainer}>
+        <TouchableOpacity 
+          style={styles.resetButton}
+          onPress={() => Alert.alert('초기화', '모든 설정을 기본값으로 초기화하시겠습니까?')}
+        >
+          <Text style={styles.resetButtonText}>설정 초기화</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.saveButton}
+          onPress={() => Alert.alert('저장 완료', '설정이 성공적으로 저장되었습니다.')}
+        >
+          <Text style={styles.saveButtonText}>현재 상태 저장</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Footer */}
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>© 2024 Zero Map. All rights reserved.</Text>
+        <Text style={styles.footerSubtext}>친환경 생활을 위한 지도 서비스</Text>
+      </View>
+      
       <BottomTabBar currentRoute="Settings" />
     </SafeAreaView>
   );
@@ -192,14 +212,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.screenPaddingHorizontal,
+    paddingVertical: spacing.paddingMedium,
+    backgroundColor: colors.card,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.divider,
+    ...shadows.header,
   },
   backButton: {
     padding: 8,
@@ -214,45 +235,49 @@ const styles = StyleSheet.create({
     color: "#000000",
   },
   headerRight: {
-    width: 40,
+    width: 40, // 뒤로가기 버튼과 균형을 맞추기 위한 빈 공간
   },
   scrollView: {
     flex: 1,
+    backgroundColor: colors.background,
+    paddingBottom: 140, // 하단 버튼과 footer 공간 확보
   },
   settingsContainer: {
-    paddingVertical: 8,
+    paddingHorizontal: spacing.screenPaddingHorizontal,
+    paddingVertical: spacing.paddingMedium,
   },
   settingItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
-    backgroundColor: "#FFFFFF",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.paddingMedium,
+    paddingHorizontal: spacing.paddingMedium,
+    backgroundColor: colors.card,
+    borderRadius: spacing.borderRadiusMedium,
+    marginBottom: spacing.paddingSmall,
+    ...shadows.card,
   },
   settingItemLeft: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
   },
   settingIcon: {
-    fontSize: 24,
-    marginRight: 16,
+    fontSize: 20,
+    marginRight: spacing.paddingMedium,
   },
   settingText: {
     flex: 1,
   },
   settingTitle: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#000000",
-    marginBottom: 2,
+    ...typography.body1,
+    color: colors.textPrimary,
+    fontWeight: '600',
   },
   settingSubtitle: {
-    fontSize: 14,
-    color: "#666666",
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
   chevron: {
     fontSize: 18,
@@ -260,17 +285,74 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   appInfo: {
-    padding: 20,
-    alignItems: "center",
+    alignItems: 'center',
+    paddingVertical: spacing.paddingLarge,
+    marginTop: spacing.paddingMedium,
   },
   appInfoText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#000000",
-    marginBottom: 4,
+    ...typography.body1,
+    color: colors.textSecondary,
+    fontWeight: '600',
   },
   appInfoSubtext: {
-    fontSize: 14,
-    color: "#666666",
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  bottomActionContainer: {
+    position: 'absolute',
+    bottom: 60, // Footer 위에 위치
+    left: 0,
+    right: 0,
+    paddingHorizontal: spacing.screenPaddingHorizontal,
+    paddingVertical: spacing.paddingMedium,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+    ...shadows.header,
+  },
+  resetButton: {
+    backgroundColor: colors.textPrimary,
+    borderRadius: spacing.borderRadiusMedium,
+    paddingVertical: spacing.paddingMedium,
+    alignItems: 'center',
+    ...shadows.button,
+  },
+  resetButtonText: {
+    ...typography.body1,
+    color: colors.background,
+    fontWeight: '600',
+  },
+  saveButton: {
+    backgroundColor: colors.primary,
+    borderRadius: spacing.borderRadiusMedium,
+    paddingVertical: spacing.paddingMedium,
+    alignItems: 'center',
+    marginTop: spacing.paddingSmall,
+    ...shadows.button,
+  },
+  saveButtonText: {
+    ...typography.body1,
+    color: colors.background,
+    fontWeight: '600',
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: spacing.screenPaddingHorizontal,
+    paddingVertical: spacing.paddingMedium,
+    backgroundColor: '#F0F0F0',
+    alignItems: 'center',
+  },
+  footerText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  footerSubtext: {
+    ...typography.caption,
+    color: colors.textSecondary,
   },
 }); 

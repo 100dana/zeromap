@@ -13,6 +13,9 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import KakaoMap from '../components/KakaoMap';
+import { colors } from '../styles/colors';
+import { spacing } from '../styles/spacing';
+import { shadows } from '../styles/shadows';
 
 type RootStackParamList = {
   Home: undefined;
@@ -120,15 +123,24 @@ export default function ReportPlace() {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.backButtonText}>←</Text>
+          <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>장소 제보</Text>
-        <View style={styles.headerRight}>
-          <Text style={styles.timeText}>12:30</Text>
-          <View style={styles.statusIcons}>
-            <Text style={styles.statusIcon}>📶</Text>
-            <Text style={styles.statusIcon}>🔋</Text>
-          </View>
+        <Text style={styles.headerTitle}>장소 제보하기</Text>
+        <View style={styles.headerRight} />
+      </View>
+
+      {/* 주소 검색 섹션 */}
+      <View style={styles.searchSection}>
+        <Text style={styles.sectionTitle}>주소 검색</Text>
+        <View style={styles.searchInputContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="주소를 입력하세요..."
+            placeholderTextColor={colors.textSecondary}
+          />
+          <TouchableOpacity style={styles.searchButton}>
+            <Text style={styles.searchAddressButtonText}>🔍</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -156,24 +168,6 @@ export default function ReportPlace() {
             placeholder="주소를 입력하세요"
             placeholderTextColor="#999"
           />
-        </View>
-
-        {/* 주소 검색 */}
-        <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>주소 검색</Text>
-          <View style={styles.addressContainer}>
-            <TextInput
-              style={[styles.textInput, styles.addressInput]}
-              placeholder="주소를 정확히 입력 후 클릭하세요"
-              placeholderTextColor="#999"
-            />
-            <TouchableOpacity
-              style={styles.searchAddressButton}
-              onPress={() => Alert.alert('알림', '주소 검색 기능이 곧 추가됩니다!')}
-            >
-              <Text style={styles.searchAddressButtonText}>🔍</Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
         {/* 지도에서 위치 선택 */}
@@ -267,11 +261,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    paddingHorizontal: spacing.screenPaddingHorizontal,
+    paddingVertical: spacing.paddingMedium,
+    backgroundColor: colors.card,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.divider,
+    ...shadows.header,
   },
   backButton: {
     padding: 8,
@@ -436,5 +431,40 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  searchSection: {
+    marginHorizontal: 16,
+    marginBottom: 20,
+    paddingVertical: 16,
+    backgroundColor: "#F8F8F8",
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  sectionTitle: {
+    color: "#000000",
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 12,
+    paddingHorizontal: 12,
+  },
+  searchInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+  },
+  searchInput: {
+    flex: 1,
+    borderColor: "#0000001A",
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: "#000000",
+    backgroundColor: "#FFFFFF",
+  },
+  searchButton: {
+    padding: 12,
   },
 }); 
