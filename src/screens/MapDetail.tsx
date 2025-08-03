@@ -104,7 +104,7 @@ export default function MapDetail() {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.backButtonText}>←</Text>
+          <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>장소 상세보기</Text>
         <View style={styles.headerRight}>
@@ -152,7 +152,11 @@ export default function MapDetail() {
         <View style={styles.locationSection}>
           <Text style={styles.sectionTitle}>장소 위치</Text>
           <View style={styles.mapContainer}>
-            <KakaoMap />
+            <KakaoMap 
+              centerLat={37.5665} // 실제 장소 위도로 변경 필요
+              centerLng={126.9780} // 실제 장소 경도로 변경 필요
+              zoomLevel={3}
+            />
           </View>
           <Text style={styles.addressText}>{placeData.address}</Text>
         </View>
@@ -326,7 +330,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   mapContainer: {
-    height: 150,
+    height: 250,
     borderRadius: 8,
     overflow: "hidden",
     marginBottom: 8,

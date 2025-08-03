@@ -1,4 +1,4 @@
-package com.zeromap.zeromap
+package com.zeromap
 
 import android.app.Application
 import com.facebook.react.PackageList

@@ -12,6 +12,7 @@ import { shadows } from '../styles/shadows';
 type RootStackParamList = {
   Home: undefined;
   Map: undefined;
+  Campaign: undefined;
 };
 
 type HomeScreenProps = {
@@ -86,7 +87,18 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           accessibilityLabel="지도 화면으로 이동"
         >
           <View style={styles.mapPreviewContainer}>
-            <KakaoMap />
+            <KakaoMap 
+              places={[]} // 빈 배열로 설정 (홈 화면에서는 마커 없음)
+              opacity={0.8} // 80% 투명도 적용
+              onMarkerClick={(place) => {
+                console.log('마커 클릭:', place);
+                // 여기서 상세 페이지로 이동하거나 다른 액션 수행
+              }}
+            />
+            {/* 자세히 보기 오버레이 */}
+            <View style={styles.mapOverlay}>
+              <Text style={styles.mapOverlayText}>자세히 보기</Text>
+            </View>
           </View>
         </TouchableOpacity>
         <Text style={styles.recommendTitle}>{"추천 : 신규 등록 제로웨이스트 샵"}</Text>
@@ -100,6 +112,18 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               //런타임에 오류없는, 타입 체크 오류 무시
             />
           ))}
+        </View>
+        
+        {/* 캠페인 섹션 */}
+        <View style={styles.campaignSection}>
+          <Text style={styles.campaignTitle}>{"진행 중인 캠페인"}</Text>
+          <TouchableOpacity
+            style={styles.campaignButton}
+            onPress={() => navigation.navigate('Campaign')}
+            accessibilityLabel="캠페인 화면으로 이동"
+          >
+            <Text style={styles.campaignButtonText}>캠페인 보기</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
       <BottomTabBar currentRoute="Home" />
@@ -145,6 +169,7 @@ const styles = StyleSheet.create({
     borderRadius: spacing.borderRadiusLarge,
     overflow: 'hidden',
     backgroundColor: colors.surface,
+    position: 'relative', // 오버레이를 위한 상대 위치 설정
   },
   locationImageBg: {
     borderRadius: 6,
@@ -247,5 +272,54 @@ const styles = StyleSheet.create({
   },
   noMarginRight: {
     marginRight: 0,
+  },
+  campaignSection: {
+    backgroundColor: colors.card,
+    marginHorizontal: spacing.screenPaddingHorizontal,
+    marginBottom: spacing.elementSpacing,
+    paddingVertical: spacing.paddingLarge,
+    paddingHorizontal: spacing.paddingLarge,
+    borderRadius: spacing.borderRadiusLarge,
+    ...shadows.card,
+  },
+  campaignTitle: {
+    ...typography.h3,
+    textAlign: "center",
+    marginBottom: spacing.paddingMedium,
+  },
+  campaignButton: {
+    backgroundColor: colors.primary,
+    borderRadius: spacing.borderRadiusMedium,
+    paddingVertical: spacing.paddingMedium,
+    alignItems: "center",
+  },
+  campaignButtonText: {
+    ...typography.body1,
+    color: colors.background,
+    fontWeight: "600",
+  },
+  mapOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.1)', // 배경 오버레이 (매우 연한)
+  },
+  mapOverlayText: {
+    ...typography.body1,
+    color: colors.primary,
+    fontWeight: 'bold',
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: spacing.borderRadiusSmall,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
 });
