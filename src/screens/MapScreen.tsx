@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { SafeAreaView, View, ScrollView, Image, Text, TouchableOpacity, ImageBackground, StyleSheet, Alert, TextInput, FlatList, Modal } from "react-native";
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
-import KakaoMap from '../components/KakaoMap';
+import KakaoMap, { KakaoMapRef } from '../components/KakaoMap';
 import { SeoulApiService, PlaceData } from '../services/seoulApi';
 import { LocalDataService, LocalPlaceData } from '../services/localDataService';
 import { SearchService, SearchResult } from '../services/searchService';
@@ -125,12 +125,13 @@ function CategoryCard({ icon, label, iconBgMargin, textMargin, type, color, desc
 type RootStackParamList = {
   Home: undefined;
   Map: undefined;
-  MapDetail: undefined;
   ReportPlace: undefined;
+  WriteReview: undefined;
 };
 
 export default function MapScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Map'>>();
+  const mapRef = useRef<KakaoMapRef>(null);
   
   // 상태 관리
   const [selectedCategory, setSelectedCategory] = useState('zeroWaste');
@@ -242,14 +243,33 @@ export default function MapScreen() {
           localData = [];
       }
       
-      setPlaces(apiData);
-      setLocalPlaces(localData);
+      console.log(`카테고리 "${category}" 데이터 로드 완료:`);
+      console.log(`- API 데이터: ${apiData.length}개`);
+      console.log(`- 로컬 데이터: ${localData.length}개`);
+      console.log(`- 총 데이터: ${apiData.length + localData.length}개`);
       
-      const totalData = [...apiData, ...localData];
+      // 좌표 데이터 검증
+      const validApiData = apiData.filter(place => 
+        place.latitude && place.longitude && 
+        place.latitude !== 0 && place.longitude !== 0
+      );
+      const validLocalData = localData.filter(place => 
+        place.latitude && place.longitude && 
+        place.latitude !== 0 && place.longitude !== 0
+      );
+      
+      console.log(`- 유효한 API 데이터: ${validApiData.length}개`);
+      console.log(`- 유효한 로컬 데이터: ${validLocalData.length}개`);
+      
+      setPlaces(validApiData);
+      setLocalPlaces(validLocalData);
+      
+      const totalData = [...validApiData, ...validLocalData];
       if (totalData.length === 0) {
         Alert.alert('알림', '해당 카테고리의 데이터가 없습니다.');
       }
     } catch (error) {
+      console.error('데이터 로드 오류:', error);
       Alert.alert(
         '오류', 
         '데이터를 불러오는데 실패했습니다.\n\nAPI 키와 엔드포인트를 확인해주세요.',
@@ -309,7 +329,17 @@ export default function MapScreen() {
     setShowSearchResults(false);
     setSearchQuery(result.place.name);
     
-    // 선택된 장소로 지도 이동 (KakaoMap 컴포넌트에서 처리)
+    // 선택된 장소로 지도 이동 (지도뷰일 때만)
+    if (viewMode === 'map' && mapRef.current) {
+      // 지도 이동 후 마커 강조를 위한 지연
+      mapRef.current.moveToLocation(result.place.latitude, result.place.longitude, 2);
+      
+      // 마커 강조를 위한 약간의 지연
+      setTimeout(() => {
+        mapRef.current?.highlightMarker(result.place.id);
+      }, 500);
+    }
+    
     handleMarkerClick(result.place);
   };
 
@@ -336,15 +366,6 @@ export default function MapScreen() {
       <View style={styles.searchResultContent}>
         <Text style={styles.searchResultName}>{result.place.name}</Text>
         <Text style={styles.searchResultAddress}>{result.place.address}</Text>
-        <View style={styles.searchResultMeta}>
-          <Text style={styles.searchResultMatchType}>
-            {result.matchType === 'exact' ? '정확한 매치' : 
-             result.matchType === 'partial' ? '부분 매치' : '유사한 매치'}
-          </Text>
-          <Text style={styles.searchResultRelevance}>
-            {Math.round(result.relevance * 100)}% 일치
-          </Text>
-        </View>
       </View>
     </TouchableOpacity>
   );
@@ -362,9 +383,6 @@ export default function MapScreen() {
   // 커스텀 모달 컴포넌트
   const PlaceDetailModal = () => {
     if (!selectedPlace) return null;
-    
-    const isLocalData = 'additionalInfo' in selectedPlace;
-    const source = isLocalData ? '로컬 데이터' : '서울시 API';
     
     // 카테고리별 설명 추가
     let categoryDescription = '';
@@ -418,50 +436,30 @@ export default function MapScreen() {
               {/* 설명 */}
               {selectedPlace.description && (
                 <View style={styles.infoSection}>
-                  <Text style={styles.infoLabel}>📝 설명</Text>
+                  <Text style={styles.infoLabel}>📝 장소 설명</Text>
                   <Text style={styles.infoValue}>{selectedPlace.description}</Text>
-                </View>
-              )}
-              
-              {/* 좌표 (개인 컵 할인 카페가 아닐 때만 표시) */}
-              {selectedCategory !== 'cupDiscountCafe' && (
-                <View style={styles.infoSection}>
-                  <Text style={styles.infoLabel}>📍 좌표</Text>
-                  <Text style={styles.infoValue}>
-                    {selectedPlace.latitude.toFixed(6)}, {selectedPlace.longitude.toFixed(6)}
-                  </Text>
-                </View>
-              )}
-              
-              {/* 데이터 출처 (개인 컵 할인 카페가 아닐 때만 표시) */}
-              {selectedCategory !== 'cupDiscountCafe' && (
-                <View style={styles.infoSection}>
-                  <Text style={styles.infoLabel}>📊 데이터 출처</Text>
-                  <Text style={styles.infoValue}>{source}</Text>
                 </View>
               )}
             </ScrollView>
             
-            {/* 액션 버튼 (개인 컵 할인 카페가 아닐 때만 표시) */}
-            {selectedCategory !== 'cupDiscountCafe' && (
-              <View style={styles.modalActions}>
-                <TouchableOpacity
-                  style={styles.modalButton}
-                  onPress={() => setShowPlaceModal(false)}
-                >
-                  <Text style={styles.modalButtonText}>닫기</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.primaryButton]}
-                  onPress={() => {
-                    setShowPlaceModal(false);
-                    navigation.navigate('MapDetail');
-                  }}
-                >
-                  <Text style={[styles.modalButtonText, styles.primaryButtonText]}>상세보기</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+            {/* 액션 버튼 */}
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => setShowPlaceModal(false)}
+              >
+                <Text style={styles.modalButtonText}>닫기</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.primaryButton]}
+                onPress={() => {
+                  setShowPlaceModal(false);
+                  navigation.navigate('WriteReview');
+                }}
+              >
+                <Text style={[styles.modalButtonText, styles.primaryButtonText]}>리뷰쓰기</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -470,9 +468,6 @@ export default function MapScreen() {
 
   // 리스트 아이템 컴포넌트
   const PlaceListItem = ({ place, index }: { place: PlaceData | LocalPlaceData; index: number }) => {
-    const isLocalData = 'additionalInfo' in place;
-    const source = isLocalData ? '로컬 데이터' : '서울시 API';
-    
     // 거리 계산
     const distance = calculateDistance(
       CURRENT_LOCATION.latitude,
@@ -480,22 +475,6 @@ export default function MapScreen() {
       place.latitude,
       place.longitude
     );
-    
-    // 카테고리별 설명 추가
-    let categoryDescription = '';
-    switch (selectedCategory) {
-      case 'zeroWaste':
-        categoryDescription = '제로웨이스트 상점';
-        break;
-      case 'cupDiscountCafe':
-        categoryDescription = '개인 컵 할인 카페';
-        break;
-      case 'zeroRestaurant':
-        categoryDescription = '제로식당';
-        break;
-      default:
-        categoryDescription = '친환경 시설';
-    }
     
     return (
       <TouchableOpacity
@@ -511,13 +490,11 @@ export default function MapScreen() {
           </View>
           <View style={styles.placeListItemContent}>
             <Text style={styles.placeListItemName}>{place.name}</Text>
-            <Text style={styles.placeListItemCategory}>{categoryDescription}</Text>
           </View>
           <View style={styles.placeListItemMeta}>
             <Text style={styles.placeListItemDistance}>
               {distance < 1 ? `${(distance * 1000).toFixed(0)}m` : `${distance.toFixed(1)}km`}
             </Text>
-            <Text style={styles.placeListItemSource}>{source}</Text>
           </View>
         </View>
         
@@ -536,13 +513,38 @@ export default function MapScreen() {
     );
   };
 
+  // 현재 표시할 장소 데이터 (검색 중일 때는 검색 결과만, 아니면 전체)
+  const getDisplayPlaces = (): (PlaceData | LocalPlaceData)[] => {
+    if (showSearchResults && searchQuery.trim()) {
+      return searchResults.map(result => result.place);
+    }
+    return getSortedPlaces(); // 정렬된 데이터 반환
+  };
+
   // 화면 로드 시 기본 데이터 로드
   useEffect(() => {
     loadPlaces(selectedCategory);
   }, []); // 컴포넌트 마운트 시 한 번만 실행
 
+  // 검색 상태가 변경될 때마다 지도 마커 업데이트
+  useEffect(() => {
+    if (viewMode === 'map' && mapRef.current) {
+      // 검색 결과가 있으면 해당 위치로 이동
+      if (showSearchResults && searchResults.length > 0) {
+        const firstResult = searchResults[0];
+        mapRef.current.moveToLocation(firstResult.place.latitude, firstResult.place.longitude, 2);
+        
+        // 마커 강조를 위한 약간의 지연
+        setTimeout(() => {
+          mapRef.current?.highlightMarker(firstResult.place.id);
+        }, 500);
+      }
+    }
+  }, [searchResults, showSearchResults, viewMode]);
+
   // 모든 장소 데이터 (API + 로컬)
   const allPlaces = [...places, ...localPlaces];
+  const displayPlaces = getDisplayPlaces();
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -684,13 +686,14 @@ export default function MapScreen() {
           {/* 메인 컨텐츠 */}
           <View style={styles.mainContent}>
             {viewMode === 'map' ? (
-              // 지도 뷰
+              // 지도 뷰 - 검색 결과가 있으면 검색 결과만, 없으면 전체 표시
               <KakaoMap
-                places={places}
+                ref={mapRef}
+                places={displayPlaces}
                 onMarkerClick={handleMarkerClick}
               />
             ) : (
-              // 리스트 뷰
+              // 리스트 뷰 - 검색 결과가 있으면 검색 결과만, 없으면 전체 표시
               <ScrollView 
                 style={styles.listContainer}
                 showsVerticalScrollIndicator={false}
@@ -700,15 +703,15 @@ export default function MapScreen() {
                   <View style={styles.loadingContainer}>
                     <Text style={styles.loadingText}>데이터를 불러오는 중...</Text>
                   </View>
-                ) : allPlaces.length > 0 ? (
+                ) : displayPlaces.length > 0 ? (
                   <>
                     <View style={styles.listHeader}>
                       <Text style={styles.listHeaderTitle}>
                         {showSearchResults ? '검색 결과' : categories.find(cat => cat.type === selectedCategory)?.label} 
-                        ({showSearchResults ? searchResults.length : allPlaces.length}곳)
+                        ({displayPlaces.length}곳)
                       </Text>
                     </View>
-                    {(showSearchResults ? searchResults.map(result => result.place) : getSortedPlaces()).map((place, index) => (
+                    {displayPlaces.map((place, index) => (
                       <PlaceListItem key={`${place.id}-${index}`} place={place} index={index} />
                     ))}
                   </>
@@ -820,7 +823,8 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     marginHorizontal: spacing.screenPaddingHorizontal,
-    marginBottom: spacing.paddingMedium,
+    marginTop: 8,
+    marginBottom: 4,
     paddingHorizontal: spacing.paddingMedium,
     paddingVertical: spacing.paddingSmall,
     backgroundColor: colors.surface,
@@ -896,8 +900,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 35,
   },
   categoryContainer: {
-    marginBottom: spacing.paddingMedium,
+    marginTop: 8,
+    marginBottom: 12,
     marginHorizontal: spacing.screenPaddingHorizontal,
+    alignItems: 'center',
   },
   categoryTitle: {
     ...typography.h4,
@@ -1024,19 +1030,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
-  searchResultMeta: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 5,
-  },
-  searchResultMatchType: {
-    ...typography.body2,
-    color: colors.textSecondary,
-  },
-  searchResultRelevance: {
-    ...typography.body2,
-    color: colors.textSecondary,
-  },
   searchSuggestionItem: {
     paddingVertical: 10,
     paddingHorizontal: 15,
@@ -1088,7 +1081,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   categoryBadge: {
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.primary,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -1097,7 +1090,7 @@ const styles = StyleSheet.create({
   },
   categoryBadgeText: {
     ...typography.body2,
-    color: colors.primaryDark,
+    color: colors.background,
     fontWeight: '600',
   },
   infoSection: {
@@ -1145,8 +1138,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 16,
+    marginTop: 8,
+    marginBottom: 12,
     backgroundColor: colors.surface,
     borderRadius: 8,
     borderColor: colors.divider,
@@ -1230,10 +1223,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 4,
   },
-  placeListItemSource: {
-    ...typography.body2,
-    color: colors.textSecondary,
-  },
   placeListItemAddress: {
     ...typography.body1,
     color: colors.textPrimary,
@@ -1257,6 +1246,7 @@ const styles = StyleSheet.create({
   mainContent: {
     flex: 1,
     marginHorizontal: 16,
+    marginTop: 8,
     marginBottom: 20,
     borderRadius: 6,
     overflow: 'hidden',
