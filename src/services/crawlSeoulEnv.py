@@ -1,4 +1,5 @@
 import os
+import re
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
@@ -7,7 +8,7 @@ from firebase_admin import credentials, storage
 import time
 
 #firebase 초기화
-cred = credentials.Certificate("../../firebase_config.json")
+cred = credentials.Certificate("firebase_config.json")
 firebase_admin.initialize_app(cred, {
     'storageBucket': 'zeromap-8b449.firebasestorage.app'
 })
@@ -16,7 +17,7 @@ bucket = storage.bucket()
 # 페이지 범위 설정
 start_page = 1
 end_page = 1
-base_domain = "https://news.seoul.go.kr"
+base_domain = "https://news.seoul.go.kr/env/news-all"
 
 uploaded_files = set()
 
@@ -79,8 +80,9 @@ def crawl_article_content(article_url):
         article_images = 0
         article_pdfs = 0
 
-        # 게시물 ID 추출 (URL 맨 끝 숫자 부분)
-        article_id = article_url.rstrip('/').split('/')[-1]
+        # 게시물 ID 추출. 정규표현식 사용해 숫자만 추출
+        article_id_match = re.search(r'/archives/(\d+)', article_url)
+        article_id = article_id_match.group(1) if article_id_match else 'unknown'
         
         # 모든 이미지 찾기
         for idx, img_tag in enumerate(soup.find_all('img')):
@@ -90,9 +92,12 @@ def crawl_article_content(article_url):
                 
                 if (full_url.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')) and 
                     is_news_image(full_url)):
+                    print(f"    이미지 발견: {full_url}")
                     result = upload_firebase(full_url, 'images', article_id=article_id, index = idx+1)
                     if result:
                         article_images += 1
+                    else:
+                        print(f"    업로드 실패: {full_url}")
         
         # 모든 PDF 링크 찾기
         for a_tag in soup.find_all('a', href=True):
@@ -113,7 +118,7 @@ total_images = 0
 total_pdfs = 0
 
 for page_num in range(start_page, end_page + 1):
-    page_url = f"{base_domain}/env/news-all/page/{page_num}"
+    page_url = f"{base_domain}/page/{page_num}"
     print(f"\n=== 페이지 {page_num} 크롤링 중: {page_url} ===")
 
     try:
