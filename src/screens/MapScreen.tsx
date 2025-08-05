@@ -242,14 +242,33 @@ export default function MapScreen() {
           localData = [];
       }
       
-      setPlaces(apiData);
-      setLocalPlaces(localData);
+      console.log(`카테고리 "${category}" 데이터 로드 완료:`);
+      console.log(`- API 데이터: ${apiData.length}개`);
+      console.log(`- 로컬 데이터: ${localData.length}개`);
+      console.log(`- 총 데이터: ${apiData.length + localData.length}개`);
       
-      const totalData = [...apiData, ...localData];
+      // 좌표 데이터 검증
+      const validApiData = apiData.filter(place => 
+        place.latitude && place.longitude && 
+        place.latitude !== 0 && place.longitude !== 0
+      );
+      const validLocalData = localData.filter(place => 
+        place.latitude && place.longitude && 
+        place.latitude !== 0 && place.longitude !== 0
+      );
+      
+      console.log(`- 유효한 API 데이터: ${validApiData.length}개`);
+      console.log(`- 유효한 로컬 데이터: ${validLocalData.length}개`);
+      
+      setPlaces(validApiData);
+      setLocalPlaces(validLocalData);
+      
+      const totalData = [...validApiData, ...validLocalData];
       if (totalData.length === 0) {
         Alert.alert('알림', '해당 카테고리의 데이터가 없습니다.');
       }
     } catch (error) {
+      console.error('데이터 로드 오류:', error);
       Alert.alert(
         '오류', 
         '데이터를 불러오는데 실패했습니다.\n\nAPI 키와 엔드포인트를 확인해주세요.',
@@ -686,7 +705,7 @@ export default function MapScreen() {
             {viewMode === 'map' ? (
               // 지도 뷰
               <KakaoMap
-                places={places}
+                places={[...places, ...localPlaces]} // API + 로컬 데이터 모두 전달
                 onMarkerClick={handleMarkerClick}
               />
             ) : (

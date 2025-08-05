@@ -153,9 +153,9 @@ export default function MapDetail() {
           <Text style={styles.sectionTitle}>장소 위치</Text>
           <View style={styles.mapContainer}>
             <KakaoMap 
-              centerLat={37.5665} // 실제 장소 위도로 변경 필요
-              centerLng={126.9780} // 실제 장소 경도로 변경 필요
-              zoomLevel={3}
+              centerLat={37.5665} // 서울시청 위도
+              centerLng={126.9780} // 서울시청 경도
+              zoomLevel={8}
             />
           </View>
           <Text style={styles.addressText}>{placeData.address}</Text>
