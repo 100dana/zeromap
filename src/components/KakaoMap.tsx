@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useImperativeHandle, forwardRef } from 'react';
 import { WebView } from 'react-native-webview';
 import { PlaceData } from '../services/seoulApi';
 
@@ -13,17 +13,105 @@ interface KakaoMapProps {
   zoomLevel?: number;
 }
 
-const KakaoMap: React.FC<KakaoMapProps> = ({ 
+export interface KakaoMapRef {
+  moveToLocation: (lat: number, lng: number, zoom?: number) => void;
+  highlightMarker: (placeId: string) => void;
+}
+
+const KakaoMap = forwardRef<KakaoMapRef, KakaoMapProps>(({ 
   places = [], 
   onMarkerClick, 
   opacity = 1,
   centerLat = 37.5665,
   centerLng = 126.9780,
-  zoomLevel = 7
-}) => {
+  zoomLevel = 4
+}, ref) => {
   const webViewRef = useRef<WebView>(null);
   const [webViewLoaded, setWebViewLoaded] = useState(false);
   const [mapInitialized, setMapInitialized] = useState(false);
+
+  // 지도 이동 함수
+  const moveToLocation = (lat: number, lng: number, zoom?: number) => {
+    if (!webViewLoaded || !mapInitialized) {
+      return;
+    }
+
+    const moveScript = `
+      (function() {
+        try {
+          if (typeof window.map === 'undefined' || !window.map) {
+            return;
+          }
+          
+          var newPosition = new kakao.maps.LatLng(${lat}, ${lng});
+          window.map.setCenter(newPosition);
+          
+          if (${zoom !== undefined}) {
+            window.map.setLevel(${zoom});
+          }
+          
+          // 부드러운 애니메이션을 위한 패닝
+          var pan = new kakao.maps.Pan();
+          window.map.panTo(newPosition);
+          
+        } catch (error) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'moveError',
+            error: error.message
+          }));
+        }
+      })();
+    `;
+    
+    webViewRef.current?.injectJavaScript(moveScript);
+  };
+
+  // 마커 강조 표시 함수
+  const highlightMarker = (placeId: string) => {
+    if (!webViewLoaded || !mapInitialized) {
+      return;
+    }
+
+    const highlightScript = `
+      (function() {
+        try {
+          if (typeof window.map === 'undefined' || !window.map) {
+            return;
+          }
+          
+          // 모든 마커의 스타일을 기본으로 복원
+          window.markers.forEach(function(marker) {
+            if (marker && typeof marker.setZIndex === 'function') {
+              marker.setZIndex(1);
+            }
+          });
+          
+          // 선택된 마커 강조
+          window.markers.forEach(function(marker, index) {
+            if (window.allMarkersData[index] && window.allMarkersData[index].id === '${placeId}') {
+              if (marker && typeof marker.setZIndex === 'function') {
+                marker.setZIndex(1000);
+              }
+            }
+          });
+          
+        } catch (error) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'highlightError',
+            error: error.message
+          }));
+        }
+      })();
+    `;
+    
+    webViewRef.current?.injectJavaScript(highlightScript);
+  };
+
+  // ref를 통해 외부에서 함수 호출 가능하도록 설정
+  useImperativeHandle(ref, () => ({
+    moveToLocation,
+    highlightMarker
+  }));
 
   // 마커 데이터를 JavaScript로 전달하는 함수
   const addMarkers = (markers: PlaceData[]) => {
@@ -327,6 +415,6 @@ const KakaoMap: React.FC<KakaoMapProps> = ({
       mediaPlaybackRequiresUserAction={false}
     />
   );
-};
+});
 
 export default KakaoMap; 
