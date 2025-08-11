@@ -20,7 +20,7 @@ import { CampaignData, getCampaignList } from '../services/newsService';
 type RootStackParamList = {
   Home: undefined;
   Campaign: undefined;
-  CampaignDetail: { article_id: string; title?: string };
+  CampaignDetail: { articleId: string; title?: string };
 };
 
 type CampaignNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Campaign'>;
@@ -31,7 +31,7 @@ function CampaignListItem({ campaign }: { campaign: CampaignData }) {
   return (
     <TouchableOpacity
       style={styles.listItem}
-      onPress={() => navigation.navigate('CampaignDetail', { article_id: campaign.id, title: campaign.title })}
+      onPress={() => navigation.navigate('CampaignDetail', { articleId: campaign.id, title: campaign.title })}
     >
       <Image source={{ uri: campaign.thumbnail }} style={styles.listItemThumbnail} resizeMode="cover" />
       <View style={styles.listItemContent}>

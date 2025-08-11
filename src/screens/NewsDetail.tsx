@@ -16,6 +16,7 @@ import { typography } from '../styles/typography';
 import { spacing } from '../styles/spacing';
 import { shadows } from '../styles/shadows';
 import { getCampaignFromFirebase } from '../services/newsService';
+import { firestore } from '../services/firebaseConfig';
 
 type RootStackParamList = {
   Campaign: undefined;
@@ -92,8 +93,6 @@ export default function CampaignDetail() {
           
           // Firestore에서 실제 제목 가져오기
           try {
-            // @ts-ignore
-            const firestore = require('@react-native-firebase/firestore');
             console.log(`[NewsDetail] Firestore 조회 시도: articleId = ${articleId}`);
             
             if (firestore && typeof firestore === 'function') {

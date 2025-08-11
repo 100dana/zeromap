@@ -6,6 +6,20 @@ from urllib.parse import urljoin, urlparse
 import firebase_admin
 from firebase_admin import credentials, storage, firestore
 import time
+from google.cloud import secretmanager
+import json
+
+PROJECT_ID = "zeromap-8b449"
+SECRET_NAME = "firebase-service-account"
+
+def get_service_account_from_secret():
+    client = secretmanager.SecretManagerServiceClient()
+    name = f"projects/zeromap-8b449/secrets/firebase-service-account/versions/latest"
+    response = client.access_secret_version(request={"name": name})
+    secret_data = response.payload.data.decode("UTF-8")
+    return json.loads(secret_data)
+
+service_account_info = get_service_account_from_secret()
 
 #firebase 초기화
 cred = credentials.Certificate("firebase_config.json")
@@ -23,7 +37,7 @@ base_domain = "https://news.seoul.go.kr/env/news-all"
 
 uploaded_files = set()
 
-def upload_firebase(url, file_type, article_id =None, index=None):
+def upload_firebase(url, file_type, articleId =None, index=None):
     try:
         response = requests.get(url)
         if response.status_code == 200:
@@ -37,12 +51,12 @@ def upload_firebase(url, file_type, article_id =None, index=None):
 
 
             # 중복 체크
-            unique_key = f"{article_id}/{filename}" if article_id else filename
+            unique_key = f"{articleId}/{filename}" if articleId else filename
             if unique_key in uploaded_files:
                 print(f"중복 파일 스킵: {unique_key}")
                 return None
             
-            firebase_path = f"{file_type}/{article_id}/{filename}" if article_id else f"{file_type}/{filename}"
+            firebase_path = f"{file_type}/{articleId}/{filename}" if articleId else f"{file_type}/{filename}"
             blob = bucket.blob(firebase_path)
             blob.upload_from_string(response.content, content_type=response.headers.get('Content-Type'))
 
@@ -82,13 +96,13 @@ def crawl_article_content(article_url, article_title):
         article_pdfs = 0
 
         # 게시물 ID 추출. 정규표현식 사용해 숫자만 추출
-        article_id_match = re.search(r'/archives/(\d+)', article_url)
-        article_id = article_id_match.group(1) if article_id_match else 'unknown'
+        articleId_match = re.search(r'/archives/(\d+)', article_url)
+        articleId = articleId_match.group(1) if articleId_match else 'unknown'
         
         # 게시물 제목 추출하여 DB에 업로드
         clean_title = article_title or '제목 없음'
         
-        db.collection('articles').document(article_id).set({
+        db.collection('articles').document(articleId).set({
             'title': clean_title,
             'url': article_url
         })
@@ -103,7 +117,7 @@ def crawl_article_content(article_url, article_title):
                 if (full_url.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')) and 
                     is_news_image(full_url)):
                     print(f"    이미지 발견: {full_url}")
-                    result = upload_firebase(full_url, 'images', article_id=article_id, index = idx+1)
+                    result = upload_firebase(full_url, 'images', articleId=articleId, index = idx+1)
                     if result:
                         article_images += 1
                     else:
@@ -114,7 +128,7 @@ def crawl_article_content(article_url, article_title):
             href = a_tag['href']
             full_url = urljoin(article_url, href)
             if full_url.lower().endswith('.pdf'):
-                result = upload_firebase(full_url, 'pdfs', article_id=article_id)
+                result = upload_firebase(full_url, 'pdfs', articleId=articleId)
                 if result:
                     article_pdfs += 1
         

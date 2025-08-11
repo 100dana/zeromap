@@ -1,6 +1,7 @@
 // Firebase 설정이 완료되기 전까지 더미 데이터 사용
 // @ts-ignore
 import storage from '@react-native-firebase/storage';
+import { firestore } from './firebaseConfig';
 
 export interface CampaignData {
   id: string;
@@ -17,7 +18,7 @@ export interface CampaignData {
 export interface FirebaseImageData {
   name: string;
   url: string;
-  article_id: string;
+  articleId: string;
 }
 
 // 더미 캠페인 데이터 (실제 이미지 URL 포함)
@@ -113,9 +114,9 @@ const dummyCampaignData: CampaignData[] = [
 ];
 
 // Firebase Storage에서 특정 게시물(articleId)의 이미지 URL들 가져오기
-export const getCampaignFromFirebase = async (article_id: string): Promise<string[]> => {
+export const getCampaignFromFirebase = async (articleId: string): Promise<string[]> => {
   try {
-    const folderRef = storage().ref(`images/${article_id}`);
+    const folderRef = storage().ref(`images/${articleId}`);
     const result = await folderRef.listAll();
 
     const imageUrls = await Promise.all(
@@ -128,7 +129,7 @@ export const getCampaignFromFirebase = async (article_id: string): Promise<strin
     return imageUrls;
   } catch (error) {
     console.error('Firebase에서 캠페인 이미지 가져오기 실패:', error);
-    const fallback = dummyCampaignData.find((c) => c.id === article_id)?.images ?? [];
+    const fallback = dummyCampaignData.find((c) => c.id === articleId)?.images ?? [];
     return fallback;
   }
 };
@@ -142,26 +143,24 @@ export const getCampaignList = async (): Promise<CampaignData[]> => {
     // prefixes: 하위 폴더들 (articleId)
     const campaigns = await Promise.all(
       listResult.prefixes.map(async (prefixRef: any) => {
-        const article_id = prefixRef.name; // 폴더명 = article_id
+        const articleId = prefixRef.name; // 폴더명 = articleId
         
         // Firestore에서 실제 제목 가져오기
-        let actualTitle = `게시물 ${article_id}`;
+        let actualTitle = `게시물 ${articleId}`;
         try {
-          // @ts-ignore
-          const firestore = require('@react-native-firebase/firestore');
           if (firestore && typeof firestore === 'function') {
-            console.log(`[newsService] Firestore에서 제목 조회 시도: article_id = ${article_id}`);
+            console.log(`[newsService] Firestore에서 제목 조회 시도: articleId = ${articleId}`);
             const firestoreInstance = firestore();
             if (firestoreInstance && firestoreInstance.collection) {
-              const articleDoc = await firestoreInstance.collection('articles').doc(article_id).get();
+              const articleDoc = await firestoreInstance.collection('articles').doc(articleId).get();
               console.log(`[newsService] Firestore 문서 존재 여부: ${articleDoc.exists}`);
               if (articleDoc.exists) {
                 const data = articleDoc.data();
                 console.log(`[newsService] Firestore 문서 데이터:`, data);
-                actualTitle = data?.title || `게시물 ${article_id}`;
+                actualTitle = data?.title || `게시물 ${articleId}`;
                 console.log(`[newsService] 최종 제목: ${actualTitle}`);
               } else {
-                console.log(`[newsService] Firestore 문서가 존재하지 않음: ${article_id}`);
+                console.log(`[newsService] Firestore 문서가 존재하지 않음: ${articleId}`);
               }
             } else {
               console.log(`[newsService] Firestore 인스턴스가 올바르지 않음`);
@@ -170,9 +169,9 @@ export const getCampaignList = async (): Promise<CampaignData[]> => {
             console.log(`[newsService] Firestore가 초기화되지 않음`);
           }
         } catch (error) {
-          console.log(`[newsService] Firestore에서 제목 가져오기 실패 (${article_id}):`, error);
-          // Firestore 에러 시 기본 제목 사용
-          actualTitle = `게시물 ${article_id}`;
+          console.log(`[newsService] Firestore에서 제목 가져오기 실패 (${articleId}):`, error);
+          // 권한 문제 시 임시로 더미 제목 사용
+          actualTitle = `서울시 환경뉴스 - ${articleId}`;
         }
         
         const items = await prefixRef.listAll();
@@ -184,9 +183,9 @@ export const getCampaignList = async (): Promise<CampaignData[]> => {
             thumbnail = '';
           }
         }
-        const fallbackThumb = `https://picsum.photos/300/200?random=${encodeURIComponent(article_id)}`;
+        const fallbackThumb = `https://picsum.photos/300/200?random=${encodeURIComponent(articleId)}`;
         return {
-          id: article_id,
+          id: articleId,
           title: actualTitle,
           subtitle: `제목: ${actualTitle}`,
           thumbnail: thumbnail || fallbackThumb,
