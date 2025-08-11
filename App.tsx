@@ -14,8 +14,8 @@ import ReportPlace from "./src/screens/ReportPlace";
 import WriteReview from "./src/screens/WriteReview";
 import MyPage from "./src/screens/MyPage";
 import Settings from "./src/screens/Settings";
-import Campaign from "./src/screens/Campaign";
-import CampaignDetail from "./src/screens/CampaignDetail";
+import Campaign from "./src/screens/News";
+import CampaignDetail from "./src/screens/NewsDetail";
 import PolicyInfo from "./src/screens/PolicyInfo";
 
 const Stack = createNativeStackNavigator();

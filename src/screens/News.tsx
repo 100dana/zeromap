@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Image,
   StyleSheet,
   SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -14,90 +15,55 @@ import { colors } from '../styles/colors';
 import { typography } from '../styles/typography';
 import { spacing } from '../styles/spacing';
 import { shadows } from '../styles/shadows';
+import { CampaignData, getCampaignList } from '../services/newsService';
 
 type RootStackParamList = {
   Home: undefined;
   Campaign: undefined;
-  CampaignDetail: undefined;
+  CampaignDetail: { articleId: string; title?: string };
 };
 
 type CampaignNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Campaign'>;
 
-// 더미 캠페인 데이터
-const campaignData = [
-  {
-    id: 1,
-    region: '지역 A',
-    title: '환경 보호 캠페인',
-    date: '2023년 10월 1일...',
-    thumbnail: 'https://via.placeholder.com/150x100/4CAF50/FFFFFF?text=Campaign+1',
-  },
-  {
-    id: 2,
-    region: '지역 B',
-    title: '지역 복원 캠페인',
-    date: '2023년 9월 15일...',
-    thumbnail: 'https://via.placeholder.com/150x100/81C784/FFFFFF?text=Campaign+2',
-  },
-  {
-    id: 3,
-    region: '지역 C',
-    title: '건강 증진 캠페인',
-    date: '2023년 7월 10일...',
-    thumbnail: 'https://via.placeholder.com/150x100/A5D6A7/FFFFFF?text=Campaign+3',
-  },
-  {
-    id: 4,
-    region: '지역 D',
-    title: '문화 행사 캠페인',
-    date: '2023년 9월 1일~...',
-    thumbnail: 'https://via.placeholder.com/150x100/C8E6C9/FFFFFF?text=Campaign+4',
-  },
-  {
-    id: 5,
-    region: '지역 E',
-    title: '교육 지원 캠페인',
-    date: '2023년 8월 20일...',
-    thumbnail: 'https://via.placeholder.com/150x100/4CAF50/FFFFFF?text=Campaign+5',
-  },
-  {
-    id: 6,
-    region: '지역 F',
-    title: '기술 혁신 캠페인',
-    date: '2023년 11월 1일...',
-    thumbnail: 'https://via.placeholder.com/150x100/81C784/FFFFFF?text=Campaign+6',
-  },
-];
-
-function CampaignCard({ campaign }: { campaign: typeof campaignData[0] }) {
+function CampaignListItem({ campaign }: { campaign: CampaignData }) {
   const navigation = useNavigation<CampaignNavigationProp>();
 
   return (
-    <View style={styles.campaignCard}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.regionLabel}>{campaign.region}</Text>
+    <TouchableOpacity
+      style={styles.listItem}
+      onPress={() => navigation.navigate('CampaignDetail', { articleId: campaign.id, title: campaign.title })}
+    >
+      <Image source={{ uri: campaign.thumbnail }} style={styles.listItemThumbnail} resizeMode="cover" />
+      <View style={styles.listItemContent}>
+        <Text style={styles.listItemTitle}>{campaign.title}</Text>
+        {!!campaign.subtitle && <Text style={styles.listItemSubtitle}>{campaign.subtitle}</Text>}
       </View>
-      <Image
-        source={{ uri: campaign.thumbnail }}
-        style={styles.campaignThumbnail}
-        resizeMode="cover"
-      />
-      <View style={styles.cardContent}>
-        <Text style={styles.campaignTitle}>{campaign.title}</Text>
-        <Text style={styles.campaignDate}>{campaign.date}</Text>
-      </View>
-      <TouchableOpacity
-        style={styles.participateButton}
-        onPress={() => navigation.navigate('CampaignDetail')}
-      >
-        <Text style={styles.participateButtonText}>참여하기</Text>
-      </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 }
 
 export default function Campaign() {
   const navigation = useNavigation<CampaignNavigationProp>();
+  const [campaigns, setCampaigns] = useState<CampaignData[] | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const data = await getCampaignList();
+        if (mounted) setCampaigns(data);
+      } catch (e) {
+        if (mounted) setError('캠페인 데이터를 불러오지 못했습니다');
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -113,24 +79,31 @@ export default function Campaign() {
         <View style={styles.titleRight} />
       </View>
 
-      {/* 캠페인 그리드 */}
+      {/* 캠페인 리스트 */}
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.campaignGrid}>
-          {campaignData.map((campaign) => (
-            <CampaignCard key={campaign.id} campaign={campaign} />
-          ))}
-        </View>
+        {loading && (
+          <View style={styles.centered}>
+            <ActivityIndicator color={colors.primary} />
+          </View>
+        )}
+        {error && !loading && (
+          <View style={styles.centered}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+        {!loading && !error && campaigns && campaigns.length === 0 && (
+          <View style={styles.centered}>
+            <Text style={styles.emptyText}>표시할 캠페인이 없습니다</Text>
+          </View>
+        )}
+        {!loading && !error && campaigns && campaigns.length > 0 && (
+          <View style={styles.listContainer}>
+            {campaigns.map((campaign) => (
+              <CampaignListItem key={campaign.id} campaign={campaign} />
+            ))}
+          </View>
+        )}
       </ScrollView>
-
-      {/* 하단 버튼들 */}
-      <View style={styles.bottomButtons}>
-        <TouchableOpacity style={styles.filterButton}>
-          <Text style={styles.filterButtonText}>필터</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.addCampaignButton}>
-          <Text style={styles.addCampaignButtonText}>캠페인 추가하기</Text>
-        </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 }
@@ -170,58 +143,51 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  campaignGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  listContainer: {
     paddingHorizontal: spacing.screenPaddingHorizontal,
     paddingVertical: spacing.paddingMedium,
+    gap: spacing.paddingSmall,
   },
-  campaignCard: {
-    width: '48%',
+  listItem: {
+    flexDirection: 'row',
     backgroundColor: colors.card,
     borderRadius: spacing.borderRadiusLarge,
-    marginBottom: spacing.paddingMedium,
-    marginHorizontal: '1%',
     padding: spacing.paddingMedium,
+    alignItems: 'center',
     ...shadows.card,
   },
-  cardHeader: {
-    marginBottom: spacing.paddingSmall,
-  },
-  regionLabel: {
-    ...typography.caption,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  campaignThumbnail: {
-    width: '100%',
-    height: 100,
+  listItemThumbnail: {
+    width: 80,
+    height: 80,
     borderRadius: spacing.borderRadiusMedium,
-    marginBottom: spacing.paddingSmall,
+    marginRight: spacing.paddingMedium,
+    backgroundColor: colors.divider,
   },
-  cardContent: {
-    marginBottom: spacing.paddingSmall,
+  listItemContent: {
+    flex: 1,
   },
-  campaignTitle: {
+  listItemTitle: {
     ...typography.body1,
     color: colors.textPrimary,
     fontWeight: '600',
     marginBottom: spacing.xs,
   },
-  campaignDate: {
+  listItemSubtitle: {
     ...typography.caption,
     color: colors.textSecondary,
   },
-  participateButton: {
-    backgroundColor: colors.primary,
-    borderRadius: spacing.borderRadiusMedium,
-    paddingVertical: spacing.paddingSmall,
+  centered: {
+    padding: spacing.paddingLarge,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  participateButtonText: {
-    ...typography.caption,
-    color: colors.background,
-    fontWeight: '600',
+  errorText: {
+    ...typography.body1,
+    color: 'red',
+  },
+  emptyText: {
+    ...typography.body1,
+    color: colors.textSecondary,
   },
   bottomButtons: {
     flexDirection: 'row',
