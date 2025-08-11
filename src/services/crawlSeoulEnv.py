@@ -4,15 +4,17 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import firebase_admin
-from firebase_admin import credentials, storage
+from firebase_admin import credentials, storage, firestore
 import time
 
 #firebase 초기화
 cred = credentials.Certificate("firebase_config.json")
 firebase_admin.initialize_app(cred, {
-    'storageBucket': 'zeromap-8b449.firebasestorage.app'
+    'storageBucket': 'zeromap-8b449.firebasestorage.app',
+    'projectId': 'zeromap-8b449'
 })
 bucket = storage.bucket()
+db = firestore.client()
 
 # 페이지 범위 설정
 start_page = 1
@@ -53,7 +55,6 @@ def upload_firebase(url, file_type, article_id =None, index=None):
     return None
 
 def is_news_image(url):
-    """실제 뉴스 이미지인지 판단하는 함수"""
     # UI 아이콘들 제외
     exclude_patterns = [
         'icon_tag.gif',
@@ -70,7 +71,7 @@ def is_news_image(url):
     
     return True
 
-def crawl_article_content(article_url):
+def crawl_article_content(article_url, article_title):
     try:
         print(f"  게시물 크롤링: {article_url}")
         response = requests.get(article_url)
@@ -84,6 +85,15 @@ def crawl_article_content(article_url):
         article_id_match = re.search(r'/archives/(\d+)', article_url)
         article_id = article_id_match.group(1) if article_id_match else 'unknown'
         
+        # 게시물 제목 추출하여 DB에 업로드
+        clean_title = article_title or '제목 없음'
+        
+        db.collection('articles').document(article_id).set({
+            'title': clean_title,
+            'url': article_url
+        })
+        print(f"DB 저장 완료: {clean_title}")
+
         # 모든 이미지 찾기
         for idx, img_tag in enumerate(soup.find_all('img')):
             src = img_tag.get('src')
@@ -127,22 +137,28 @@ for page_num in range(start_page, end_page + 1):
         soup = BeautifulSoup(response.text, 'html.parser')
 
         # 뉴스 게시물 링크 찾기 (숫자 ID만 있는 실제 게시물)
-        article_links = []
-        for a_tag in soup.find_all('a', href=True):
-            href = a_tag['href']
-            if '/env/archives/' in href and '/archives/category/' not in href and href not in article_links:
-                full_url = urljoin(page_url, href)
-                article_links.append(full_url)
+        article_info = []
+        for h3_tag in soup.find_all('h3', class_='tit'):
+            a_tag = h3_tag.find('a')
+            if a_tag and a_tag.get('href'):
+                full_url = urljoin(page_url, a_tag['href'])
+                title = a_tag.get_text(strip=True)
+                article_info.append((full_url, title))
+        
+        print(f"  [DEBUG] 수집된 게시물 수: {len(article_info)}")
+        for url, title in article_info:
+            print(f"    제목: {title}")
+            print(f"    링크: {url}")
         
         page_images = 0
         page_pdfs = 0
         
-        for i, article_url in enumerate(article_links):
-            article_images, article_pdfs = crawl_article_content(article_url)
+        for article_url, article_title in article_info:
+            article_images, article_pdfs = crawl_article_content(article_url, article_title)
             page_images += article_images
             page_pdfs += article_pdfs
             print(f"  -> {article_images}개 이미지, {article_pdfs}개 PDF 업로드")
-            time.sleep(0.5)  # 서버 부하 방지
+            time.sleep(0.5) # 서버 부하 방지
         
         total_images += page_images
         total_pdfs += page_pdfs

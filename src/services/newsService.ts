@@ -1,6 +1,7 @@
-import { storage } from './firebaseConfig';
-
 // Firebase 설정이 완료되기 전까지 더미 데이터 사용
+// @ts-ignore
+import storage from '@react-native-firebase/storage';
+
 export interface CampaignData {
   id: string;
   title: string;
@@ -16,7 +17,7 @@ export interface CampaignData {
 export interface FirebaseImageData {
   name: string;
   url: string;
-  articleId: string;
+  article_id: string;
 }
 
 // 더미 캠페인 데이터 (실제 이미지 URL 포함)
@@ -111,115 +112,102 @@ const dummyCampaignData: CampaignData[] = [
   }
 ];
 
-// Firebase Storage에서 크롤링된 이미지 데이터 가져오기
-export const getCampaignDataFromFirebase = async (): Promise<CampaignData[]> => {
+// Firebase Storage에서 특정 게시물(articleId)의 이미지 URL들 가져오기
+export const getCampaignFromFirebase = async (article_id: string): Promise<string[]> => {
   try {
-    console.log('Firebase Storage에서 실제 크롤링 데이터를 가져오는 중...');
-    
-    // Firebase Storage 버킷이 존재하지 않는 문제로 인해 임시로 더미 데이터 사용
-    console.log('Firebase Storage 버킷이 존재하지 않아서 더미 데이터를 사용합니다.');
-    console.log('Firebase Console에서 다음을 확인해주세요:');
-    console.log('1. 프로젝트 ID가 올바른지 확인');
-    console.log('2. Storage 버킷이 생성되어 있는지 확인');
-    console.log('3. Storage 권한이 설정되어 있는지 확인');
-    return dummyCampaignData;
-    
-    // 아래 코드는 Firebase 설정이 완료된 후 주석 해제
-    /*
-    // Firebase에서 실제 데이터 가져오기 시도
-    const bucketUrl = 'gs://zeromap-8b449.appspot.com'; // ✅ 실제 gs:// 형식 버킷
-    
-    const storageRef = storage().refFromURL(bucketUrl);
-    console.log('Storage ref 생성 완료');
-    
-    // 루트 디렉토리부터 확인
-    console.log('Firebase Storage 루트 디렉토리 확인...');
-    const rootResult = await storageRef.listAll();
-    console.log('루트 디렉토리 파일/폴더 수:', rootResult.items.length + rootResult.prefixes.length);
-    console.log('루트 디렉토리 파일들:', rootResult.items.map(item => item.fullPath));
-    console.log('루트 디렉토리 폴더들:', rootResult.prefixes.map(prefix => prefix.fullPath));
-    
-    const imagesRef = storageRef.child('images');
-    console.log('Images ref 생성 완료');
-    
-    // Firebase Storage에서 이미지 목록 가져오기
-    console.log('Firebase Storage에서 이미지 목록 가져오기 시작...');
-    const result = await imagesRef.listAll();
-    console.log('Firebase에서 가져온 이미지 파일 수:', result.items.length);
-    console.log('Firebase에서 가져온 이미지 파일들:', result.items.map(item => item.fullPath));
-    
-    // 게시물별로 이미지 그룹화
-    const articleGroups: { [key: string]: string[] } = {};
-    
-    for (const itemRef of result.items) {
-      try {
-        console.log('파일 처리 중:', itemRef.fullPath);
+    const folderRef = storage().ref(`images/${article_id}`);
+    const result = await folderRef.listAll();
+
+    const imageUrls = await Promise.all(
+      result.items.map(async (itemRef: any) => {
         const url = await itemRef.getDownloadURL();
-        const path = itemRef.fullPath;
-        
-        // 경로에서 게시물 ID 추출 (images/articleId/filename 형태)
-        const pathParts = path.split('/');
-        console.log('경로 파트:', pathParts);
-        if (pathParts.length >= 3) {
-          const articleId = pathParts[1];
-          const filename = pathParts[2];
-          
-          // 이미지 파일인지 확인 (jpg, jpeg, png, gif, webp)
-          const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(filename);
-          
-          if (isImage) {
-            if (!articleGroups[articleId]) {
-              articleGroups[articleId] = [];
-            }
-            articleGroups[articleId].push(url);
-            console.log(`게시물 ${articleId}에 이미지 추가:`, url);
-          } else {
-            console.log(`이미지가 아닌 파일 스킵:`, filename);
-          }
-        }
-      } catch (itemError) {
-        console.log('개별 파일 처리 중 오류:', itemError);
-        continue; // 개별 파일 오류는 무시하고 계속 진행
-      }
-    }
-    
-    console.log('그룹화된 게시물 수:', Object.keys(articleGroups).length);
-    console.log('그룹화된 게시물들:', Object.keys(articleGroups));
-    
-    // 실제 데이터가 있으면 사용, 없으면 더미 데이터 사용
-    if (Object.keys(articleGroups).length > 0) {
-      // 캠페인 데이터로 변환
-      const campaignData: CampaignData[] = Object.entries(articleGroups).map(([articleId, images], index) => {
-        const firstImage = images[0] || '';
-        
-        return {
-          id: articleId,
-          title: `서울시 환경뉴스 ${index + 1}`,
-          subtitle: `게시물 ID: ${articleId}`,
-          thumbnail: firstImage,
-          images: images,
-          pdfs: [], // PDF는 별도로 처리 필요
-          date: new Date().toLocaleDateString('ko-KR'),
-          region: '서울시',
-          description: `서울시 환경뉴스 게시물 ${articleId}의 이미지들입니다.`
-        };
-      });
-      
-      console.log('Firebase에서 가져온 캠페인 데이터:', campaignData.length, '개');
-      return campaignData;
-    } else {
-      // Firebase에 데이터가 없으면 더미 데이터 반환
-      console.log('Firebase에 데이터가 없어서 더미 데이터를 사용합니다.');
-      return dummyCampaignData;
-    }
-    */
+        return url;
+      })
+    );
+
+    return imageUrls;
   } catch (error) {
-    console.error('Firebase에서 캠페인 데이터 가져오기 실패:', error);
-    console.error('에러 상세 정보:', error instanceof Error ? error.message : String(error));
-    return dummyCampaignData; // 에러 시에도 더미 데이터 반환
+    console.error('Firebase에서 캠페인 이미지 가져오기 실패:', error);
+    const fallback = dummyCampaignData.find((c) => c.id === article_id)?.images ?? [];
+    return fallback;
   }
 };
 
+// Firebase Storage의 images/ 하위 폴더 목록을 기반으로 캠페인 리스트 구성
+export const getCampaignList = async (): Promise<CampaignData[]> => {
+  try {
+    const imagesRootRef = storage().ref('images');
+    const listResult = await imagesRootRef.listAll();
+
+    // prefixes: 하위 폴더들 (articleId)
+    const campaigns = await Promise.all(
+      listResult.prefixes.map(async (prefixRef: any) => {
+        const article_id = prefixRef.name; // 폴더명 = article_id
+        
+        // Firestore에서 실제 제목 가져오기
+        let actualTitle = `게시물 ${article_id}`;
+        try {
+          // @ts-ignore
+          const firestore = require('@react-native-firebase/firestore');
+          if (firestore && typeof firestore === 'function') {
+            console.log(`[newsService] Firestore에서 제목 조회 시도: article_id = ${article_id}`);
+            const firestoreInstance = firestore();
+            if (firestoreInstance && firestoreInstance.collection) {
+              const articleDoc = await firestoreInstance.collection('articles').doc(article_id).get();
+              console.log(`[newsService] Firestore 문서 존재 여부: ${articleDoc.exists}`);
+              if (articleDoc.exists) {
+                const data = articleDoc.data();
+                console.log(`[newsService] Firestore 문서 데이터:`, data);
+                actualTitle = data?.title || `게시물 ${article_id}`;
+                console.log(`[newsService] 최종 제목: ${actualTitle}`);
+              } else {
+                console.log(`[newsService] Firestore 문서가 존재하지 않음: ${article_id}`);
+              }
+            } else {
+              console.log(`[newsService] Firestore 인스턴스가 올바르지 않음`);
+            }
+          } else {
+            console.log(`[newsService] Firestore가 초기화되지 않음`);
+          }
+        } catch (error) {
+          console.log(`[newsService] Firestore에서 제목 가져오기 실패 (${article_id}):`, error);
+          // Firestore 에러 시 기본 제목 사용
+          actualTitle = `게시물 ${article_id}`;
+        }
+        
+        const items = await prefixRef.listAll();
+        let thumbnail = '';
+        if (items.items.length > 0) {
+          try {
+            thumbnail = await items.items[0].getDownloadURL();
+          } catch (_) {
+            thumbnail = '';
+          }
+        }
+        const fallbackThumb = `https://picsum.photos/300/200?random=${encodeURIComponent(article_id)}`;
+        return {
+          id: article_id,
+          title: actualTitle,
+          subtitle: `제목: ${actualTitle}`,
+          thumbnail: thumbnail || fallbackThumb,
+          images: [],
+          pdfs: [],
+          date: '',
+          region: '서울시',
+          description: '',
+        } as CampaignData;
+      })
+    );
+
+    if (campaigns.length > 0) return campaigns;
+    return dummyCampaignData;
+  } catch (error) {
+    console.error('Firebase에서 캠페인 리스트 가져오기 실패:', error);
+    return dummyCampaignData;
+  }
+};
+
+/*
 // PDF 데이터도 가져오기
 export const getPDFDataFromFirebase = async (): Promise<{ [key: string]: string[] }> => {
   try {
@@ -285,4 +273,4 @@ export const getCompleteCampaignData = async (): Promise<CampaignData[]> => {
     console.error('완전한 캠페인 데이터 가져오기 실패:', error);
     return dummyCampaignData; // 에러 시에도 더미 데이터 반환
   }
-}; 
+}; */
