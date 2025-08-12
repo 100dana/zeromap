@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "143037001238-sht2rs0vbv1trv6so2v1bldi4ipf8ehf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.zeromap",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
           "client_id": "143037001238-kadtrtrsmuqiovctg6k4sbh92uquq16p.apps.googleusercontent.com",
           "client_type": 3
         }
