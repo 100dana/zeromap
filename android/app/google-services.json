@@ -7,14 +7,14 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:143037001238:android:816771b1979bce0cf04f37",
+        "mobilesdk_app_id": "1:143037001238:android:5bbe89e5127d63a3f04f37",
         "android_client_info": {
           "package_name": "com.zeromap"
         }
       },
       "oauth_client": [
         {
-          "client_id": "143037001238-sht2rs0vbv1trv6so2v1bldi4ipf8ehf.apps.googleusercontent.com",
+          "client_id": "143037001238-fn2c8e00n85n2ftdnvdr41ff7oparg0t.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.zeromap",
