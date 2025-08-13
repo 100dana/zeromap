@@ -17,13 +17,17 @@ import Settings from "./src/screens/Settings";
 import Campaign from "./src/screens/News";
 import CampaignDetail from "./src/screens/NewsDetail";
 import PolicyInfo from "./src/screens/PolicyInfo";
+import SignUp from "./src/screens/SignUp";
+import SignIn from "./src/screens/SignIn";
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Home" screenOptions={{ headerShown: false }}>
+      <Stack.Navigator initialRouteName="SignUp" screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="SignUp" component={SignUp} />
+        <Stack.Screen name="SignIn" component={SignIn} />
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Map" component={MapScreen} />
         <Stack.Screen name="ReportPlace" component={ReportPlace} />
