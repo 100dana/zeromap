@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import {
-  SafeAreaView,
+import { 
   View,
   ScrollView,
   Text,
@@ -11,7 +10,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
+  StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthService } from '../services/authService';
@@ -146,6 +147,7 @@ export default function SignUp() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <KeyboardAvoidingView 
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -218,7 +220,7 @@ export default function SignUp() {
         presentationStyle="pageSheet"
         onRequestClose={handleCloseModal}
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <SafeAreaView style={styles.modalContainer} edges={['left', 'right', 'bottom']}>
           <KeyboardAvoidingView 
             style={styles.modalKeyboardAvoidingView}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

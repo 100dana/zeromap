@@ -6,9 +6,10 @@ import {
   TouchableOpacity,
   Image,
   StyleSheet,
-  SafeAreaView,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors } from '../styles/colors';
@@ -67,6 +68,7 @@ export default function Campaign() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       {/* 제목 */}
       <View style={styles.titleContainer}>
         <TouchableOpacity
@@ -75,7 +77,7 @@ export default function Campaign() {
         >
           <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>진행중인 캠페인</Text>
+        <Text style={styles.title}>서울시 환경 뉴스</Text>
         <View style={styles.titleRight} />
       </View>
 
@@ -115,7 +117,8 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     paddingHorizontal: spacing.screenPaddingHorizontal,
-    paddingVertical: spacing.paddingMedium,
+    paddingTop: 10,
+    paddingBottom: spacing.paddingMedium,
     backgroundColor: colors.card,
     borderBottomWidth: 2,
     borderBottomColor: colors.divider,

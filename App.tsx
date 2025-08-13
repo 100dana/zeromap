@@ -8,6 +8,7 @@
 import React from "react";
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import HomeScreen from "./src/screens/HomeScreen";
 import MapScreen from "./src/screens/MapScreen";
 import ReportPlace from "./src/screens/ReportPlace";
@@ -24,20 +25,22 @@ const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="SignUp" screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="SignUp" component={SignUp} />
-        <Stack.Screen name="SignIn" component={SignIn} />
-        <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Map" component={MapScreen} />
-        <Stack.Screen name="ReportPlace" component={ReportPlace} />
-        <Stack.Screen name="WriteReview" component={WriteReview} />
-        <Stack.Screen name="MyPage" component={MyPage} />
-        <Stack.Screen name="Settings" component={Settings} />
-        <Stack.Screen name="Campaign" component={Campaign} />
-        <Stack.Screen name="CampaignDetail" component={CampaignDetail} />
-        <Stack.Screen name="PolicyInfo" component={PolicyInfo} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <SafeAreaProvider>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName="SignUp" screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="SignUp" component={SignUp} />
+          <Stack.Screen name="SignIn" component={SignIn} />
+          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="Map" component={MapScreen} />
+          <Stack.Screen name="ReportPlace" component={ReportPlace} />
+          <Stack.Screen name="WriteReview" component={WriteReview} />
+          <Stack.Screen name="MyPage" component={MyPage} />
+          <Stack.Screen name="Settings" component={Settings} />
+          <Stack.Screen name="Campaign" component={Campaign} />
+          <Stack.Screen name="CampaignDetail" component={CampaignDetail} />
+          <Stack.Screen name="PolicyInfo" component={PolicyInfo} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }

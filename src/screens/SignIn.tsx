@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import {
-  SafeAreaView,
+import { 
   View,
   ScrollView,
   Text,
@@ -10,7 +9,9 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthService } from '../services/authService';
@@ -116,6 +117,7 @@ export default function SignIn() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <KeyboardAvoidingView 
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
