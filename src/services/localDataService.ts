@@ -41,32 +41,29 @@ export class LocalDataService {
   
   // 제로식당 데이터 파싱
   private static async parseZeroRestaurantData(jsonData: any[]): Promise<LocalPlaceData[]> {
-    const placesWithCoords = await Promise.all(
-      jsonData.map(async (item: any, index: number) => {
-        // 상호명과 지번 주소만 사용
-        const name = item.상호명 || item.name || item.매장명 || '제로식당';
-        const address = item.지번주소 || item.주소 || item.address || '';
-        
-        // 주소를 좌표로 변환
-        const coords = await GeocodingService.addressToCoordinates(address);
-        const coordinates = coords || GeocodingService.simpleAddressToCoordinates(address);
-        
-        return {
-          id: String(index + 1),
-          name: name,
-          category: '제로식당',
-          address: address,
-          latitude: coordinates.latitude,
-          longitude: coordinates.longitude,
-          description: '제로웨이스트 식당',
-          additionalInfo: {
-            type: 'zero_restaurant',
-            source: 'json_data',
-            originalData: item
-          }
-        };
-      })
-    );
+    const placesWithCoords = jsonData.map((item: any, index: number) => {
+      // 상호명과 지번 주소만 사용
+      const name = item.상호명 || item.name || item.매장명 || '제로식당';
+      const address = item.지번주소 || item.주소 || item.address || '';
+      
+      // API 호출 없이 간단한 주소 매칭만 사용
+      const coordinates = GeocodingService.simpleAddressToCoordinates(address);
+      
+      return {
+        id: String(index + 1),
+        name: name,
+        category: '제로식당',
+        address: address,
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
+        description: '제로웨이스트 식당',
+        additionalInfo: {
+          type: 'zero_restaurant',
+          source: 'json_data',
+          originalData: item
+        }
+      };
+    });
     
     return placesWithCoords;
   }
