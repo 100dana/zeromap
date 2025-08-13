@@ -1,6 +1,8 @@
-import * as XLSX from 'xlsx';
 import { PlaceData } from './seoulApi';
 import { GeocodingService } from './geocodingService';
+
+// JSON 데이터를 직접 import
+import zeroRestaurantData from '../data/서울시 제로식당 목록.json';
 
 export interface LocalPlaceData extends PlaceData {
   category: string;
@@ -13,22 +15,14 @@ export interface LocalPlaceData extends PlaceData {
 
 export class LocalDataService {
   
-  // 제로식당 데이터 가져오기
+  // 제로식당 데이터 가져오기 (JSON 파일 사용)
   static async getZeroRestaurants(): Promise<LocalPlaceData[]> {
     try {
-      // CSV 파일 읽기
-      const workbook = XLSX.readFile('./src/data/서울시 제로식당 목록.csv');
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
+      console.log('제로식당 JSON 데이터:', zeroRestaurantData.length, '개');
       
-      // JSON으로 변환
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
-      
-      console.log('제로식당 데이터:', jsonData);
-      
-      return await this.parseZeroRestaurantData(jsonData);
+      return await this.parseZeroRestaurantData(zeroRestaurantData);
     } catch (error) {
-      console.error('제로식당 데이터 읽기 실패:', error);
+      console.error('제로식당 JSON 데이터 읽기 실패:', error);
       return [];
     }
   }
@@ -67,7 +61,7 @@ export class LocalDataService {
           description: '제로웨이스트 식당',
           additionalInfo: {
             type: 'zero_restaurant',
-            source: 'excel_data',
+            source: 'json_data',
             originalData: item
           }
         };
@@ -100,13 +94,11 @@ export class LocalDataService {
           return await this.getZeroRestaurants();
         case 'refillStation':
           return await this.getRefillStations();
-        case 'all':
-          return await this.getAllLocalData();
         default:
           return [];
       }
     } catch (error) {
-      console.error(`${category} 데이터 가져오기 실패:`, error);
+      console.error(`카테고리 "${category}" 데이터 가져오기 실패:`, error);
       return [];
     }
   }

@@ -37,7 +37,7 @@ const categories = [
     textMargin: 3,
     type: 'zeroRestaurant',
     color: '#2196F3',
-    description: '친환경 식당 및 카페'
+    description: '친환경 식당 및 카페 (1,300곳)'
   },
   {
     icon: "💧",
@@ -48,15 +48,7 @@ const categories = [
     color: '#9C27B0',
     description: '리필 제품을 판매하는 상점'
   },
-  {
-    icon: "🍽",
-    label: "식당",
-    iconBgMargin: 38,
-    textMargin: 3,
-    type: 'restaurant',
-    color: '#F44336',
-    description: '친환경 식당'
-  },
+
   {
     icon: "🧴",
     label: "친환경생필품점",
@@ -207,13 +199,8 @@ export default function MapScreen() {
           apiData = await SeoulApiService.getCupDiscountCafes();
           break;
         case 'zeroRestaurant':
-          // CSV 데이터와 API 데이터를 함께 가져오기
-          const [csvData, apiRestaurantData] = await Promise.all([
-            LocalDataService.getZeroRestaurants(),
-            SeoulApiService.getZeroWasteShops() // 제로식당 관련 API 데이터도 함께 가져오기
-          ]);
-          localData = csvData;
-          apiData = apiRestaurantData;
+          // JSON 파일에서 제로식당 데이터 가져오기
+          localData = await LocalDataService.getZeroRestaurants();
           break;
         case 'refillStation':
           localData = await LocalDataService.getRefillStations();
@@ -222,10 +209,7 @@ export default function MapScreen() {
           // 리필샵 데이터 로드 (현재는 빈 배열, 추후 데이터 추가 예정)
           localData = [];
           break;
-        case 'restaurant':
-          // 식당 데이터 로드 (현재는 빈 배열, 추후 데이터 추가 예정)
-          localData = [];
-          break;
+
         case 'ecoSupplies':
           // 친환경생필품점 데이터 로드 (현재는 빈 배열, 추후 데이터 추가 예정)
           localData = [];
