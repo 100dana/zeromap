@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { 
   SafeAreaView, 
   View, 
@@ -8,7 +8,9 @@ import {
   TouchableOpacity, 
   StyleSheet, 
   Alert,
-  Image
+  Image,
+  ActivityIndicator,
+  FlatList
 } from "react-native";
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
@@ -16,6 +18,7 @@ import KakaoMap from '../components/KakaoMap';
 import { colors } from '../styles/colors';
 import { spacing } from '../styles/spacing';
 import { shadows } from '../styles/shadows';
+import { GeocodingService } from '../services/geocodingService';
 
 type RootStackParamList = {
   Home: undefined;
@@ -29,11 +32,30 @@ const categories = [
     label: "제로웨이스트샵",
     icon: "🛒"
   },
-
+  {
+    id: 'cupDiscountCafe',
+    label: "개인컵할인카페",
+    icon: "☕"
+  },
+  {
+    id: 'zeroRestaurant',
+    label: "제로식당",
+    icon: "🍽️"
+  },
   {
     id: 'refillStation',
     label: "리필스테이션",
     icon: "🔄"
+  },
+  {
+    id: 'refillShop',
+    label: "리필샵",
+    icon: "💧"
+  },
+  {
+    id: 'ecoSupplies',
+    label: "친환경생필품점",
+    icon: "🧴"
   }
 ];
 
@@ -67,12 +89,30 @@ function CategoryCard({ id, label, icon, isSelected, onPress }: CategoryCardProp
 
 export default function ReportPlace() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'ReportPlace'>>();
+  const mapRef = useRef<any>(null);
   
   const [placeName, setPlaceName] = useState('');
   const [address, setAddress] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [description, setDescription] = useState('');
   const [selectedLocation, setSelectedLocation] = useState({ lat: 37.5665, lng: 126.9780 }); // 서울시청 기본 위치
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+
+
+  // 지도 클릭 처리
+  const handleMapClick = async (coordinates: { latitude: number; longitude: number }) => {
+    setSelectedLocation({ lat: coordinates.latitude, lng: coordinates.longitude });
+    
+    // 좌표를 주소로 변환 (간단한 방법)
+    const coords = GeocodingService.simpleAddressToCoordinates('');
+    setAddress(`위도: ${coordinates.latitude.toFixed(6)}, 경도: ${coordinates.longitude.toFixed(6)}`);
+  };
+
+  // 이미지 선택 처리
+  const handleImageSelect = () => {
+    Alert.alert('알림', '이미지 선택 기능이 곧 추가됩니다!');
+  };
 
   const handleSave = () => {
     if (!placeName.trim()) {
@@ -85,6 +125,10 @@ export default function ReportPlace() {
     }
     if (!selectedCategory) {
       Alert.alert('알림', '카테고리를 선택해주세요.');
+      return;
+    }
+    if (!description.trim()) {
+      Alert.alert('알림', '설명을 입력해주세요.');
       return;
     }
 
@@ -125,26 +169,13 @@ export default function ReportPlace() {
         <View style={styles.headerRight} />
       </View>
 
-      {/* 주소 검색 섹션 */}
-      <View style={styles.searchSection}>
-        <Text style={styles.sectionTitle}>주소 검색</Text>
-        <View style={styles.searchInputContainer}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="주소를 입력하세요..."
-            placeholderTextColor={colors.textSecondary}
-          />
-          <TouchableOpacity style={styles.searchButton}>
-            <Text style={styles.searchAddressButtonText}>🔍</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+
 
       <ScrollView style={styles.scrollView}>
 
         {/* 장소 이름 입력 */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>장소 이름</Text>
+          <Text style={styles.inputLabel}>🏪 장소 이름 <Text style={styles.requiredText}>*</Text></Text>
           <TextInput
             style={styles.textInput}
             value={placeName}
@@ -156,49 +187,54 @@ export default function ReportPlace() {
 
         {/* 주소 입력 */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>주소</Text>
+          <Text style={styles.inputLabel}>📍 주소 <Text style={styles.requiredText}>*</Text></Text>
           <TextInput
             style={styles.textInput}
             value={address}
             onChangeText={setAddress}
-            placeholder="주소를 입력하세요"
+            placeholder="주소 검색 또는 지도에서 위치 선택"
             placeholderTextColor="#999"
+            editable={false}
           />
         </View>
 
         {/* 지도에서 위치 선택 */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>지도에서 위치 선택</Text>
+          <Text style={styles.inputLabel}>🗺️ 지도에서 위치 선택 <Text style={styles.requiredText}>*</Text></Text>
           <View style={styles.mapContainer}>
-            <KakaoMap />
+            <KakaoMap 
+              ref={mapRef}
+              onMapClick={handleMapClick}
+              places={[]}
+            />
+            <View style={styles.mapOverlay}>
+              <Text style={styles.mapOverlayText}>지도를 클릭하여 정확한 위치를 선택하세요</Text>
+            </View>
           </View>
         </View>
 
         {/* 카테고리 선택 */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>카테고리 선택</Text>
-          <View style={styles.categoryContainer}>
-            {categories.map((category) => (
+          <Text style={styles.inputLabel}>🏷️ 카테고리 선택 <Text style={styles.requiredText}>*</Text></Text>
+          <FlatList
+            data={categories}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
               <CategoryCard
-                key={category.id}
-                {...category}
-                isSelected={selectedCategory === category.id}
-                onPress={() => setSelectedCategory(category.id)}
+                {...item}
+                isSelected={selectedCategory === item.id}
+                onPress={() => setSelectedCategory(item.id)}
               />
-            ))}
-            <CategoryCard
-              id="other"
-              label="기타"
-              icon="📌"
-              isSelected={selectedCategory === 'other'}
-              onPress={() => setSelectedCategory('other')}
-            />
-          </View>
+            )}
+            contentContainerStyle={styles.categoryListContainer}
+          />
         </View>
 
         {/* 설명 입력 */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>설명</Text>
+          <Text style={styles.inputLabel}>📝 설명 <Text style={styles.requiredText}>*</Text></Text>
           <TextInput
             style={[styles.textInput, styles.descriptionInput]}
             value={description}
@@ -213,14 +249,26 @@ export default function ReportPlace() {
 
         {/* 이미지 업로드 */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>이미지 업로드 섹션</Text>
+          <Text style={styles.inputLabel}>📷 이미지 첨부 (선택)</Text>
           <View style={styles.imageUploadSection}>
-            <TouchableOpacity
-              style={styles.imageUploadButton}
-              onPress={() => Alert.alert('알림', '이미지 업로드 기능이 곧 추가됩니다!')}
-            >
-              <Text style={styles.imageUploadButtonText}>+ 이미지 추가</Text>
-            </TouchableOpacity>
+            {selectedImage ? (
+              <View style={styles.selectedImageContainer}>
+                <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
+                <TouchableOpacity
+                  style={styles.removeImageButton}
+                  onPress={() => setSelectedImage(null)}
+                >
+                  <Text style={styles.removeImageButtonText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.imageUploadButton}
+                onPress={handleImageSelect}
+              >
+                <Text style={styles.imageUploadButtonText}>📷 + 이미지 추가</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -236,7 +284,7 @@ export default function ReportPlace() {
             style={styles.saveButton}
             onPress={handleSave}
           >
-            <Text style={styles.saveButtonText}>제출하기</Text>
+            <Text style={styles.saveButtonText}>장소 제보하기</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -338,20 +386,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#0000001A",
   },
-  categoryContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  categoryListContainer: {
+    paddingHorizontal: 4,
   },
   categoryCard: {
-    flex: 1,
+    width: 120,
     borderColor: "#0000001A",
     borderWidth: 1,
     borderRadius: 6,
     paddingVertical: 12,
     paddingHorizontal: 8,
-    marginHorizontal: 4,
     alignItems: "center",
     backgroundColor: "#FFFFFF",
+    marginHorizontal: 4,
   },
   selectedCategoryCard: {
     borderColor: "#4CAF50",
@@ -428,39 +475,49 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-  searchSection: {
-    marginHorizontal: 16,
-    marginBottom: 20,
-    paddingVertical: 16,
-    backgroundColor: "#F8F8F8",
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
+
+  requiredText: {
+    color: '#FF4444',
+    fontWeight: 'bold',
   },
-  sectionTitle: {
-    color: "#000000",
+  mapOverlay: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    right: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    padding: 8,
+    borderRadius: 4,
+  },
+  mapOverlayText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  selectedImageContainer: {
+    position: 'relative',
+    alignItems: 'center',
+  },
+  selectedImage: {
+    width: 200,
+    height: 150,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: '#FF4444',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeImageButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 12,
-    paddingHorizontal: 12,
-  },
-  searchInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-  },
-  searchInput: {
-    flex: 1,
-    borderColor: "#0000001A",
-    borderWidth: 1,
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 14,
-    color: "#000000",
-    backgroundColor: "#FFFFFF",
-  },
-  searchButton: {
-    padding: 12,
+    fontWeight: 'bold',
   },
 }); 
