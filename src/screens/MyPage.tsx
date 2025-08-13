@@ -35,10 +35,10 @@ const savedPlaces = [
   {
     id: 1,
     name: "장소이름",
-    category: "비건식당",
+    category: "제로웨이스트샵",
     address: "서울시 종로구 송월길",
-    image: "https://via.placeholder.com/120x80/9C27B0/FFFFFF?text=Image",
-    icon: "🍽️"
+    image: "https://via.placeholder.com/120x80/4CAF50/FFFFFF?text=Image",
+    icon: "🛒"
   },
   {
     id: 2,

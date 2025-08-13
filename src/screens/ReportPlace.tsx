@@ -29,11 +29,7 @@ const categories = [
     label: "제로웨이스트샵",
     icon: "🛒"
   },
-  {
-    id: 'zeroRestaurant',
-    label: "비건식당",
-    icon: "🍽️"
-  },
+
   {
     id: 'refillStation',
     label: "리필스테이션",

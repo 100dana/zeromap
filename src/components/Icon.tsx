@@ -12,7 +12,7 @@ export type IconName =
   | 'add'
   | 'close'
   | 'refill'
-  | 'restaurant'
+
   | 'cosmetics'
   | 'cafe'
   | 'more'
@@ -66,7 +66,7 @@ function getIconSource(name: IconName): any {
     add: require('../../assets/icons/add.png'),
     close: require('../../assets/icons/close.png'),
     refill: require('../../assets/icons/water-drop.png'),
-    restaurant: require('../../assets/icons/restaurant.png'),
+
     cosmetics: require('../../assets/icons/cosmetics.png'),
     cafe: require('../../assets/icons/coffee-cup.png'),
     more: require('../../assets/icons/dots.png'),
