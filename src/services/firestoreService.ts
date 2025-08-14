@@ -1,95 +1,336 @@
 import { firestore, storage } from './firebaseConfig';
-import { PlaceReport, PlaceReportInput } from '../types/place';
+import { Review, ReviewInput } from '../types/review';
 
 class FirestoreService {
   private placesCollection = firestore().collection('places');
+  private reviewsCollection = firestore().collection('reviews');
 
   /**
-   * 장소 제보 데이터를 Firestore에 저장
+   * XSS 방지를 위한 텍스트 정제
    */
-  async addPlaceReport(placeData: PlaceReportInput): Promise<string> {
+  private sanitizeText(text: string): string {
+    return text
+      .replace(/[<>]/g, '') // HTML 태그 제거
+      .replace(/javascript:/gi, '') // JavaScript 프로토콜 제거
+      .replace(/on\w+=/gi, '') // 이벤트 핸들러 제거
+      .trim();
+  }
+
+  // 장소 제보 관련 함수들은 임시로 주석 처리
+  // TODO: place.ts 타입 파일 생성 후 활성화
+
+  /**
+   * 리뷰를 Firestore에 저장
+   */
+  async addReview(reviewData: ReviewInput): Promise<string> {
     try {
+      console.log('리뷰 저장 시작:', reviewData);
+      
       // 필수 필드 검증
-      if (!placeData.name || !placeData.address || !placeData.coordinates || !placeData.category || !placeData.description) {
+      if (!reviewData.placeId || !reviewData.userId || !reviewData.rating || !reviewData.reviewText) {
+        console.error('필수 필드 누락:', { placeId: reviewData.placeId, userId: reviewData.userId, rating: reviewData.rating, reviewText: reviewData.reviewText });
         throw new Error('필수 정보가 누락되었습니다.');
       }
 
-      // undefined 값을 제거하고 유효한 데이터만 필터링
-      const cleanData = Object.fromEntries(
-        Object.entries(placeData).filter(([_, value]) => value !== undefined)
-      );
+      // 데이터 검증 및 정제
+      if (reviewData.rating < 1 || reviewData.rating > 5) {
+        throw new Error('별점은 1점에서 5점 사이여야 합니다.');
+      }
 
-      const placeReport: Omit<PlaceReport, 'id'> = {
-        name: placeData.name,
-        address: placeData.address,
-        coordinates: placeData.coordinates,
-        category: placeData.category,
-        description: placeData.description,
-        ...(placeData.detailAddress && { detailAddress: placeData.detailAddress }),
-        ...(placeData.imageUrl && { imageUrl: placeData.imageUrl }),
-        reporterId: 'anonymous', // 임시로 anonymous 설정
+      if (reviewData.reviewText.length < 10) {
+        throw new Error('리뷰는 최소 10자 이상 작성해주세요.');
+      }
+
+      if (reviewData.reviewText.length > 1000) {
+        throw new Error('리뷰는 최대 1000자까지 작성 가능합니다.');
+      }
+
+      // XSS 방지를 위한 텍스트 정제
+      const sanitizedText = this.sanitizeText(reviewData.reviewText);
+      const sanitizedName = this.sanitizeText(reviewData.userName);
+
+      const review: Omit<Review, 'id'> = {
+        placeId: reviewData.placeId,
+        placeName: reviewData.placeName,
+        userId: reviewData.userId,
+        userName: sanitizedName,
+        rating: reviewData.rating,
+        reviewText: sanitizedText,
+        ...(reviewData.imageUrl && { imageUrl: reviewData.imageUrl }),
         createdAt: new Date(),
-        status: 'pending'
+        updatedAt: new Date()
       };
 
-      const docRef = await this.placesCollection.add(placeReport);
-      console.log('장소 제보가 성공적으로 저장되었습니다. ID:', docRef.id);
+      console.log('Firestore에 저장할 리뷰 데이터:', review);
+      console.log('reviews 컬렉션 참조:', this.reviewsCollection.path);
+
+      const docRef = await this.reviewsCollection.add(review);
+      console.log('리뷰가 성공적으로 저장되었습니다. ID:', docRef.id);
       return docRef.id;
     } catch (error: any) {
-      console.error('장소 제보 저장 실패:', error);
+      console.error('리뷰 저장 실패 - 상세 정보:');
+      console.error('에러 코드:', error.code);
+      console.error('에러 메시지:', error.message);
+      console.error('에러 스택:', error.stack);
+      console.error('전체 에러 객체:', error);
+      console.error('Firebase 프로젝트 ID:', firestore().app.options.projectId);
+      console.error('현재 사용자 UID:', reviewData.userId);
+      
+      // Firebase Auth 상태 직접 확인
+      try {
+        const auth = require('@react-native-firebase/auth').default();
+        const currentAuthUser = auth.currentUser;
+        console.error('Firebase Auth 현재 사용자:', currentAuthUser);
+        console.error('Firebase Auth UID:', currentAuthUser?.uid);
+        console.error('Firebase Auth 이메일:', currentAuthUser?.email);
+        console.error('Firebase Auth 토큰 존재:', !!currentAuthUser?.uid);
+      } catch (authError) {
+        console.error('Firebase Auth 확인 실패:', authError);
+      }
       
       if (error.code === 'permission-denied') {
         throw new Error('권한이 없습니다. 로그인 후 다시 시도해주세요.');
       } else if (error.code === 'unavailable') {
         throw new Error('네트워크 연결을 확인해주세요.');
       } else {
-        throw new Error('장소 제보 저장에 실패했습니다. 다시 시도해주세요.');
+        throw new Error(`리뷰 저장에 실패했습니다: ${error.message}`);
       }
     }
   }
 
   /**
-   * 이미지를 Firebase Storage에 업로드하고 URL 반환
+   * 특정 장소의 모든 리뷰 조회 (각 리뷰는 고유한 인덱스)
    */
-  async uploadImage(imageUri: string, placeId: string): Promise<string> {
+  async getReviewsByPlaceId(placeId: string): Promise<Review[]> {
+    try {
+      console.log(`장소 ${placeId}의 모든 리뷰 조회 중...`);
+      
+      const snapshot = await this.reviewsCollection
+        .where('placeId', '==', placeId)
+        .get();
+
+      const reviews: Review[] = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        reviews.push({
+          id: doc.id, // 각 리뷰의 고유 인덱스
+          placeId: data.placeId,
+          placeName: data.placeName,
+          userId: data.userId,
+          userName: data.userName,
+          rating: data.rating,
+          reviewText: data.reviewText,
+          imageUrl: data.imageUrl,
+          createdAt: data.createdAt.toDate(),
+          updatedAt: data.updatedAt.toDate()
+        });
+      });
+
+      // 클라이언트에서 정렬 (최신순)
+      reviews.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+      console.log(`장소 ${placeId}에서 ${reviews.length}개의 리뷰 조회 완료`);
+      return reviews;
+    } catch (error) {
+      console.error('리뷰 조회 실패:', error);
+      throw new Error('리뷰 조회에 실패했습니다.');
+    }
+  }
+
+  /**
+   * 특정 사용자가 특정 장소에 작성한 모든 리뷰 조회
+   */
+  async getReviewsByUserAndPlace(userId: string, placeId: string): Promise<Review[]> {
+    try {
+      console.log(`사용자 ${userId}가 장소 ${placeId}에 작성한 리뷰 조회 중...`);
+      
+      const snapshot = await this.reviewsCollection
+        .where('userId', '==', userId)
+        .where('placeId', '==', placeId)
+        .get();
+
+      const reviews: Review[] = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        reviews.push({
+          id: doc.id, // 각 리뷰의 고유 인덱스
+          placeId: data.placeId,
+          placeName: data.placeName,
+          userId: data.userId,
+          userName: data.userName,
+          rating: data.rating,
+          reviewText: data.reviewText,
+          imageUrl: data.imageUrl,
+          createdAt: data.createdAt.toDate(),
+          updatedAt: data.updatedAt.toDate()
+        });
+      });
+
+      // 클라이언트에서 정렬 (최신순)
+      reviews.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+      console.log(`사용자 ${userId}가 장소 ${placeId}에 작성한 ${reviews.length}개의 리뷰 조회 완료`);
+      return reviews;
+    } catch (error) {
+      console.error('사용자별 장소 리뷰 조회 실패:', error);
+      throw new Error('사용자별 장소 리뷰 조회에 실패했습니다.');
+    }
+  }
+
+  /**
+   * 특정 사용자가 작성한 모든 리뷰 조회
+   */
+  async getReviewsByUserId(userId: string): Promise<Review[]> {
+    try {
+      console.log(`사용자 ${userId}의 모든 리뷰 조회 중...`);
+      
+      const snapshot = await this.reviewsCollection
+        .where('userId', '==', userId)
+        .get();
+
+      const reviews: Review[] = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        reviews.push({
+          id: doc.id, // 각 리뷰의 고유 인덱스
+          placeId: data.placeId,
+          placeName: data.placeName,
+          userId: data.userId,
+          userName: data.userName,
+          rating: data.rating,
+          reviewText: data.reviewText,
+          imageUrl: data.imageUrl,
+          createdAt: data.createdAt.toDate(),
+          updatedAt: data.updatedAt.toDate()
+        });
+      });
+
+      // 클라이언트에서 정렬 (최신순)
+      reviews.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+      console.log(`사용자 ${userId}의 ${reviews.length}개의 리뷰 조회 완료`);
+      return reviews;
+    } catch (error) {
+      console.error('사용자 리뷰 조회 실패:', error);
+      throw new Error('사용자 리뷰 조회에 실패했습니다.');
+    }
+  }
+
+  /**
+   * 리뷰 이미지를 Firebase Storage에 업로드하고 URL 반환
+   */
+  async uploadReviewImage(imageUri: string, reviewId: string): Promise<string> {
     try {
       const response = await fetch(imageUri);
       const blob = await response.blob();
       
-      const storageRef = storage().ref(`places/${placeId}/image.jpg`);
+      // 파일 크기 검증 (5MB 제한)
+      if (blob.size > 5 * 1024 * 1024) {
+        throw new Error('이미지 파일 크기는 5MB 이하여야 합니다.');
+      }
+      
+      // 파일 타입 검증
+      if (!blob.type.startsWith('image/')) {
+        throw new Error('이미지 파일만 업로드 가능합니다.');
+      }
+      
+      // 파일명에 타임스탬프 추가하여 중복 방지
+      const timestamp = Date.now();
+      const fileName = `review_${timestamp}.jpg`;
+      
+      const storageRef = storage().ref(`reviews/${reviewId}/${fileName}`);
       await storageRef.put(blob);
       
       const downloadURL = await storageRef.getDownloadURL();
-      console.log('이미지 업로드 성공:', downloadURL);
+      console.log('리뷰 이미지 업로드 성공:', downloadURL);
       return downloadURL;
     } catch (error) {
-      console.error('이미지 업로드 실패:', error);
+      console.error('리뷰 이미지 업로드 실패:', error);
       throw new Error('이미지 업로드에 실패했습니다.');
     }
   }
 
   /**
-   * 장소 제보 데이터를 이미지와 함께 저장
+   * 리뷰를 이미지와 함께 저장
    */
-  async savePlaceWithImage(placeData: PlaceReportInput, imageUri?: string): Promise<string> {
+  async saveReviewWithImage(reviewData: ReviewInput, imageUri?: string): Promise<string> {
     try {
-      // 먼저 장소 데이터 저장
-      const placeId = await this.addPlaceReport(placeData);
+      // 먼저 리뷰 데이터 저장
+      const reviewId = await this.addReview(reviewData);
       
       // 이미지가 있으면 업로드하고 URL 업데이트
       if (imageUri) {
-        const imageUrl = await this.uploadImage(imageUri, placeId);
-        await this.placesCollection.doc(placeId).update({
+        const imageUrl = await this.uploadReviewImage(imageUri, reviewId);
+        await this.reviewsCollection.doc(reviewId).update({
           imageUrl: imageUrl
         });
       }
       
-      return placeId;
+      return reviewId;
     } catch (error) {
-      console.error('장소 및 이미지 저장 실패:', error);
+      console.error('리뷰 및 이미지 저장 실패:', error);
       throw error;
     }
   }
+
+  /**
+   * 특정 리뷰 삭제 (고유 인덱스로 식별)
+   */
+  async deleteReview(reviewId: string): Promise<void> {
+    try {
+      console.log(`리뷰 ${reviewId} 삭제 중...`);
+      
+      await this.reviewsCollection.doc(reviewId).delete();
+      
+      console.log(`리뷰 ${reviewId} 삭제 완료`);
+    } catch (error) {
+      console.error('리뷰 삭제 실패:', error);
+      throw new Error('리뷰 삭제에 실패했습니다.');
+    }
+  }
+
+  /**
+   * 특정 리뷰 수정 (고유 인덱스로 식별)
+   */
+  async updateReview(reviewId: string, updateData: Partial<ReviewInput>): Promise<void> {
+    try {
+      console.log(`리뷰 ${reviewId} 수정 중...`);
+      
+      const sanitizedData: any = {};
+      
+      if (updateData.rating !== undefined) {
+        if (updateData.rating < 1 || updateData.rating > 5) {
+          throw new Error('별점은 1점에서 5점 사이여야 합니다.');
+        }
+        sanitizedData.rating = updateData.rating;
+      }
+      
+      if (updateData.reviewText !== undefined) {
+        if (updateData.reviewText.length < 10) {
+          throw new Error('리뷰는 최소 10자 이상 작성해주세요.');
+        }
+        if (updateData.reviewText.length > 1000) {
+          throw new Error('리뷰는 최대 1000자까지 작성 가능합니다.');
+        }
+        sanitizedData.reviewText = this.sanitizeText(updateData.reviewText);
+      }
+      
+      if (updateData.imageUrl !== undefined) {
+        sanitizedData.imageUrl = updateData.imageUrl;
+      }
+      
+      sanitizedData.updatedAt = new Date();
+      
+      await this.reviewsCollection.doc(reviewId).update(sanitizedData);
+      
+      console.log(`리뷰 ${reviewId} 수정 완료`);
+    } catch (error) {
+      console.error('리뷰 수정 실패:', error);
+      throw new Error('리뷰 수정에 실패했습니다.');
+    }
+  }
+
+  // 평점 통계 업데이트 함수 제거 - 각 리뷰를 독립적으로 처리
 }
 
 export default new FirestoreService();

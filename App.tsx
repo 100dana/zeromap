@@ -15,7 +15,10 @@ type RootStackParamList = {
   Home: undefined;
   Map: undefined;
   ReportPlace: undefined;
-  WriteReview: { placeName?: string };
+  WriteReview: { 
+    placeName?: string;
+    placeId?: string;
+  };
   MyPage: undefined;
   Settings: undefined;
   Campaign: undefined;

@@ -18,7 +18,7 @@ export class LocalDataService {
   // 제로식당 데이터 가져오기 (JSON 파일 사용)
   static async getZeroRestaurants(): Promise<LocalPlaceData[]> {
     try {
-      console.log('제로식당 JSON 데이터:', zeroRestaurantData.length, '개');
+      const zeroRestaurantData = require('../data/서울시 제로식당 목록.json');
       
       return await this.parseZeroRestaurantData(zeroRestaurantData);
     } catch (error) {
@@ -41,21 +41,21 @@ export class LocalDataService {
   
   // 제로식당 데이터 파싱
   private static async parseZeroRestaurantData(jsonData: any[]): Promise<LocalPlaceData[]> {
-    const placesWithCoords = jsonData.map((item: any, index: number) => {
+    const placesWithCoordsPromises = jsonData.map(async (item: any, index: number) => {
       // 상호명과 지번 주소만 사용
       const name = item.상호명 || item.name || item.매장명 || '제로식당';
       const address = item.지번주소 || item.주소 || item.address || '';
       
-      // API 호출 없이 간단한 주소 매칭만 사용
-      const coordinates = GeocodingService.simpleAddressToCoordinates(address);
+      // 카카오 API를 사용한 주소 변환
+      const coordinates = await GeocodingService.addressToCoordinates(address);
       
       return {
         id: String(index + 1),
         name: name,
         category: '제로식당',
         address: address,
-        latitude: coordinates.latitude,
-        longitude: coordinates.longitude,
+        latitude: coordinates?.latitude || 0,
+        longitude: coordinates?.longitude || 0,
         description: '제로웨이스트 식당',
         additionalInfo: {
           type: 'zero_restaurant',
@@ -65,7 +65,7 @@ export class LocalDataService {
       };
     });
     
-    return placesWithCoords;
+    return await Promise.all(placesWithCoordsPromises);
   }
   
   // 모든 로컬 데이터 가져오기

@@ -120,7 +120,10 @@ type RootStackParamList = {
   Home: undefined;
   Map: undefined;
   ReportPlace: undefined;
-  WriteReview: { placeName?: string };
+  WriteReview: { 
+    placeName?: string;
+    placeId?: string;
+  };
 };
 
 export default function MapScreen() {
@@ -203,33 +206,15 @@ export default function MapScreen() {
           break;
         case 'zeroRestaurant':
           // StoreDataService에서 제로식당 데이터 가져오기 (캐시 기반)
-          console.log('=== MapScreen: 제로식당 카테고리 선택됨 ===');
           try {
             // StoreDataService는 이미 인스턴스화된 객체
             const zeroRestaurants = await StoreDataService.getZeroRestaurants(5); // 5km 반경
-            
-            console.log(`MapScreen에서 받은 제로식당 데이터: ${zeroRestaurants.length}개`);
             
             // 좌표 유효성 검증 (이미 StoreDataService에서 처리됨)
             const validZeroRestaurants = zeroRestaurants.filter(place => 
               place.latitude && place.longitude && 
               place.latitude !== 0 && place.longitude !== 0
             );
-            console.log(`유효한 좌표를 가진 제로식당: ${validZeroRestaurants.length}개`);
-            
-            if (validZeroRestaurants.length > 0) {
-              console.log('제로식당 샘플 데이터:');
-              const seoulCityHall = { latitude: 37.5665, longitude: 126.9780 };
-              validZeroRestaurants.slice(0, 3).forEach((place, index) => {
-                const distance = GeocodingService.calculateDistance(
-                  seoulCityHall.latitude,
-                  seoulCityHall.longitude,
-                  place.latitude,
-                  place.longitude
-                );
-                console.log(`  ${index + 1}. ${place.name} → ${place.latitude}, ${place.longitude} (${distance.toFixed(2)}km)`);
-              });
-            }
             
             setStorePlaces(validZeroRestaurants);
           } catch (error) {
@@ -262,12 +247,6 @@ export default function MapScreen() {
           localData = [];
       }
       
-      console.log(`카테고리 "${category}" 데이터 로드 완료:`);
-      console.log(`- API 데이터: ${apiData.length}개`);
-      console.log(`- 로컬 데이터: ${localData.length}개`);
-      console.log(`- 스토어 데이터: ${storePlaces.length}개`);
-      console.log(`- 총 데이터: ${apiData.length + localData.length + storePlaces.length}개`);
-      
       // 좌표 데이터 검증
       const validApiData = apiData.filter(place => 
         place.latitude && place.longitude && 
@@ -282,15 +261,10 @@ export default function MapScreen() {
         place.latitude !== 0 && place.longitude !== 0
       );
       
-      console.log(`- 유효한 API 데이터: ${validApiData.length}개`);
-      console.log(`- 유효한 로컬 데이터: ${validLocalData.length}개`);
-      console.log(`- 유효한 스토어 데이터: ${validStoreData.length}개`);
-      
       setPlaces(validApiData);
       setLocalPlaces(validLocalData);
       
       const totalData = [...validApiData, ...validLocalData, ...validStoreData];
-      console.log(`최종 설정된 데이터: ${totalData.length}개`);
       
       if (totalData.length === 0) {
         console.warn('⚠️ 해당 카테고리에 유효한 데이터가 없습니다.');
@@ -485,7 +459,8 @@ export default function MapScreen() {
                 onPress={() => {
                   setShowPlaceModal(false);
                   navigation.navigate('WriteReview', { 
-                    placeName: selectedPlace?.name 
+                    placeName: selectedPlace?.name,
+                    placeId: selectedPlace?.id || 'unknown-place'
                   });
                 }}
               >

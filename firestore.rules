@@ -5,14 +5,24 @@ service cloud.firestore {
     match /places/{placeId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null;
-      allow update: if request.auth != null && request.auth.uid == resource.data.reporterId;
+      allow update: if request.auth != null; // 평점 통계 업데이트를 위해 모든 인증된 사용자 허용
       allow delete: if false; // 삭제는 관리자만 가능
     }
     
-    // 제로식당 캐시 컬렉션 - 읽기만 허용 (인증된 사용자)
+    // 제로식당 캐시 컬렉션 - 읽기/쓰기 허용 (인증된 사용자)
     match /zero_restaurants_cache/{document} {
       allow read: if request.auth != null;
-      allow write: if false; // 클라이언트에서 직접 쓰기 금지
+      allow write: if request.auth != null; // 캐시 초기화를 위해 쓰기 권한 허용
+    }
+    
+    // 리뷰 컬렉션 - 인증된 사용자만 접근 가능
+    match /reviews/{reviewId} {
+      allow read: if request.auth != null; // 모든 인증된 사용자가 리뷰 읽기 가능
+      allow create: if request.auth != null; // 인증된 사용자는 리뷰 생성 가능
+      allow update: if request.auth != null && 
+                   request.auth.uid == resource.data.userId; // 본인이 작성한 리뷰만 수정 가능
+      allow delete: if request.auth != null && 
+                   request.auth.uid == resource.data.userId; // 본인이 작성한 리뷰만 삭제 가능
     }
     
     // 사용자 데이터 - 본인만 접근 가능

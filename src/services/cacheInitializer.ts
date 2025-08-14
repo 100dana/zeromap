@@ -23,9 +23,6 @@ export class CacheInitializer {
   // 제로식당 좌표 정보를 Firebase에 캐시로 저장
   static async initializeCache(): Promise<void> {
     try {
-      console.log('=== 제로식당 캐시 초기화 시작 ===');
-      console.log(`총 ${zeroRestaurantData.length}개의 제로식당 데이터 처리 예정`);
-
       // 기존 캐시 삭제
       await this.clearExistingCache();
       
@@ -34,7 +31,6 @@ export class CacheInitializer {
       
       for (let i = 0; i < batches.length; i++) {
         const batch = batches[i];
-        console.log(`배치 ${i + 1}/${batches.length} 처리 중... (${batch.length}개)`);
         
         await this.processBatch(batch, i * this.BATCH_SIZE);
         
@@ -43,8 +39,7 @@ export class CacheInitializer {
           await this.delay(1000); // 1초 대기
         }
       }
-
-      console.log('=== 제로식당 캐시 초기화 완료 ===');
+      
     } catch (error) {
       console.error('캐시 초기화 오류:', error);
       throw error;
@@ -60,14 +55,12 @@ export class CacheInitializer {
       const globalIndex = startIndex + i;
       
       try {
-        console.log(`[${globalIndex + 1}] 처리 중: ${restaurant.상호명}`);
-        
-        // 좌표 변환 및 검증
-        const coords = GeocodingService.simpleAddressToCoordinates(restaurant.지번주소);
+        // 좌표 변환 및 검증 (카카오 API 사용)
+        const coords = await GeocodingService.addressToCoordinates(restaurant.지번주소);
         
         // 좌표 유효성 검증
-        if (!this.isValidCoordinates(coords)) {
-          console.warn(`  → 유효하지 않은 좌표: ${restaurant.상호명} (${coords.latitude}, ${coords.longitude})`);
+        if (!coords || !this.isValidCoordinates(coords)) {
+          console.warn(`  → 유효하지 않은 좌표: ${restaurant.상호명} (${coords?.latitude}, ${coords?.longitude})`);
           continue; // 이 항목 건너뛰기
         }
         
@@ -98,7 +91,6 @@ export class CacheInitializer {
         
         batchWrite.set(docRef, cachedData);
         
-        console.log(`  → 캐시 저장 완료: ${cachedData.name}`);
       } catch (error) {
         console.error(`  → 오류 발생: ${restaurant.상호명}`, error);
       }
@@ -110,21 +102,21 @@ export class CacheInitializer {
 
   // 기존 캐시 삭제
   private static async clearExistingCache(): Promise<void> {
-    console.log('기존 캐시 삭제 중...');
-    
-    const snapshot = await firestore()
-      .collection(this.COLLECTION_NAME)
-      .get();
-    
-    if (!snapshot.empty) {
-      const batch = firestore().batch();
-      snapshot.docs.forEach(doc => {
-        batch.delete(doc.ref);
-      });
-      await batch.commit();
-      console.log(`${snapshot.size}개의 기존 캐시 삭제 완료`);
-    } else {
-      console.log('삭제할 기존 캐시가 없습니다.');
+    try {
+      const snapshot = await firestore()
+        .collection(this.COLLECTION_NAME)
+        .get();
+      
+      if (!snapshot.empty) {
+        const batch = firestore().batch();
+        snapshot.docs.forEach((doc: any) => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+      }
+    } catch (error) {
+      console.error('기존 캐시 삭제 오류:', error);
+      // 권한 오류가 발생해도 계속 진행
     }
   }
 
@@ -184,15 +176,12 @@ export class CacheInitializer {
   // 캐시된 데이터 가져오기
   static async getCachedRestaurants(): Promise<CachedRestaurantData[]> {
     try {
-      console.log('캐시된 제로식당 데이터 가져오는 중...');
-      
       const snapshot = await firestore()
         .collection(this.COLLECTION_NAME)
         .get();
       
-      const restaurants = snapshot.docs.map(doc => doc.data() as CachedRestaurantData);
+      const restaurants = snapshot.docs.map((doc: any) => doc.data() as CachedRestaurantData);
       
-      console.log(`캐시에서 ${restaurants.length}개의 제로식당 데이터 로드 완료`);
       return restaurants;
     } catch (error) {
       console.error('캐시된 데이터 가져오기 오류:', error);
@@ -203,8 +192,6 @@ export class CacheInitializer {
   // 특정 거리 내의 캐시된 데이터 가져오기
   static async getCachedRestaurantsByDistance(maxDistanceKm: number = 5): Promise<CachedRestaurantData[]> {
     try {
-      console.log(`서울시청 기준 ${maxDistanceKm}km 이내 캐시된 제로식당 가져오는 중...`);
-      
       const allRestaurants = await this.getCachedRestaurants();
       const seoulCityHall = { latitude: 37.5665, longitude: 126.9780 };
       
@@ -218,7 +205,6 @@ export class CacheInitializer {
         return distance <= maxDistanceKm;
       });
       
-      console.log(`서울시청 ${maxDistanceKm}km 이내 제로식당: ${nearbyRestaurants.length}개`);
       return nearbyRestaurants;
     } catch (error) {
       console.error('거리별 캐시 데이터 가져오기 오류:', error);
