@@ -67,7 +67,7 @@ export class AuthService {
 
   // 현재 사용자 상태 감지
   static onAuthStateChanged(callback: (user: AuthUser | null) => void) {
-    return auth().onAuthStateChanged((user) => {
+    return auth().onAuthStateChanged((user: FirebaseAuthTypes.User | null) => {
       if (user) {
         callback({
           uid: user.uid,
@@ -127,7 +127,8 @@ export class AuthService {
   static async signInWithGoogle(): Promise<{ user: AuthUser; isNewUser: boolean }> {
     try {
       // Google Sign-In 토큰 가져오기
-      await GoogleSignin.hasPlayServices();
+      // Play Services 확인 (업데이트 다이얼로그 표시)
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       
       // 기존 로그인 상태 확인 및 로그아웃
       try {

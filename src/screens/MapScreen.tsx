@@ -6,6 +6,8 @@ import KakaoMap, { KakaoMapRef } from '../components/KakaoMap';
 import { SeoulApiService, PlaceData } from '../services/seoulApi';
 import { LocalDataService, LocalPlaceData } from '../services/localDataService';
 import { SearchService, SearchResult } from '../services/searchService';
+import StoreDataService, { StoreData } from '../services/storeDataService';
+import { GeocodingService } from '../services/geocodingService';
 import { colors } from '../styles/colors';
 import { typography } from '../styles/typography';
 import { spacing } from '../styles/spacing';
@@ -129,6 +131,7 @@ export default function MapScreen() {
   const [selectedCategory, setSelectedCategory] = useState('zeroWaste');
   const [places, setPlaces] = useState<PlaceData[]>([]);
   const [localPlaces, setLocalPlaces] = useState<LocalPlaceData[]>([]);
+  const [storePlaces, setStorePlaces] = useState<StoreData[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -163,8 +166,8 @@ export default function MapScreen() {
   };
   
   // 거리순으로 정렬된 장소 목록
-  const getSortedPlaces = (): (PlaceData | LocalPlaceData)[] => {
-    const allPlaces = [...places, ...localPlaces];
+  const getSortedPlaces = (): (PlaceData | LocalPlaceData | StoreData)[] => {
+    const allPlaces = [...places, ...localPlaces, ...storePlaces];
     
     return allPlaces.sort((a, b) => {
       const distanceA = calculateDistance(
@@ -199,8 +202,40 @@ export default function MapScreen() {
           apiData = await SeoulApiService.getCupDiscountCafes();
           break;
         case 'zeroRestaurant':
-          // JSON 파일에서 제로식당 데이터 가져오기
-          localData = await LocalDataService.getZeroRestaurants();
+          // StoreDataService에서 제로식당 데이터 가져오기 (캐시 기반)
+          console.log('=== MapScreen: 제로식당 카테고리 선택됨 ===');
+          try {
+            // StoreDataService는 이미 인스턴스화된 객체
+            const zeroRestaurants = await StoreDataService.getZeroRestaurants(5); // 5km 반경
+            
+            console.log(`MapScreen에서 받은 제로식당 데이터: ${zeroRestaurants.length}개`);
+            
+            // 좌표 유효성 검증 (이미 StoreDataService에서 처리됨)
+            const validZeroRestaurants = zeroRestaurants.filter(place => 
+              place.latitude && place.longitude && 
+              place.latitude !== 0 && place.longitude !== 0
+            );
+            console.log(`유효한 좌표를 가진 제로식당: ${validZeroRestaurants.length}개`);
+            
+            if (validZeroRestaurants.length > 0) {
+              console.log('제로식당 샘플 데이터:');
+              const seoulCityHall = { latitude: 37.5665, longitude: 126.9780 };
+              validZeroRestaurants.slice(0, 3).forEach((place, index) => {
+                const distance = GeocodingService.calculateDistance(
+                  seoulCityHall.latitude,
+                  seoulCityHall.longitude,
+                  place.latitude,
+                  place.longitude
+                );
+                console.log(`  ${index + 1}. ${place.name} → ${place.latitude}, ${place.longitude} (${distance.toFixed(2)}km)`);
+              });
+            }
+            
+            setStorePlaces(validZeroRestaurants);
+          } catch (error) {
+            console.error('제로식당 데이터 로드 오류:', error);
+            setStorePlaces([]);
+          }
           break;
         case 'refillStation':
           localData = await LocalDataService.getRefillStations();
@@ -230,7 +265,8 @@ export default function MapScreen() {
       console.log(`카테고리 "${category}" 데이터 로드 완료:`);
       console.log(`- API 데이터: ${apiData.length}개`);
       console.log(`- 로컬 데이터: ${localData.length}개`);
-      console.log(`- 총 데이터: ${apiData.length + localData.length}개`);
+      console.log(`- 스토어 데이터: ${storePlaces.length}개`);
+      console.log(`- 총 데이터: ${apiData.length + localData.length + storePlaces.length}개`);
       
       // 좌표 데이터 검증
       const validApiData = apiData.filter(place => 
@@ -241,16 +277,26 @@ export default function MapScreen() {
         place.latitude && place.longitude && 
         place.latitude !== 0 && place.longitude !== 0
       );
+      const validStoreData = storePlaces.filter(place => 
+        place.latitude && place.longitude && 
+        place.latitude !== 0 && place.longitude !== 0
+      );
       
       console.log(`- 유효한 API 데이터: ${validApiData.length}개`);
       console.log(`- 유효한 로컬 데이터: ${validLocalData.length}개`);
+      console.log(`- 유효한 스토어 데이터: ${validStoreData.length}개`);
       
       setPlaces(validApiData);
       setLocalPlaces(validLocalData);
       
-      const totalData = [...validApiData, ...validLocalData];
+      const totalData = [...validApiData, ...validLocalData, ...validStoreData];
+      console.log(`최종 설정된 데이터: ${totalData.length}개`);
+      
       if (totalData.length === 0) {
+        console.warn('⚠️ 해당 카테고리에 유효한 데이터가 없습니다.');
         Alert.alert('알림', '해당 카테고리의 데이터가 없습니다.');
+      } else {
+        console.log('✅ 데이터 로드 및 설정 완료');
       }
     } catch (error) {
       console.error('데이터 로드 오류:', error);
@@ -279,7 +325,7 @@ export default function MapScreen() {
   };
 
   // 마커 클릭 시 처리
-  const handleMarkerClick = (place: PlaceData | LocalPlaceData) => {
+  const handleMarkerClick = (place: PlaceData | LocalPlaceData | StoreData) => {
     setSelectedPlace(place);
     setShowPlaceModal(true);
   };
@@ -298,7 +344,7 @@ export default function MapScreen() {
     setIsSearching(true);
     
     // 모든 장소 데이터에서 검색
-    const allPlaces = [...places, ...localPlaces];
+    const allPlaces = [...places, ...localPlaces, ...storePlaces];
     const results = SearchService.searchPlaces(query, allPlaces);
     const suggestions = SearchService.getSearchSuggestions(query, allPlaces);
     
@@ -451,7 +497,7 @@ export default function MapScreen() {
   };
 
   // 리스트 아이템 컴포넌트
-  const PlaceListItem = ({ place, index }: { place: PlaceData | LocalPlaceData; index: number }) => {
+  const PlaceListItem = ({ place, index }: { place: PlaceData | LocalPlaceData | StoreData; index: number }) => {
     // 거리 계산
     const distance = calculateDistance(
       CURRENT_LOCATION.latitude,
@@ -498,7 +544,7 @@ export default function MapScreen() {
   };
 
   // 현재 표시할 장소 데이터 (검색 중일 때는 검색 결과만, 아니면 전체)
-  const getDisplayPlaces = (): (PlaceData | LocalPlaceData)[] => {
+  const getDisplayPlaces = (): (PlaceData | LocalPlaceData | StoreData)[] => {
     if (showSearchResults && searchQuery.trim()) {
       return searchResults.map(result => result.place);
     }
@@ -526,9 +572,19 @@ export default function MapScreen() {
     }
   }, [searchResults, showSearchResults, viewMode]);
 
-  // 모든 장소 데이터 (API + 로컬)
-  const allPlaces = [...places, ...localPlaces];
+  // 모든 장소 데이터 (API + 로컬 + 스토어)
+  const allPlaces = [...places, ...localPlaces, ...storePlaces];
   const displayPlaces = getDisplayPlaces();
+  
+  // 디버깅: 현재 상태 로그
+  console.log('=== 현재 데이터 상태 ===');
+  console.log(`- places: ${places.length}개`);
+  console.log(`- localPlaces: ${localPlaces.length}개`);
+  console.log(`- storePlaces: ${storePlaces.length}개`);
+  console.log(`- allPlaces: ${allPlaces.length}개`);
+  console.log(`- displayPlaces: ${displayPlaces.length}개`);
+  console.log(`- selectedCategory: ${selectedCategory}`);
+  console.log(`- viewMode: ${viewMode}`);
 
   return (
     <SafeAreaView style={styles.safeArea}>

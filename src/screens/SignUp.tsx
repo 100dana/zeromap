@@ -121,6 +121,21 @@ export default function SignUp() {
       ]);
     } catch (error: any) {
       console.error('Google 로그인 오류:', error);
+      
+      // 사용자에게 오류 메시지 표시
+      let errorMessage = 'Google 로그인 중 오류가 발생했습니다.';
+      
+      if (error.code === 'SIGN_IN_CANCELLED') {
+        errorMessage = '로그인이 취소되었습니다.';
+      } else if (error.code === 'PLAY_SERVICES_NOT_AVAILABLE') {
+        errorMessage = 'Google Play Services를 사용할 수 없습니다.';
+      } else if (error.code === 'SIGN_IN_REQUIRED') {
+        errorMessage = 'Google 계정으로 다시 로그인해주세요.';
+      } else if (error.message?.includes('activity is null')) {
+        errorMessage = '앱을 다시 시작한 후 다시 시도해주세요.';
+      }
+      
+      Alert.alert('로그인 오류', errorMessage);
     } finally {
       setIsLoading(false);
     }

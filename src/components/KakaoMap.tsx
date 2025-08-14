@@ -7,6 +7,8 @@ const KAKAO_API_KEY = '504f485ba32aedc877afaa80a956af83';
 interface KakaoMapProps {
   places?: PlaceData[];
   onMarkerClick?: (place: PlaceData) => void;
+  onMapClick?: (coordinates: { latitude: number; longitude: number }) => void;
+  selectedLocation?: { lat: number; lng: number };
   opacity?: number;
   centerLat?: number;
   centerLng?: number;
@@ -21,6 +23,8 @@ export interface KakaoMapRef {
 const KakaoMap = forwardRef<KakaoMapRef, KakaoMapProps>(({ 
   places = [], 
   onMarkerClick, 
+  onMapClick,
+  selectedLocation,
   opacity = 1,
   centerLat = 37.5665,
   centerLng = 126.9780,
@@ -105,6 +109,61 @@ const KakaoMap = forwardRef<KakaoMapRef, KakaoMapProps>(({
     `;
     
     webViewRef.current?.injectJavaScript(highlightScript);
+  };
+
+  // 선택된 위치 마커 관리
+  const updateSelectedLocationMarker = (location?: { lat: number; lng: number }) => {
+    if (!webViewLoaded || !mapInitialized) {
+      return;
+    }
+
+    const markerScript = `
+      (function() {
+        try {
+          if (typeof window.map === 'undefined' || !window.map) {
+            return;
+          }
+          
+          // 기존 선택 마커 제거
+          if (window.selectedMarker) {
+            window.selectedMarker.setMap(null);
+            window.selectedMarker = null;
+          }
+          
+          // 새로운 위치가 있으면 마커 생성
+          if (${location ? `{ lat: ${location.lat}, lng: ${location.lng} }` : 'null'}) {
+            var position = new kakao.maps.LatLng(${location?.lat || 0}, ${location?.lng || 0});
+            
+            // 선택된 위치 마커 생성 (빨간색 원형 마커)
+            window.selectedMarker = new kakao.maps.Marker({
+              position: position,
+              map: window.map,
+              zIndex: 1000
+            });
+            
+            // 마커 스타일 설정
+            var markerImage = new kakao.maps.MarkerImage(
+              'data:image/svg+xml;base64,${btoa(`
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="8" fill="#FF4444" stroke="#FFFFFF" stroke-width="2"/>
+                  <circle cx="12" cy="12" r="3" fill="#FFFFFF"/>
+                </svg>
+              `)}',
+              new kakao.maps.Size(24, 24)
+            );
+            window.selectedMarker.setImage(markerImage);
+          }
+          
+        } catch (error) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'selectedMarkerError',
+            error: error.message
+          }));
+        }
+      })();
+    `;
+    
+    webViewRef.current?.injectJavaScript(markerScript);
   };
 
   // ref를 통해 외부에서 함수 호출 가능하도록 설정
@@ -256,6 +315,11 @@ const KakaoMap = forwardRef<KakaoMapRef, KakaoMapProps>(({
             onMarkerClick(data.data);
           }
           break;
+        case 'mapClick':
+          if (onMapClick) {
+            onMapClick(data.coordinates);
+          }
+          break;
         case 'markersAdded':
           break;
         case 'markersUpdated':
@@ -293,6 +357,13 @@ const KakaoMap = forwardRef<KakaoMapRef, KakaoMapProps>(({
       }
     }
   }, [places, webViewLoaded, mapInitialized]);
+
+  // 선택된 위치가 변경될 때마다 마커 업데이트
+  useEffect(() => {
+    if (webViewLoaded && mapInitialized) {
+      updateSelectedLocationMarker(selectedLocation);
+    }
+  }, [selectedLocation, webViewLoaded, mapInitialized]);
 
   const KAKAO_MAP_HTML = `
     <!DOCTYPE html>
@@ -354,6 +425,18 @@ const KakaoMap = forwardRef<KakaoMapRef, KakaoMapProps>(({
             
             // 지도 휠 줌 활성화
             window.map.setZoomable(true);
+            
+            // 지도 클릭 이벤트 추가
+            kakao.maps.event.addListener(window.map, 'click', function(mouseEvent) {
+              var latlng = mouseEvent.latLng;
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'mapClick',
+                coordinates: {
+                  latitude: latlng.getLat(),
+                  longitude: latlng.getLng()
+                }
+              }));
+            });
             
             // 경계 객체 초기화
             window.bounds = new kakao.maps.LatLngBounds();

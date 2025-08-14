@@ -15,6 +15,7 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import KakaoMap from '../components/KakaoMap';
+import AddressSearchModal from '../components/AddressSearchModal';
 import { colors } from '../styles/colors';
 import { spacing } from '../styles/spacing';
 import { shadows } from '../styles/shadows';
@@ -97,16 +98,46 @@ export default function ReportPlace() {
   const [description, setDescription] = useState('');
   const [selectedLocation, setSelectedLocation] = useState({ lat: 37.5665, lng: 126.9780 }); // 서울시청 기본 위치
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-
+  const [isAddressModalVisible, setIsAddressModalVisible] = useState(false);
 
 
   // 지도 클릭 처리
   const handleMapClick = async (coordinates: { latitude: number; longitude: number }) => {
     setSelectedLocation({ lat: coordinates.latitude, lng: coordinates.longitude });
     
-    // 좌표를 주소로 변환 (간단한 방법)
-    const coords = GeocodingService.simpleAddressToCoordinates('');
-    setAddress(`위도: ${coordinates.latitude.toFixed(6)}, 경도: ${coordinates.longitude.toFixed(6)}`);
+    try {
+      // 좌표를 주소로 변환
+      const addressResult = await GeocodingService.coordinatesToAddress(
+        coordinates.latitude, 
+        coordinates.longitude
+      );
+      
+      if (addressResult) {
+        setAddress(addressResult);
+      } else {
+        // API 실패 시 오류 메시지 표시
+        setAddress('주소 변환에 실패했습니다. 다시 시도해주세요.');
+      }
+    } catch (error) {
+      console.error('주소 변환 실패:', error);
+      setAddress('주소 변환 중 오류가 발생했습니다. 다시 시도해주세요.');
+    }
+  };
+
+  // 주소 검색 모달에서 주소 선택 처리
+  const handleAddressSelect = (selectedAddress: string, coordinates: { latitude: number; longitude: number }) => {
+    setAddress(selectedAddress);
+    setSelectedLocation({ lat: coordinates.latitude, lng: coordinates.longitude });
+    
+    // 지도를 해당 위치로 이동
+    if (mapRef.current) {
+      mapRef.current.moveToLocation(coordinates.latitude, coordinates.longitude, 3);
+    }
+  };
+
+  // 주소 검색 모달 열기
+  const handleOpenAddressSearch = () => {
+    setIsAddressModalVisible(true);
   };
 
   // 이미지 선택 처리
@@ -188,14 +219,22 @@ export default function ReportPlace() {
         {/* 주소 입력 */}
         <View style={styles.inputSection}>
           <Text style={styles.inputLabel}>📍 주소 <Text style={styles.requiredText}>*</Text></Text>
-          <TextInput
-            style={styles.textInput}
-            value={address}
-            onChangeText={setAddress}
-            placeholder="주소 검색 또는 지도에서 위치 선택"
-            placeholderTextColor="#999"
-            editable={false}
-          />
+          <View style={styles.addressContainer}>
+            <TextInput
+              style={[styles.textInput, styles.addressInput]}
+              value={address}
+              onChangeText={setAddress}
+              placeholder="주소를 검색하거나 지도에서 선택하세요"
+              placeholderTextColor="#999"
+              editable={false}
+            />
+            <TouchableOpacity
+              style={styles.searchAddressButton}
+              onPress={handleOpenAddressSearch}
+            >
+              <Text style={styles.searchAddressButtonText}>검색</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* 지도에서 위치 선택 */}
@@ -205,10 +244,15 @@ export default function ReportPlace() {
             <KakaoMap 
               ref={mapRef}
               onMapClick={handleMapClick}
+              selectedLocation={selectedLocation}
               places={[]}
             />
             <View style={styles.mapOverlay}>
-              <Text style={styles.mapOverlayText}>지도를 클릭하여 정확한 위치를 선택하세요</Text>
+              <Text style={styles.mapOverlayText}>
+                {address && !address.includes('실패') && !address.includes('오류') 
+                  ? '지도를 클릭하여 위치를 변경하세요' 
+                  : '지도를 클릭하여 정확한 위치를 선택하세요'}
+              </Text>
             </View>
           </View>
         </View>
@@ -288,6 +332,13 @@ export default function ReportPlace() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* 주소 검색 모달 */}
+      <AddressSearchModal
+        visible={isAddressModalVisible}
+        onClose={() => setIsAddressModalVisible(false)}
+        onAddressSelect={handleAddressSelect}
+      />
     </SafeAreaView>
   );
 }
@@ -363,20 +414,22 @@ const styles = StyleSheet.create({
   addressContainer: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
   },
   addressInput: {
     flex: 1,
-    marginRight: 8,
   },
   searchAddressButton: {
     backgroundColor: "#4CAF50",
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 6,
+    minWidth: 60,
+    alignItems: "center",
   },
   searchAddressButtonText: {
     color: "#FFFFFF",
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "bold",
   },
   mapContainer: {
@@ -520,4 +573,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+
 }); 
