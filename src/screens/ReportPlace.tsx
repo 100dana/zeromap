@@ -23,6 +23,8 @@ import { colors } from '../styles/colors';
 import { spacing } from '../styles/spacing';
 import { shadows } from '../styles/shadows';
 import { GeocodingService } from '../services/geocodingService';
+import FirestoreService from '../services/firestoreService';
+import { PlaceReportInput } from '../types/place';
 
 type RootStackParamList = {
   Home: undefined;
@@ -97,11 +99,13 @@ export default function ReportPlace() {
   
   const [placeName, setPlaceName] = useState('');
   const [address, setAddress] = useState('');
+  const [detailAddress, setDetailAddress] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [description, setDescription] = useState('');
   const [selectedLocation, setSelectedLocation] = useState({ lat: 37.5665, lng: 126.9780 }); // 서울시청 기본 위치
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isAddressModalVisible, setIsAddressModalVisible] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
 
   // 지도 클릭 처리
@@ -266,7 +270,7 @@ export default function ReportPlace() {
     );
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!placeName.trim()) {
       Alert.alert('알림', '장소 이름을 입력해주세요.');
       return;
@@ -284,16 +288,39 @@ export default function ReportPlace() {
       return;
     }
 
-    Alert.alert(
-      '제보 완료',
-      '장소 제보가 완료되었습니다!\n\n검토 후 반영됩니다.',
-      [
-        {
-          text: '확인',
-          onPress: () => navigation.goBack()
-        }
-      ]
-    );
+    setIsSaving(true);
+
+    const placeReport: PlaceReportInput = {
+      name: placeName.trim(),
+      address: address.trim(),
+      coordinates: {
+        lat: selectedLocation.lat,
+        lng: selectedLocation.lng
+      },
+      category: selectedCategory,
+      description: description.trim(),
+      ...(detailAddress.trim() && { detailAddress: detailAddress.trim() }),
+      ...(selectedImage && { imageUrl: selectedImage })
+    };
+
+    try {
+      await FirestoreService.savePlaceWithImage(placeReport, selectedImage || undefined);
+      Alert.alert(
+        '제보 완료',
+        '장소 제보가 완료되었습니다!\n\n검토 후 반영됩니다.',
+        [
+          {
+            text: '확인',
+            onPress: () => navigation.goBack()
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('장소 제보 실패:', error);
+      Alert.alert('오류', '장소 제보 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
@@ -337,27 +364,6 @@ export default function ReportPlace() {
           />
         </View>
 
-        {/* 주소 입력 */}
-        <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>주소 <Text style={styles.requiredText}>*</Text></Text>
-          <View style={styles.addressContainer}>
-            <TextInput
-              style={[styles.textInput, styles.addressInput]}
-              value={address}
-              onChangeText={setAddress}
-              placeholder="주소를 검색하거나 지도에서 선택하세요"
-              placeholderTextColor="#999"
-              editable={false}
-            />
-            <TouchableOpacity
-              style={styles.searchAddressButton}
-              onPress={handleOpenAddressSearch}
-            >
-              <Text style={styles.searchAddressButtonText}>검색</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* 지도에서 위치 선택 */}
         <View style={styles.inputSection}>
           <Text style={styles.inputLabel}>지도에서 위치 선택 <Text style={styles.requiredText}>*</Text></Text>
@@ -371,11 +377,44 @@ export default function ReportPlace() {
             <View style={styles.mapOverlay}>
               <Text style={styles.mapOverlayText}>
                 {address && !address.includes('실패') && !address.includes('오류') 
-                  ? '지도를 클릭하여 위치를 변경하세요' 
-                  : '지도를 클릭하여 정확한 위치를 선택하세요'}
+                  ? '📍 위치가 선택되었습니다. 클릭하여 변경하세요' 
+                  : '📍 지도를 클릭하여 정확한 위치를 선택하세요'}
               </Text>
             </View>
           </View>
+        </View>
+
+        {/* 주소 입력 */}
+        <View style={styles.inputSection}>
+          <Text style={styles.inputLabel}>주소 <Text style={styles.requiredText}>*</Text></Text>
+          <View style={styles.addressContainer}>
+            <TextInput
+              style={[styles.textInput, styles.addressInput]}
+              value={address}
+              onChangeText={setAddress}
+              placeholder="지도에서 선택하거나 검색으로 주소를 입력하세요"
+              placeholderTextColor="#999"
+              editable={false}
+            />
+            <TouchableOpacity
+              style={styles.searchAddressButton}
+              onPress={handleOpenAddressSearch}
+            >
+              <Text style={styles.searchAddressButtonText}>검색</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* 상세 주소 입력 */}
+        <View style={styles.inputSection}>
+          <Text style={styles.inputLabel}>상세 주소 <Text style={styles.optionalText}>(선택)</Text></Text>
+          <TextInput
+            style={[styles.textInput, styles.detailAddressInput]}
+            value={detailAddress}
+            onChangeText={setDetailAddress}
+            placeholder="건물명, 층수, 호수 등을 입력하세요"
+            placeholderTextColor="#999"
+          />
         </View>
 
         {/* 카테고리 선택 */}
@@ -470,10 +509,15 @@ export default function ReportPlace() {
             <Text style={styles.cancelButtonText}>취소</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.saveButton}
+            style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
             onPress={handleSave}
+            disabled={isSaving}
           >
-            <Text style={styles.saveButtonText}>장소 제보하기</Text>
+            {isSaving ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.saveButtonText}>장소 제보하기</Text>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -620,6 +664,10 @@ const styles = StyleSheet.create({
     height: 100,
     textAlignVertical: "top",
   },
+  detailAddressInput: {
+    borderColor: "#E0E0E0",
+    backgroundColor: "#FAFAFA",
+  },
   
   buttonContainer: {
     flexDirection: "row",
@@ -647,6 +695,9 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     paddingVertical: 12,
     alignItems: "center",
+  },
+  saveButtonDisabled: {
+    backgroundColor: "#CCCCCC",
   },
   saveButtonText: {
     color: "#FFFFFF",

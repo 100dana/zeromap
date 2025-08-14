@@ -1,6 +1,14 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // 장소 제보 컬렉션 - 읽기/쓰기 허용 (인증된 사용자)
+    match /places/{placeId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && request.auth.uid == resource.data.reporterId;
+      allow delete: if false; // 삭제는 관리자만 가능
+    }
+    
     // 제로식당 캐시 컬렉션 - 읽기만 허용 (인증된 사용자)
     match /zero_restaurants_cache/{document} {
       allow read: if request.auth != null;
