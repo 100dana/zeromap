@@ -10,10 +10,13 @@ import {
   Alert,
   Image,
   ActivityIndicator,
-  FlatList
+  FlatList,
+  Platform,
+  PermissionsAndroid
 } from "react-native";
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
+import { launchImageLibrary, ImagePickerResponse, MediaType } from 'react-native-image-picker';
 import KakaoMap from '../components/KakaoMap';
 import AddressSearchModal from '../components/AddressSearchModal';
 import { colors } from '../styles/colors';
@@ -140,9 +143,127 @@ export default function ReportPlace() {
     setIsAddressModalVisible(true);
   };
 
+  // 권한 상태 확인 (디버그용)
+  const checkPermissionStatus = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const status = await PermissionsAndroid.check(
+          PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE
+        );
+        console.log('갤러리 권한 상태:', status ? '허용됨' : '거부됨');
+        return status;
+      } catch (err) {
+        console.warn('권한 상태 확인 실패:', err);
+        return false;
+      }
+    }
+    return true; // iOS는 기본적으로 허용
+  };
+
   // 이미지 선택 처리
-  const handleImageSelect = () => {
-    Alert.alert('알림', '이미지 선택 기능이 곧 추가됩니다!');
+  const handleImageSelect = async () => {
+    // 권한 상태 먼저 확인
+    const hasPermission = await checkPermissionStatus();
+    console.log('현재 권한 상태:', hasPermission);
+    
+    Alert.alert(
+      '이미지 선택',
+      '이미지를 선택하시겠습니까?',
+      [
+        { text: '취소', style: 'cancel' },
+        { text: '갤러리에서 선택', onPress: () => selectImageFromGallery() }
+      ]
+    );
+  };
+
+  // Android 권한 요청
+  const requestCameraPermission = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+          {
+            title: "갤러리 접근 권한",
+            message: "장소 사진을 첨부하기 위해 갤러리 접근 권한이 필요합니다.",
+            buttonNeutral: "나중에",
+            buttonNegative: "취소",
+            buttonPositive: "허용"
+          }
+        );
+        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+          console.log("갤러리 접근 권한이 승인되었습니다.");
+          return true;
+        } else {
+          console.log("갤러리 접근 권한이 거부되었습니다.");
+          Alert.alert(
+            '권한 필요', 
+            '이미지를 선택하려면 갤러리 접근 권한이 필요합니다.\n\n설정에서 권한을 허용해주세요.',
+            [
+              { text: '취소', style: 'cancel' },
+              { text: '설정으로 이동', onPress: () => {
+                // 설정 앱으로 이동하는 로직 (선택사항)
+                console.log('설정 앱으로 이동');
+              }}
+            ]
+          );
+          return false;
+        }
+      } catch (err) {
+        console.warn(err);
+        Alert.alert('오류', '권한 요청 중 오류가 발생했습니다.');
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // 갤러리에서 이미지 선택
+  const selectImageFromGallery = async () => {
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) {
+      return;
+    }
+
+    launchImageLibrary({
+      mediaType: 'photo',
+      maxWidth: 800,
+      maxHeight: 800,
+      quality: 0.8,
+      includeBase64: false,
+      selectionLimit: 1,
+    }, (response: ImagePickerResponse) => {
+      if (response.didCancel) {
+        console.log('사용자가 이미지 선택을 취소했습니다.');
+      } else if (response.errorMessage) {
+        console.log('이미지 선택 중 오류가 발생했습니다:', response.errorMessage);
+        Alert.alert('오류', '이미지 선택 중 오류가 발생했습니다. 다시 시도해주세요.');
+      } else if (response.assets && response.assets.length > 0) {
+        const asset = response.assets[0];
+        if (asset.uri) {
+          // 파일 크기 확인 (5MB 제한)
+          if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+            Alert.alert('파일 크기 초과', '이미지 파일 크기는 5MB 이하여야 합니다.');
+            return;
+          }
+          
+          setSelectedImage(asset.uri);
+          console.log('선택된 이미지 URI:', asset.uri);
+          console.log('파일 크기:', asset.fileSize ? `${(asset.fileSize / 1024 / 1024).toFixed(2)}MB` : '알 수 없음');
+        }
+      }
+    });
+  };
+
+  // 이미지 제거
+  const handleRemoveImage = () => {
+    Alert.alert(
+      '이미지 제거',
+      '선택된 이미지를 제거하시겠습니까?',
+      [
+        { text: '취소', style: 'cancel' },
+        { text: '제거', style: 'destructive', onPress: () => setSelectedImage(null) }
+      ]
+    );
   };
 
   const handleSave = () => {
@@ -206,7 +327,7 @@ export default function ReportPlace() {
 
         {/* 장소 이름 입력 */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>🏪 장소 이름 <Text style={styles.requiredText}>*</Text></Text>
+          <Text style={styles.inputLabel}>장소 이름 <Text style={styles.requiredText}>*</Text></Text>
           <TextInput
             style={styles.textInput}
             value={placeName}
@@ -218,7 +339,7 @@ export default function ReportPlace() {
 
         {/* 주소 입력 */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>📍 주소 <Text style={styles.requiredText}>*</Text></Text>
+          <Text style={styles.inputLabel}>주소 <Text style={styles.requiredText}>*</Text></Text>
           <View style={styles.addressContainer}>
             <TextInput
               style={[styles.textInput, styles.addressInput]}
@@ -239,7 +360,7 @@ export default function ReportPlace() {
 
         {/* 지도에서 위치 선택 */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>🗺️ 지도에서 위치 선택 <Text style={styles.requiredText}>*</Text></Text>
+          <Text style={styles.inputLabel}>지도에서 위치 선택 <Text style={styles.requiredText}>*</Text></Text>
           <View style={styles.mapContainer}>
             <KakaoMap 
               ref={mapRef}
@@ -259,7 +380,7 @@ export default function ReportPlace() {
 
         {/* 카테고리 선택 */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>🏷️ 카테고리 선택 <Text style={styles.requiredText}>*</Text></Text>
+          <Text style={styles.inputLabel}>카테고리 선택 <Text style={styles.requiredText}>*</Text></Text>
           <FlatList
             data={categories}
             horizontal
@@ -278,7 +399,7 @@ export default function ReportPlace() {
 
         {/* 설명 입력 */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>📝 설명 <Text style={styles.requiredText}>*</Text></Text>
+          <Text style={styles.inputLabel}>설명 <Text style={styles.requiredText}>*</Text></Text>
           <TextInput
             style={[styles.textInput, styles.descriptionInput]}
             value={description}
@@ -293,24 +414,48 @@ export default function ReportPlace() {
 
         {/* 이미지 업로드 */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>📷 이미지 첨부 (선택)</Text>
-          <View style={styles.imageUploadSection}>
+          <Text style={styles.inputLabel}>이미지 첨부 <Text style={styles.optionalText}>(선택)</Text></Text>
+          <View style={styles.imageUploadContainer}>
             {selectedImage ? (
-              <View style={styles.selectedImageContainer}>
-                <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
-                <TouchableOpacity
-                  style={styles.removeImageButton}
-                  onPress={() => setSelectedImage(null)}
-                >
-                  <Text style={styles.removeImageButtonText}>✕</Text>
-                </TouchableOpacity>
+              <View style={styles.selectedImageWrapper}>
+                <Image 
+                  source={{ uri: selectedImage }} 
+                  style={styles.selectedImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.imageOverlay}>
+                  <TouchableOpacity
+                    style={styles.imageActionButton}
+                    onPress={handleImageSelect}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.imageActionButtonText}>변경</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.imageActionButton, styles.removeButton]}
+                    onPress={handleRemoveImage}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.imageActionButtonText}>삭제</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.imageInfo}>
+                  <Text style={styles.imageInfoText}>📷 선택된 이미지</Text>
+                </View>
               </View>
             ) : (
               <TouchableOpacity
-                style={styles.imageUploadButton}
+                style={styles.imageUploadArea}
                 onPress={handleImageSelect}
+                activeOpacity={0.7}
               >
-                <Text style={styles.imageUploadButtonText}>📷 + 이미지 추가</Text>
+                <View style={styles.uploadIconContainer}>
+                  <Text style={styles.uploadIcon}>📷</Text>
+                  <Text style={styles.uploadPlusIcon}>+</Text>
+                </View>
+                <Text style={styles.uploadTitle}>이미지 추가</Text>
+                <Text style={styles.uploadSubtitle}>장소 사진을 첨부해주세요</Text>
+                <Text style={styles.uploadHint}>JPG, PNG 파일만 가능 • 최대 5MB</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -475,27 +620,7 @@ const styles = StyleSheet.create({
     height: 100,
     textAlignVertical: "top",
   },
-  imageUploadSection: {
-    borderColor: "#0000001A",
-    borderWidth: 1,
-    borderRadius: 6,
-    paddingVertical: 20,
-    alignItems: "center",
-    backgroundColor: "#F8F8F8",
-  },
-  imageUploadButton: {
-    borderColor: "#0000001A",
-    borderWidth: 1,
-    borderRadius: 6,
-    paddingVertical: 12,
-    alignItems: "center",
-    backgroundColor: "#F8F8F8",
-  },
-  imageUploadButtonText: {
-    color: "#666666",
-    fontSize: 14,
-    fontWeight: "500",
-  },
+  
   buttonContainer: {
     flexDirection: "row",
     marginHorizontal: 16,
@@ -533,6 +658,10 @@ const styles = StyleSheet.create({
     color: '#FF4444',
     fontWeight: 'bold',
   },
+  optionalText: {
+    color: '#999999',
+    fontSize: 14,
+  },
   mapOverlay: {
     position: 'absolute',
     top: 10,
@@ -547,31 +676,116 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
   },
-  selectedImageContainer: {
-    position: 'relative',
-    alignItems: 'center',
+  
+  imageUploadContainer: {
+    borderColor: "#E0E0E0",
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    paddingVertical: 24,
+    alignItems: "center",
+    backgroundColor: "#FAFAFA",
+    minHeight: 160,
   },
-  selectedImage: {
-    width: 200,
-    height: 150,
-    borderRadius: 8,
+  imageUploadArea: {
+    borderColor: "#E0E0E0",
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    paddingVertical: 32,
+    alignItems: "center",
+    backgroundColor: "#FAFAFA",
+    width: '100%',
+    minHeight: 160,
+  },
+  uploadIconContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  uploadIcon: {
+    fontSize: 36,
+    marginRight: 8,
+  },
+  uploadPlusIcon: {
+    fontSize: 24,
+    color: '#4CAF50',
+    fontWeight: 'bold',
+  },
+  uploadTitle: {
+    color: '#333333',
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  uploadSubtitle: {
+    color: '#666666',
+    fontSize: 14,
     marginBottom: 8,
   },
-  removeImageButton: {
-    position: 'absolute',
-    top: 5,
-    right: 5,
-    backgroundColor: '#FF4444',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
+  uploadHint: {
+    color: '#999999',
+    fontSize: 12,
+    textAlign: 'center',
   },
-  removeImageButtonText: {
+  selectedImageWrapper: {
+    position: 'relative',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 10,
+  },
+  selectedImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    padding: 20,
+  },
+  imageActionButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    minWidth: 80,
+    ...shadows.button,
+  },
+  imageActionButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  removeButton: {
+    backgroundColor: '#FF4444',
+  },
+  imageInfo: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+  },
+  imageInfoText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'center',
   },
 
 }); 

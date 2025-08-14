@@ -134,24 +134,12 @@ const KakaoMap = forwardRef<KakaoMapRef, KakaoMapProps>(({
           if (${location ? `{ lat: ${location.lat}, lng: ${location.lng} }` : 'null'}) {
             var position = new kakao.maps.LatLng(${location?.lat || 0}, ${location?.lng || 0});
             
-            // 선택된 위치 마커 생성 (빨간색 원형 마커)
+            // 선택된 위치 마커 생성 (기본 카카오 마커와 동일)
             window.selectedMarker = new kakao.maps.Marker({
               position: position,
               map: window.map,
               zIndex: 1000
             });
-            
-            // 마커 스타일 설정
-            var markerImage = new kakao.maps.MarkerImage(
-              'data:image/svg+xml;base64,${btoa(`
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="12" cy="12" r="8" fill="#FF4444" stroke="#FFFFFF" stroke-width="2"/>
-                  <circle cx="12" cy="12" r="3" fill="#FFFFFF"/>
-                </svg>
-              `)}',
-              new kakao.maps.Size(24, 24)
-            );
-            window.selectedMarker.setImage(markerImage);
           }
           
         } catch (error) {
