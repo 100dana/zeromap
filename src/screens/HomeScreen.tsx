@@ -146,8 +146,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     marginBottom: spacing.md,
     marginHorizontal: spacing.screenPaddingHorizontal,
-    paddingTop: 10,
-    paddingBottom: spacing.paddingMedium,
+    paddingTop: 12,
+    paddingBottom: spacing.paddingSmall,
     paddingHorizontal: spacing.paddingLarge,
     borderRadius: spacing.borderRadiusLarge,
     ...shadows.card,
@@ -162,8 +162,7 @@ const styles = StyleSheet.create({
   locationContainer: {
     backgroundColor: colors.surface,
     borderRadius: spacing.borderRadiusLarge,
-    paddingVertical: spacing.paddingMedium,
-    marginBottom: spacing.elementSpacing,
+    marginBottom: spacing.elementSpacingLarge,
     marginHorizontal: spacing.screenPaddingHorizontal,
     ...shadows.card,
   },
@@ -198,7 +197,7 @@ const styles = StyleSheet.create({
     ...typography.h3,
     textAlign: "center",
     marginTop: spacing.elementSpacingLarge,
-    marginBottom: spacing.elementSpacing,
+    marginBottom: spacing.elementSpacingLarge,
     marginHorizontal: spacing.screenPaddingHorizontal,
   },
   shopRow: {
@@ -212,7 +211,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: spacing.borderRadiusLarge,
     borderWidth: 1,
-    marginRight: spacing.elementSpacingSmall,
+    marginRight: spacing.elementSpacing,
     backgroundColor: colors.card,
     overflow: "hidden",
     minWidth: 0, // flexbox shrink 방지

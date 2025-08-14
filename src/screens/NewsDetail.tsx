@@ -6,9 +6,10 @@ import {
   TouchableOpacity,
   Image,
   StyleSheet,
-  SafeAreaView,
   Dimensions,
+  StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors } from '../styles/colors';
@@ -90,8 +91,7 @@ export default function CampaignDetail() {
             setImages([]);
             return;
           }
-          
-          // Firestore에서 실제 제목 가져오기
+
           try {
             console.log(`[NewsDetail] Firestore 조회 시도: articleId = ${articleId}`);
             
@@ -137,83 +137,73 @@ export default function CampaignDetail() {
   }, [articleId]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      {/* 상단 헤더 */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{actualTitle}</Text>
-        <View style={styles.headerRight}>
-          <Text style={styles.timeText}>12:30</Text>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        {/* 네비게이션 바 */}
+        <View style={styles.navigationBar}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.backButtonText}>‹</Text>
+          </TouchableOpacity>
+          <Text style={styles.navigationTitle}>뉴스 상세</Text>
         </View>
-      </View>
 
-      {/* 네비게이션 바 */}
-      <View style={styles.navigationBar}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.navigationTitle}>뉴스 상세</Text>
-      </View>
-
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.overviewSection}>
-          <View style={styles.overviewContent}>
-            <Image
-              source={{ uri: 'https://via.placeholder.com/60x60/4CAF50/FFFFFF?text=News' }}
-              style={styles.campaignLogo}
-            />
-            <View style={styles.overviewText}>
-              <Text style={styles.campaignTitle}>{actualTitle}</Text>
-              <Text style={styles.campaignSubtitle}>제목: {actualTitle}</Text>
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          <View style={styles.overviewSection}>
+            <View style={styles.overviewContent}>
+              <View style={styles.overviewText}>
+                <Text style={styles.campaignTitle}>{actualTitle}</Text>
+              </View>
             </View>
           </View>
-        </View>
 
-        {/* 뉴스 설명 */}
-        <View style={styles.descriptionSection}>
-          <View style={styles.descriptionContent}>
-            <InfoRow
-              icon="📅"
-              title="게시일"
-              content={`2024년 1월 15일`}
-            />
+          {/* 뉴스 설명 */}
+          <View style={styles.descriptionSection}>
+            <View style={styles.descriptionContent}>
+              <InfoRow
+                icon="📅"
+                title="게시일"
+                content={`2024년 1월 15일`}
+              />
+            </View>
           </View>
-        </View>
 
-        {loading ? (
-          <View style={styles.loadingSection}>
-            <Text style={styles.loadingText}>이미지 로딩중…</Text>
+          {loading ? (
+            <View style={styles.loadingSection}>
+              <Text style={styles.loadingText}>이미지 로딩중…</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.errorSection}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : images.length > 0 ? (
+            <ImageGallery images={images} />
+          ) : (
+            <View style={styles.noImageSection}>
+              <Text style={styles.noImageText}>이미지가 없습니다</Text>
+            </View>
+          )}
+          
+          <View style={styles.additionalInfoSection}>
+            <Text style={styles.sectionTitle}>추가 정보</Text>
+            <View style={styles.additionalContent}>
+              <InfoRow
+                icon="🔗"
+                title="원문 링크"
+                content={'서울시 환경뉴스 홈페이지'}
+              />
+              <InfoRow
+                icon="📞"
+                title="문의처"
+                content={'서울시 환경정책과 02-2133-0000'}
+              />
+            </View>
           </View>
-        ) : error ? (
-          <View style={styles.errorSection}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        ) : images.length > 0 ? (
-          <ImageGallery images={images} />
-        ) : (
-          <View style={styles.noImageSection}>
-            <Text style={styles.noImageText}>이미지가 없습니다</Text>
-          </View>
-        )}
-        
-        <View style={styles.additionalInfoSection}>
-          <Text style={styles.sectionTitle}>추가 정보</Text>
-          <View style={styles.additionalContent}>
-            <InfoRow
-              icon="🔗"
-              title="원문 링크"
-              content={'서울시 환경뉴스 홈페이지'}
-            />
-            <InfoRow
-              icon="📞"
-              title="문의처"
-              content={'서울시 환경정책과 02-2133-0000'}
-            />
-          </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </SafeAreaView>
 
       {/* 하단 버튼들 */}
       <View style={styles.bottomButtons}>
@@ -224,42 +214,26 @@ export default function CampaignDetail() {
           <Text style={styles.participateButtonText}>공유하기</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: colors.background,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.screenPaddingHorizontal,
-    paddingVertical: spacing.paddingMedium,
-    backgroundColor: colors.card,
-    ...shadows.header,
-  },
-  headerTitle: {
-    ...typography.h2,
-    color: colors.textPrimary,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  timeText: {
-    ...typography.body1,
-    color: colors.textSecondary,
-  },
+
   navigationBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.screenPaddingHorizontal,
-    paddingVertical: spacing.paddingMedium,
+    paddingBottom: spacing.paddingSmall,
     backgroundColor: colors.card,
     borderBottomWidth: 1,
     borderBottomColor: colors.divider,
@@ -298,23 +272,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  campaignLogo: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginRight: spacing.paddingMedium,
-  },
   overviewText: {
     flex: 1,
   },
   campaignTitle: {
-    ...typography.h2,
+    ...typography.h1,
     color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  campaignSubtitle: {
-    ...typography.body1,
-    color: colors.textSecondary,
+    marginTop: spacing.paddingLarge,
+    textAlign: 'center',
   },
   descriptionSection: {
     backgroundColor: colors.card,

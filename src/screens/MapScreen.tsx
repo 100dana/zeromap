@@ -758,7 +758,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: spacing.screenPaddingHorizontal,
-    paddingTop: 10,
+    paddingTop: 12,
     paddingBottom: spacing.paddingLarge,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 2,

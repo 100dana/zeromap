@@ -30,16 +30,18 @@ function CampaignListItem({ campaign }: { campaign: CampaignData }) {
   const navigation = useNavigation<CampaignNavigationProp>();
 
   return (
-    <TouchableOpacity
-      style={styles.listItem}
-      onPress={() => navigation.navigate('CampaignDetail', { articleId: campaign.id, title: campaign.title })}
-    >
-      <Image source={{ uri: campaign.thumbnail }} style={styles.listItemThumbnail} resizeMode="cover" />
-      <View style={styles.listItemContent}>
-        <Text style={styles.listItemTitle}>{campaign.title}</Text>
-        {!!campaign.subtitle && <Text style={styles.listItemSubtitle}>{campaign.subtitle}</Text>}
-      </View>
-    </TouchableOpacity>
+    <View style={styles.listItemContainer}>
+      <TouchableOpacity
+        style={styles.listItem}
+        onPress={() => navigation.navigate('CampaignDetail', { articleId: campaign.id, title: campaign.title })}
+      >
+        <Image source={{ uri: campaign.thumbnail }} style={styles.listItemThumbnail} resizeMode="cover" />
+        <View style={styles.listItemContent}>
+          <Text style={styles.listItemTitle}>{campaign.title}</Text>
+        </View>
+      </TouchableOpacity>
+      <View style={styles.divider} />
+    </View>
   );
 }
 
@@ -117,7 +119,7 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     paddingHorizontal: spacing.screenPaddingHorizontal,
-    paddingTop: 10,
+    paddingTop: 12,
     paddingBottom: spacing.paddingMedium,
     backgroundColor: colors.card,
     borderBottomWidth: 2,
@@ -151,6 +153,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.paddingMedium,
     gap: spacing.paddingSmall,
   },
+  listItemContainer: {
+    marginBottom: spacing.xs,
+  },
   listItem: {
     flexDirection: 'row',
     backgroundColor: colors.card,
@@ -158,6 +163,12 @@ const styles = StyleSheet.create({
     padding: spacing.paddingMedium,
     alignItems: 'center',
     ...shadows.card,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.divider,
+    marginTop: spacing.paddingMedium,
+    marginHorizontal: spacing.paddingLarge,
   },
   listItemThumbnail: {
     width: 80,
@@ -174,10 +185,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontWeight: '600',
     marginBottom: spacing.xs,
-  },
-  listItemSubtitle: {
-    ...typography.caption,
-    color: colors.textSecondary,
   },
   centered: {
     padding: spacing.paddingLarge,
