@@ -1,6 +1,8 @@
 {
   "extends": "@react-native/typescript-config",
   "compilerOptions": {
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true
   }
 }

@@ -17,10 +17,8 @@ export class AddressService {
   // private static SERVER_URL = 'https://your-production-server.com'; // 프로덕션 환경
 
   // 주소를 좌표로 변환
-  static async addressToCoordinates(address: string): Promise<Coordinates | null> {
+  static async convertAddressToCoordinates(address: string): Promise<Coordinates | null> {
     try {
-      console.log(`📍 주소 변환 요청: ${address}`);
-
       const response = await fetch(`${this.SERVER_URL}/api/coord`, {
         method: 'POST',
         headers: {
@@ -30,29 +28,21 @@ export class AddressService {
       });
 
       if (!response.ok) {
-        throw new Error(`주소 변환 실패: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data: AddressResponse = await response.json();
+      const data = await response.json();
 
-      if (data.success) {
-        console.log(`✅ 주소 변환 성공: ${address} → ${data.coordinates.latitude}, ${data.coordinates.longitude}`);
-        if (data.note) {
-          console.log(`📝 참고: ${data.note}`);
-        }
+      if (data.success && data.coordinates) {
         return data.coordinates;
       } else {
-        console.error('❌ 주소 변환 실패:', data);
-        return null;
+        // API 실패 시 간단한 매칭 사용
+        const fallbackCoords = this.simpleAddressToCoordinates(address);
+        return fallbackCoords;
       }
-
     } catch (error) {
-      console.error('주소 변환 오류:', error);
-      
-      // 오류 시 간단한 매칭 사용
+      // 서버 연결 실패 시 간단한 매칭 사용
       const fallbackCoords = this.simpleAddressToCoordinates(address);
-      console.log(`🔄 간단한 매칭 사용: ${address} → ${fallbackCoords.latitude}, ${fallbackCoords.longitude}`);
-      
       return fallbackCoords;
     }
   }
@@ -63,7 +53,7 @@ export class AddressService {
 
     for (const address of addresses) {
       try {
-        const coords = await this.addressToCoordinates(address);
+        const coords = await this.convertAddressToCoordinates(address);
         if (coords) {
           coordinates.push(coords);
         } else {

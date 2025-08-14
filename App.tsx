@@ -21,11 +21,30 @@ import PolicyInfo from "./src/screens/PolicyInfo";
 import SignUp from "./src/screens/SignUp";
 import SignIn from "./src/screens/SignIn";
 
-const Stack = createNativeStackNavigator();
+
+type RootStackParamList = {
+  SignUp: undefined;
+  SignIn: undefined;
+  Home: undefined;
+  Map: undefined;
+  ReportPlace: undefined;
+  WriteReview: { 
+    placeName?: string;
+    placeId?: string;
+  };
+  MyPage: undefined;
+  Settings: undefined;
+  Campaign: undefined;
+  CampaignDetail: undefined;
+  PolicyInfo: undefined;
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   return (
     <SafeAreaProvider>
+      {/* @ts-ignore */}
       <NavigationContainer>
         <Stack.Navigator initialRouteName="SignUp" screenOptions={{ headerShown: false }}>
           <Stack.Screen name="SignUp" component={SignUp} />

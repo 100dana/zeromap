@@ -123,6 +123,22 @@ export default function SignUp() {
     } catch (error: any) {
       console.error('Google 로그인 오류:', error);
       
+
+      // 사용자에게 오류 메시지 표시
+      let errorMessage = 'Google 로그인 중 오류가 발생했습니다.';
+      
+      if (error.code === 'SIGN_IN_CANCELLED') {
+        errorMessage = '로그인이 취소되었습니다.';
+      } else if (error.code === 'PLAY_SERVICES_NOT_AVAILABLE') {
+        errorMessage = 'Google Play Services를 사용할 수 없습니다.';
+      } else if (error.code === 'SIGN_IN_REQUIRED') {
+        errorMessage = 'Google 계정으로 다시 로그인해주세요.';
+      } else if (error.message?.includes('activity is null')) {
+        errorMessage = '앱을 다시 시작한 후 다시 시도해주세요.';
+      }
+      
+      Alert.alert('로그인 오류', errorMessage);
+
       // 사용자에게 더 친화적인 오류 메시지 표시
       let errorMessage = 'Google 로그인 중 오류가 발생했습니다.';
       
@@ -138,14 +154,49 @@ export default function SignUp() {
       }
       
       Alert.alert('로그인 오류', errorMessage, [{ text: '확인' }]);
+
     } finally {
       setIsLoading(false);
     }
   };
 
   // 이메일 회원가입 선택
-  const handleEmailSignUp = () => {
-    setShowEmailModal(true);
+  const handleEmailSignUp = async () => {
+    if (!formData.email || !formData.password || !formData.confirmPassword) {
+      Alert.alert('알림', '모든 필드를 입력해주세요.');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      Alert.alert('알림', '비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      await AuthService.signUpWithEmail(formData.email, formData.password);
+      Alert.alert('회원가입 성공', '회원가입이 완료되었습니다.', [
+        { text: '확인', onPress: () => navigation.navigate('Home') }
+      ]);
+    } catch (error: any) {
+      Alert.alert('회원가입 실패', error.message || '회원가입에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignUp = async () => {
+    try {
+      setIsLoading(true);
+      await AuthService.signInWithGoogle();
+      Alert.alert('회원가입 성공', 'Google 계정으로 회원가입이 완료되었습니다.', [
+        { text: '확인', onPress: () => navigation.navigate('Home') }
+      ]);
+    } catch (error: any) {
+      Alert.alert('회원가입 실패', error.message || 'Google 회원가입에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // 모달 닫기

@@ -1,4 +1,5 @@
-import storeData from '../data/store.geojson';
+import { GeocodingService } from './geocodingService';
+import { CacheInitializer, CachedRestaurantData } from './cacheInitializer';
 
 export interface StoreData {
   id: string;
@@ -16,6 +17,7 @@ export interface StoreData {
   operatingHours?: string;
   products?: string;
   category?: string;
+  isZeroRestaurant?: boolean;
 }
 
 export interface StoreFilter {
@@ -23,88 +25,114 @@ export interface StoreFilter {
   seoulCertified?: boolean;
   hasRefillStation?: boolean;
   category?: string;
+  showZeroRestaurants?: boolean;
 }
 
 class StoreDataService {
   private stores: StoreData[] = [];
+  private static instance: StoreDataService;
 
   constructor() {
-    this.parseStoreData();
+    console.log('🏗️ StoreDataService 생성자 시작');
+    this.addZeroRestaurants();
+    console.log('🏗️ StoreDataService 생성자 완료');
   }
 
-  private parseStoreData() {
+  // 싱글톤 인스턴스 가져오기
+  static getInstance(): StoreDataService {
+    if (!StoreDataService.instance) {
+      StoreDataService.instance = new StoreDataService();
+    }
+    return StoreDataService.instance;
+  }
+
+  private async addZeroRestaurants() {
     try {
-      const features = storeData.features;
+      const zeroRestaurantData = require('../data/서울시 제로식당 목록.json');
       
-      this.stores = features.map((feature: any) => {
-        const properties = feature.properties;
-        const geometry = feature.geometry;
-        
-        // 좌표 추출 (첫 번째 Point geometry에서)
-        const coordinates = geometry.geometries?.[0]?.coordinates || [0, 0];
-        
-        // NAME_XX와 VALUE_XX를 객체로 변환
-        const nameValuePairs: { [key: string]: string } = {};
-        for (let i = 1; i <= 20; i++) {
-          const nameKey = `NAME_${i.toString().padStart(2, '0')}`;
-          const valueKey = `VALUE_${i.toString().padStart(2, '0')}`;
+      console.log(`📊 제로식당 데이터 로드 시작: ${zeroRestaurantData.length}개`);
+      
+      // 제로식당 데이터를 기존 스토어 데이터에 추가
+      const zeroRestaurantsPromises = zeroRestaurantData.map(async (restaurant: any, index: number) => {
+        try {
+          // 지번주소를 좌표로 변환 (카카오 API 사용)
+          let coords = await GeocodingService.addressToCoordinates(restaurant.지번주소);
           
-          if (properties[nameKey] && properties[valueKey]) {
-            nameValuePairs[properties[nameKey]] = properties[valueKey];
+          // API 호출 실패 시 간단한 주소 매칭 사용
+          if (!coords) {
+            coords = GeocodingService.simpleAddressToCoordinates(restaurant.지번주소);
           }
+          
+          const restaurantData = {
+            id: `zero_restaurant_${index}`,
+            name: restaurant.상호명,
+            address: restaurant.지번주소,
+            latitude: coords?.latitude || 0,
+            longitude: coords?.longitude || 0,
+            category: '제로식당',
+            isZeroRestaurant: true,
+            description: '서울시 제로식당 인증 업체',
+            zeroPay: '가능',
+            seoulCertified: '서울시제로식당'
+          };
+          
+          return restaurantData;
+        } catch (error) {
+          console.warn(`⚠️ ${restaurant.상호명} 좌표 변환 실패:`, error);
+          // 좌표 변환 실패 시 간단한 주소 매칭 사용
+          const coords = GeocodingService.simpleAddressToCoordinates(restaurant.지번주소);
+          return {
+            id: `zero_restaurant_${index}`,
+            name: restaurant.상호명,
+            address: restaurant.지번주소,
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            category: '제로식당',
+            isZeroRestaurant: true,
+            description: '서울시 제로식당 인증 업체',
+            zeroPay: '가능',
+            seoulCertified: '서울시제로식당'
+          };
         }
+      });
 
-        // 카테고리 분류
-        let category = '기타';
-        const activities = nameValuePairs['제로웨이스트 활동내용'] || nameValuePairs['제로웨이스트 실천 내용'] || '';
-        const products = nameValuePairs['취급품목(메뉴)'] || '';
-        
-        if (activities.includes('리필스테이션') || products.includes('리필')) {
-          category = '리필샵';
-        } else if (activities.includes('커피') || products.includes('커피') || activities.includes('음료')) {
-          category = '카페';
-        } else if (products.includes('세제') || products.includes('생필품') || activities.includes('세제')) {
-          category = '친환경생필품점';
-        } else if (activities.includes('식당') || products.includes('음식')) {
-          category = '식당';
-        }
+      // 모든 Promise가 완료될 때까지 대기
+      const zeroRestaurants = await Promise.all(zeroRestaurantsPromises);
 
-        return {
-          id: feature.id || Math.random().toString(),
-          name: properties.CONTENTS_NAME || '이름 없음',
-          address: properties.ADDR_NEW || properties.ADDR_OLD || '주소 없음',
-          latitude: coordinates[1],
-          longitude: coordinates[0],
-          phone: properties.TEL_NO || undefined,
-          description: properties.CONTENTS_DETAIL || undefined,
-          website: properties.EXTRA_DATA_02 || undefined,
-          instagram: nameValuePairs['인스타그램'] || undefined,
-          zeroPay: nameValuePairs['제로페이'] || undefined,
-          seoulCertified: nameValuePairs['서울시 인증 여부'] || undefined,
-          activities: activities,
-          operatingHours: nameValuePairs['운영시간'] || undefined,
-          products: products,
-          category: category
-        };
-      }).filter(store => 
-        store.latitude !== 0 && 
-        store.longitude !== 0 && 
-        store.name !== '이름 없음'
+      // 제로식당 데이터만 저장
+      this.stores = zeroRestaurants;
+      
+      // 좌표 유효성 검증
+      const validRestaurants = zeroRestaurants.filter(restaurant => 
+        restaurant.latitude && restaurant.longitude && 
+        restaurant.latitude !== 0 && restaurant.longitude !== 0
       );
+      
+      console.log(`✅ 제로식당 데이터 로드 완료: ${validRestaurants.length}/${zeroRestaurants.length}개 유효한 좌표`);
+      
+      if (validRestaurants.length < zeroRestaurants.length) {
+        console.warn(`⚠️ ${zeroRestaurants.length - validRestaurants.length}개의 제로식당에 유효하지 않은 좌표가 있습니다.`);
+      }
+      
     } catch (error) {
-      console.error('Store data parsing error:', error);
-      this.stores = [];
+      console.error('제로식당 데이터 추가 오류:', error);
     }
   }
 
   // 모든 매장 데이터 가져오기
   getAllStores(): StoreData[] {
+    console.log(`📋 getAllStores 호출됨 - 현재 저장된 매장 수: ${this.stores.length}개`);
     return this.stores;
   }
 
   // 필터링된 매장 데이터 가져오기
   getFilteredStores(filters: StoreFilter): StoreData[] {
     return this.stores.filter(store => {
+      // 제로식당 필터 (모든 데이터가 제로식당이므로 항상 통과)
+      if (filters.showZeroRestaurants !== undefined) {
+        if (!filters.showZeroRestaurants) return false;
+      }
+
       // 제로페이 필터
       if (filters.zeroPay !== undefined) {
         const hasZeroPay = store.zeroPay === '가능';
@@ -115,7 +143,8 @@ class StoreDataService {
       if (filters.seoulCertified !== undefined) {
         const isCertified = store.seoulCertified && 
           (store.seoulCertified.includes('서울시제로마켓') || 
-           store.seoulCertified.includes('서울형다회용컵'));
+           store.seoulCertified.includes('서울형다회용컵') ||
+           store.seoulCertified.includes('서울시제로식당'));
         if (filters.seoulCertified !== isCertified) return false;
       }
 
@@ -133,6 +162,61 @@ class StoreDataService {
 
       return true;
     });
+  }
+
+  // 제로식당만 가져오기 (캐시 기반)
+  async getZeroRestaurants(maxDistanceKm: number = 5): Promise<StoreData[]> {
+    try {
+      // 캐시 기능이 임시로 비활성화되어 폴백 방식 사용
+      return this.getZeroRestaurantsFallback(maxDistanceKm);
+      
+      // 캐시 상태 확인
+      const cacheStatus = await CacheInitializer.getCacheStatus();
+      
+      // 캐시가 없거나 불완전한 경우 초기화
+      if (cacheStatus.cached === 0 || cacheStatus.cached < cacheStatus.total * 0.9) {
+        await CacheInitializer.initializeCache();
+      }
+      
+      // 캐시된 데이터 가져오기
+      const cachedRestaurants = await CacheInitializer.getCachedRestaurantsByDistance(maxDistanceKm);
+      
+      // StoreData 형식으로 변환
+      const storeData = cachedRestaurants.map(restaurant => ({
+        id: restaurant.id,
+        name: restaurant.name,
+        address: restaurant.address,
+        latitude: restaurant.latitude,
+        longitude: restaurant.longitude,
+        category: restaurant.category,
+        isZeroRestaurant: restaurant.isZeroRestaurant,
+        description: restaurant.description,
+        zeroPay: restaurant.zeroPay,
+        seoulCertified: restaurant.seoulCertified
+      }));
+      
+      return storeData;
+      
+    } catch (error) {
+      // 캐시 실패 시 기존 방식으로 폴백
+      return this.getZeroRestaurantsFallback(maxDistanceKm);
+    }
+  }
+
+  // 폴백: 기존 방식으로 제로식당 가져오기
+  private getZeroRestaurantsFallback(maxDistanceKm: number = 5): StoreData[] {
+    const seoulCityHall = { latitude: 37.5665, longitude: 126.9780 };
+    const nearbyStores = this.stores.filter(store => {
+      const distance = GeocodingService.calculateDistance(
+        seoulCityHall.latitude,
+        seoulCityHall.longitude,
+        store.latitude,
+        store.longitude
+      );
+      return distance <= maxDistanceKm;
+    });
+    
+    return nearbyStores;
   }
 
   // 검색 기능

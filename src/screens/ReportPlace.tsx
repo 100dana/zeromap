@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { 
   SafeAreaView, 
   View, 
@@ -8,14 +8,21 @@ import {
   TouchableOpacity, 
   StyleSheet, 
   Alert,
-  Image
+  Image,
+  ActivityIndicator,
+  FlatList,
+  Platform,
+  PermissionsAndroid
 } from "react-native";
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
+import { launchImageLibrary, ImagePickerResponse, MediaType } from 'react-native-image-picker';
 import KakaoMap from '../components/KakaoMap';
+import AddressSearchModal from '../components/AddressSearchModal';
 import { colors } from '../styles/colors';
 import { spacing } from '../styles/spacing';
 import { shadows } from '../styles/shadows';
+import { GeocodingService } from '../services/geocodingService';
 
 type RootStackParamList = {
   Home: undefined;
@@ -30,14 +37,29 @@ const categories = [
     icon: "🛒"
   },
   {
+    id: 'cupDiscountCafe',
+    label: "개인컵할인카페",
+    icon: "☕"
+  },
+  {
     id: 'zeroRestaurant',
-    label: "비건식당",
+    label: "제로식당",
     icon: "🍽️"
   },
   {
     id: 'refillStation',
     label: "리필스테이션",
     icon: "🔄"
+  },
+  {
+    id: 'refillShop',
+    label: "리필샵",
+    icon: "💧"
+  },
+  {
+    id: 'ecoSupplies',
+    label: "친환경생필품점",
+    icon: "🧴"
   }
 ];
 
@@ -71,12 +93,177 @@ function CategoryCard({ id, label, icon, isSelected, onPress }: CategoryCardProp
 
 export default function ReportPlace() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'ReportPlace'>>();
+  const mapRef = useRef<any>(null);
   
   const [placeName, setPlaceName] = useState('');
   const [address, setAddress] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [description, setDescription] = useState('');
   const [selectedLocation, setSelectedLocation] = useState({ lat: 37.5665, lng: 126.9780 }); // 서울시청 기본 위치
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isAddressModalVisible, setIsAddressModalVisible] = useState(false);
+
+
+  // 지도 클릭 처리
+  const handleMapClick = async (coordinates: { latitude: number; longitude: number }) => {
+    setSelectedLocation({ lat: coordinates.latitude, lng: coordinates.longitude });
+    
+    try {
+      // 좌표를 주소로 변환
+      const addressResult = await GeocodingService.coordinatesToAddress(
+        coordinates.latitude, 
+        coordinates.longitude
+      );
+      
+      if (addressResult) {
+        setAddress(addressResult);
+      } else {
+        // API 실패 시 오류 메시지 표시
+        setAddress('주소 변환에 실패했습니다. 다시 시도해주세요.');
+      }
+    } catch (error) {
+      console.error('주소 변환 실패:', error);
+      setAddress('주소 변환 중 오류가 발생했습니다. 다시 시도해주세요.');
+    }
+  };
+
+  // 주소 검색 모달에서 주소 선택 처리
+  const handleAddressSelect = (selectedAddress: string, coordinates: { latitude: number; longitude: number }) => {
+    setAddress(selectedAddress);
+    setSelectedLocation({ lat: coordinates.latitude, lng: coordinates.longitude });
+    
+    // 지도를 해당 위치로 이동
+    if (mapRef.current) {
+      mapRef.current.moveToLocation(coordinates.latitude, coordinates.longitude, 3);
+    }
+  };
+
+  // 주소 검색 모달 열기
+  const handleOpenAddressSearch = () => {
+    setIsAddressModalVisible(true);
+  };
+
+  // 권한 상태 확인 (디버그용)
+  const checkPermissionStatus = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const status = await PermissionsAndroid.check(
+          PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE
+        );
+        return status;
+      } catch (err) {
+        console.warn('권한 상태 확인 실패:', err);
+        return false;
+      }
+    }
+    return true; // iOS는 기본적으로 허용
+  };
+
+  // 이미지 선택 처리
+  const handleImageSelect = async () => {
+    // 권한 상태 먼저 확인
+    const hasPermission = await checkPermissionStatus();
+    
+    Alert.alert(
+      '이미지 선택',
+      '이미지를 선택하시겠습니까?',
+      [
+        { text: '취소', style: 'cancel' },
+        { text: '갤러리에서 선택', onPress: () => selectImageFromGallery() }
+      ]
+    );
+  };
+
+  // Android 권한 요청
+  const requestCameraPermission = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+          {
+            title: "갤러리 접근 권한",
+            message: "장소 사진을 첨부하기 위해 갤러리 접근 권한이 필요합니다.",
+            buttonNeutral: "나중에",
+            buttonNegative: "취소",
+            buttonPositive: "허용"
+          }
+        );
+        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+          return true;
+        } else {
+          Alert.alert(
+            '권한 필요', 
+            '이미지를 선택하려면 갤러리 접근 권한이 필요합니다.\n\n설정에서 권한을 허용해주세요.',
+            [
+              { text: '취소', style: 'cancel' },
+              { text: '설정으로 이동', onPress: () => {
+                // 설정 앱으로 이동하는 로직 (선택사항)
+              }}
+            ]
+          );
+          return false;
+        }
+      } catch (err) {
+        Alert.alert('오류', '권한 요청 중 오류가 발생했습니다.');
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // 갤러리에서 이미지 선택
+  const selectImageFromGallery = async () => {
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) {
+      return;
+    }
+
+    try {
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        maxWidth: 800,
+        maxHeight: 800,
+        quality: 0.8,
+        includeBase64: false,
+        selectionLimit: 1,
+      });
+
+      if (result.didCancel) {
+        return;
+      }
+
+      if (result.errorMessage) {
+        Alert.alert('오류', '이미지 선택 중 오류가 발생했습니다.');
+        return;
+      }
+
+      if (result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        
+        // 파일 크기 검증 (5MB 제한)
+        if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+          Alert.alert('오류', '파일 크기는 5MB 이하여야 합니다.');
+          return;
+        }
+
+        setSelectedImage(asset.uri || '');
+      }
+    } catch (error) {
+      Alert.alert('오류', '이미지 선택 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 이미지 제거
+  const handleRemoveImage = () => {
+    Alert.alert(
+      '이미지 제거',
+      '선택된 이미지를 제거하시겠습니까?',
+      [
+        { text: '취소', style: 'cancel' },
+        { text: '제거', style: 'destructive', onPress: () => setSelectedImage(null) }
+      ]
+    );
+  };
 
   const handleSave = () => {
     if (!placeName.trim()) {
@@ -89,6 +276,10 @@ export default function ReportPlace() {
     }
     if (!selectedCategory) {
       Alert.alert('알림', '카테고리를 선택해주세요.');
+      return;
+    }
+    if (!description.trim()) {
+      Alert.alert('알림', '설명을 입력해주세요.');
       return;
     }
 
@@ -129,26 +320,13 @@ export default function ReportPlace() {
         <View style={styles.headerRight} />
       </View>
 
-      {/* 주소 검색 섹션 */}
-      <View style={styles.searchSection}>
-        <Text style={styles.sectionTitle}>주소 검색</Text>
-        <View style={styles.searchInputContainer}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="주소를 입력하세요..."
-            placeholderTextColor={colors.textSecondary}
-          />
-          <TouchableOpacity style={styles.searchButton}>
-            <Text style={styles.searchAddressButtonText}>🔍</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+
 
       <ScrollView style={styles.scrollView}>
 
         {/* 장소 이름 입력 */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>장소 이름</Text>
+          <Text style={styles.inputLabel}>장소 이름 <Text style={styles.requiredText}>*</Text></Text>
           <TextInput
             style={styles.textInput}
             value={placeName}
@@ -160,49 +338,67 @@ export default function ReportPlace() {
 
         {/* 주소 입력 */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>주소</Text>
-          <TextInput
-            style={styles.textInput}
-            value={address}
-            onChangeText={setAddress}
-            placeholder="주소를 입력하세요"
-            placeholderTextColor="#999"
-          />
+          <Text style={styles.inputLabel}>주소 <Text style={styles.requiredText}>*</Text></Text>
+          <View style={styles.addressContainer}>
+            <TextInput
+              style={[styles.textInput, styles.addressInput]}
+              value={address}
+              onChangeText={setAddress}
+              placeholder="주소를 검색하거나 지도에서 선택하세요"
+              placeholderTextColor="#999"
+              editable={false}
+            />
+            <TouchableOpacity
+              style={styles.searchAddressButton}
+              onPress={handleOpenAddressSearch}
+            >
+              <Text style={styles.searchAddressButtonText}>검색</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* 지도에서 위치 선택 */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>지도에서 위치 선택</Text>
+          <Text style={styles.inputLabel}>지도에서 위치 선택 <Text style={styles.requiredText}>*</Text></Text>
           <View style={styles.mapContainer}>
-            <KakaoMap />
+            <KakaoMap 
+              ref={mapRef}
+              onMapClick={handleMapClick}
+              selectedLocation={selectedLocation}
+              places={[]}
+            />
+            <View style={styles.mapOverlay}>
+              <Text style={styles.mapOverlayText}>
+                {address && !address.includes('실패') && !address.includes('오류') 
+                  ? '지도를 클릭하여 위치를 변경하세요' 
+                  : '지도를 클릭하여 정확한 위치를 선택하세요'}
+              </Text>
+            </View>
           </View>
         </View>
 
         {/* 카테고리 선택 */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>카테고리 선택</Text>
-          <View style={styles.categoryContainer}>
-            {categories.map((category) => (
+          <Text style={styles.inputLabel}>카테고리 선택 <Text style={styles.requiredText}>*</Text></Text>
+          <FlatList
+            data={categories}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
               <CategoryCard
-                key={category.id}
-                {...category}
-                isSelected={selectedCategory === category.id}
-                onPress={() => setSelectedCategory(category.id)}
+                {...item}
+                isSelected={selectedCategory === item.id}
+                onPress={() => setSelectedCategory(item.id)}
               />
-            ))}
-            <CategoryCard
-              id="other"
-              label="기타"
-              icon="📌"
-              isSelected={selectedCategory === 'other'}
-              onPress={() => setSelectedCategory('other')}
-            />
-          </View>
+            )}
+            contentContainerStyle={styles.categoryListContainer}
+          />
         </View>
 
         {/* 설명 입력 */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>설명</Text>
+          <Text style={styles.inputLabel}>설명 <Text style={styles.requiredText}>*</Text></Text>
           <TextInput
             style={[styles.textInput, styles.descriptionInput]}
             value={description}
@@ -217,14 +413,50 @@ export default function ReportPlace() {
 
         {/* 이미지 업로드 */}
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>이미지 업로드 섹션</Text>
-          <View style={styles.imageUploadSection}>
-            <TouchableOpacity
-              style={styles.imageUploadButton}
-              onPress={() => Alert.alert('알림', '이미지 업로드 기능이 곧 추가됩니다!')}
-            >
-              <Text style={styles.imageUploadButtonText}>+ 이미지 추가</Text>
-            </TouchableOpacity>
+          <Text style={styles.inputLabel}>이미지 첨부 <Text style={styles.optionalText}>(선택)</Text></Text>
+          <View style={styles.imageUploadContainer}>
+            {selectedImage ? (
+              <View style={styles.selectedImageWrapper}>
+                <Image 
+                  source={{ uri: selectedImage }} 
+                  style={styles.selectedImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.imageOverlay}>
+                  <TouchableOpacity
+                    style={styles.imageActionButton}
+                    onPress={handleImageSelect}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.imageActionButtonText}>변경</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.imageActionButton, styles.removeButton]}
+                    onPress={handleRemoveImage}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.imageActionButtonText}>삭제</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.imageInfo}>
+                  <Text style={styles.imageInfoText}>📷 선택된 이미지</Text>
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.imageUploadArea}
+                onPress={handleImageSelect}
+                activeOpacity={0.7}
+              >
+                <View style={styles.uploadIconContainer}>
+                  <Text style={styles.uploadIcon}>📷</Text>
+                  <Text style={styles.uploadPlusIcon}>+</Text>
+                </View>
+                <Text style={styles.uploadTitle}>이미지 추가</Text>
+                <Text style={styles.uploadSubtitle}>장소 사진을 첨부해주세요</Text>
+                <Text style={styles.uploadHint}>JPG, PNG 파일만 가능 • 최대 5MB</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -240,10 +472,17 @@ export default function ReportPlace() {
             style={styles.saveButton}
             onPress={handleSave}
           >
-            <Text style={styles.saveButtonText}>제출하기</Text>
+            <Text style={styles.saveButtonText}>장소 제보하기</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* 주소 검색 모달 */}
+      <AddressSearchModal
+        visible={isAddressModalVisible}
+        onClose={() => setIsAddressModalVisible(false)}
+        onAddressSelect={handleAddressSelect}
+      />
     </SafeAreaView>
   );
 }
@@ -319,20 +558,22 @@ const styles = StyleSheet.create({
   addressContainer: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
   },
   addressInput: {
     flex: 1,
-    marginRight: 8,
   },
   searchAddressButton: {
     backgroundColor: "#4CAF50",
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 6,
+    minWidth: 60,
+    alignItems: "center",
   },
   searchAddressButtonText: {
     color: "#FFFFFF",
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "bold",
   },
   mapContainer: {
@@ -342,20 +583,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#0000001A",
   },
-  categoryContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  categoryListContainer: {
+    paddingHorizontal: 4,
   },
   categoryCard: {
-    flex: 1,
+    width: 120,
     borderColor: "#0000001A",
     borderWidth: 1,
     borderRadius: 6,
     paddingVertical: 12,
     paddingHorizontal: 8,
-    marginHorizontal: 4,
     alignItems: "center",
     backgroundColor: "#FFFFFF",
+    marginHorizontal: 4,
   },
   selectedCategoryCard: {
     borderColor: "#4CAF50",
@@ -379,27 +619,7 @@ const styles = StyleSheet.create({
     height: 100,
     textAlignVertical: "top",
   },
-  imageUploadSection: {
-    borderColor: "#0000001A",
-    borderWidth: 1,
-    borderRadius: 6,
-    paddingVertical: 20,
-    alignItems: "center",
-    backgroundColor: "#F8F8F8",
-  },
-  imageUploadButton: {
-    borderColor: "#0000001A",
-    borderWidth: 1,
-    borderRadius: 6,
-    paddingVertical: 12,
-    alignItems: "center",
-    backgroundColor: "#F8F8F8",
-  },
-  imageUploadButtonText: {
-    color: "#666666",
-    fontSize: 14,
-    fontWeight: "500",
-  },
+  
   buttonContainer: {
     flexDirection: "row",
     marginHorizontal: 16,
@@ -432,39 +652,139 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-  searchSection: {
-    marginHorizontal: 16,
-    marginBottom: 20,
-    paddingVertical: 16,
-    backgroundColor: "#F8F8F8",
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
+
+  requiredText: {
+    color: '#FF4444',
+    fontWeight: 'bold',
   },
-  sectionTitle: {
-    color: "#000000",
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 12,
-    paddingHorizontal: 12,
-  },
-  searchInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-  },
-  searchInput: {
-    flex: 1,
-    borderColor: "#0000001A",
-    borderWidth: 1,
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+  optionalText: {
+    color: '#999999',
     fontSize: 14,
-    color: "#000000",
-    backgroundColor: "#FFFFFF",
   },
-  searchButton: {
-    padding: 12,
+  mapOverlay: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    right: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    padding: 8,
+    borderRadius: 4,
   },
+  mapOverlayText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  
+  imageUploadContainer: {
+    borderColor: "#E0E0E0",
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    paddingVertical: 24,
+    alignItems: "center",
+    backgroundColor: "#FAFAFA",
+    minHeight: 160,
+  },
+  imageUploadArea: {
+    borderColor: "#E0E0E0",
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    paddingVertical: 32,
+    alignItems: "center",
+    backgroundColor: "#FAFAFA",
+    width: '100%',
+    minHeight: 160,
+  },
+  uploadIconContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  uploadIcon: {
+    fontSize: 36,
+    marginRight: 8,
+  },
+  uploadPlusIcon: {
+    fontSize: 24,
+    color: '#4CAF50',
+    fontWeight: 'bold',
+  },
+  uploadTitle: {
+    color: '#333333',
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  uploadSubtitle: {
+    color: '#666666',
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  uploadHint: {
+    color: '#999999',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  selectedImageWrapper: {
+    position: 'relative',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 10,
+  },
+  selectedImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    padding: 20,
+  },
+  imageActionButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    minWidth: 80,
+    ...shadows.button,
+  },
+  imageActionButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  removeButton: {
+    backgroundColor: '#FF4444',
+  },
+  imageInfo: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+  },
+  imageInfoText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+
 }); 

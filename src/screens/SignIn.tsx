@@ -87,8 +87,7 @@ export default function SignIn() {
       
       navigation.navigate('Home');
     } catch (error: any) {
-      console.error('로그인 오류:', error);
-      // 에러 처리 - Alert 대신 콘솔에만 출력
+      Alert.alert('로그인 실패', error.message || '로그인에 실패했습니다.');
     } finally {
       setIsLoading(false);
     }
@@ -100,15 +99,13 @@ export default function SignIn() {
   };
 
   const handleGoogleSignIn = async () => {
-    setIsLoading(true);
     try {
-      const result = await AuthService.signInWithGoogle();
-      const message = result.isNewUser ? '회원가입 성공' : '로그인 성공';
-      const name = result.user.displayName || result.user.email;
-      Alert.alert(message, `${name}님, 환영합니다!`, [
-        { text: '확인', onPress: () => navigation.navigate('Home') }
-      ]);
+      setIsLoading(true);
+      await AuthService.signInWithGoogle();
+      navigation.navigate('Home');
     } catch (error: any) {
+      Alert.alert('로그인 실패', error.message || 'Google 로그인에 실패했습니다.');
+
       console.error('Google 로그인 오류:', error);
       
       // 사용자에게 더 친화적인 오류 메시지 표시
@@ -126,6 +123,7 @@ export default function SignIn() {
       }
       
       Alert.alert('로그인 오류', errorMessage, [{ text: '확인' }]);
+
     } finally {
       setIsLoading(false);
     }

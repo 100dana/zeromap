@@ -82,6 +82,29 @@ export default function CampaignDetail() {
   const [error, setError] = useState<string | null>(null);
   const [actualTitle, setActualTitle] = useState<string>(headerTitle);
 
+  const getTitleFromFirestore = async (articleId: string): Promise<string | null> => {
+    try {
+      const firestoreInstance = firestore();
+      if (!firestoreInstance) {
+        return null;
+      }
+
+      const articleDoc = await firestoreInstance
+        .collection('news_articles')
+        .doc(articleId)
+        .get();
+
+      if (articleDoc.exists) {
+        const data = articleDoc.data();
+        return data?.title || null;
+      }
+      
+      return null;
+    } catch (error) {
+      return null;
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -93,33 +116,13 @@ export default function CampaignDetail() {
           
           // Firestore에서 실제 제목 가져오기
           try {
-            console.log(`[NewsDetail] Firestore 조회 시도: articleId = ${articleId}`);
-            
-            if (firestore && typeof firestore === 'function') {
-              const firestoreInstance = firestore();
-              if (firestoreInstance && firestoreInstance.collection) {
-                const articleDoc = await firestoreInstance.collection('articles').doc(articleId).get();
-                console.log(`[NewsDetail] Firestore 문서 존재 여부: ${articleDoc.exists}`);
-                if (articleDoc.exists) {
-                  const data = articleDoc.data();
-                  console.log(`[NewsDetail] Firestore 문서 데이터:`, data);
-                  const title = data?.title || headerTitle;
-                  console.log(`[NewsDetail] 최종 제목: ${title}`);
-                  if (mounted) setActualTitle(title);
-                } else {
-                  console.log(`[NewsDetail] Firestore 문서가 존재하지 않음: ${articleId}`);
-                  if (mounted) setActualTitle(headerTitle);
-                }
-              } else {
-                console.log(`[NewsDetail] Firestore 인스턴스가 올바르지 않음`);
-                if (mounted) setActualTitle(headerTitle);
-              }
+            const title = await getTitleFromFirestore(articleId);
+            if (title) {
+              if (mounted) setActualTitle(title);
             } else {
-              console.log(`[NewsDetail] Firestore가 초기화되지 않음`);
               if (mounted) setActualTitle(headerTitle);
             }
           } catch (firestoreError) {
-            console.log('[NewsDetail] Firestore에서 제목 가져오기 실패:', firestoreError);
             if (mounted) setActualTitle(headerTitle);
           }
           

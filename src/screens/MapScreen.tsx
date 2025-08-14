@@ -7,6 +7,8 @@ import KakaoMap, { KakaoMapRef } from '../components/KakaoMap';
 import { SeoulApiService, PlaceData } from '../services/seoulApi';
 import { LocalDataService, LocalPlaceData } from '../services/localDataService';
 import { SearchService, SearchResult } from '../services/searchService';
+import StoreDataService, { StoreData } from '../services/storeDataService';
+import { GeocodingService } from '../services/geocodingService';
 import { colors } from '../styles/colors';
 import { typography } from '../styles/typography';
 import { spacing } from '../styles/spacing';
@@ -38,7 +40,7 @@ const categories = [
     textMargin: 3,
     type: 'zeroRestaurant',
     color: '#2196F3',
-    description: '친환경 식당 및 카페'
+    description: '친환경 식당 및 카페 (1,300곳)'
   },
   {
     icon: "💧",
@@ -49,15 +51,7 @@ const categories = [
     color: '#9C27B0',
     description: '리필 제품을 판매하는 상점'
   },
-  {
-    icon: "🍽",
-    label: "식당",
-    iconBgMargin: 38,
-    textMargin: 3,
-    type: 'restaurant',
-    color: '#F44336',
-    description: '친환경 식당'
-  },
+
   {
     icon: "🧴",
     label: "친환경생필품점",
@@ -127,7 +121,10 @@ type RootStackParamList = {
   Home: undefined;
   Map: undefined;
   ReportPlace: undefined;
-  WriteReview: undefined;
+  WriteReview: { 
+    placeName?: string;
+    placeId?: string;
+  };
 };
 
 export default function MapScreen() {
@@ -138,6 +135,7 @@ export default function MapScreen() {
   const [selectedCategory, setSelectedCategory] = useState('zeroWaste');
   const [places, setPlaces] = useState<PlaceData[]>([]);
   const [localPlaces, setLocalPlaces] = useState<LocalPlaceData[]>([]);
+  const [storePlaces, setStorePlaces] = useState<StoreData[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -172,8 +170,8 @@ export default function MapScreen() {
   };
   
   // 거리순으로 정렬된 장소 목록
-  const getSortedPlaces = (): (PlaceData | LocalPlaceData)[] => {
-    const allPlaces = [...places, ...localPlaces];
+  const getSortedPlaces = (): (PlaceData | LocalPlaceData | StoreData)[] => {
+    const allPlaces = [...places, ...localPlaces, ...storePlaces];
     
     return allPlaces.sort((a, b) => {
       const distanceA = calculateDistance(
@@ -208,13 +206,51 @@ export default function MapScreen() {
           apiData = await SeoulApiService.getCupDiscountCafes();
           break;
         case 'zeroRestaurant':
-          // CSV 데이터와 API 데이터를 함께 가져오기
-          const [csvData, apiRestaurantData] = await Promise.all([
-            LocalDataService.getZeroRestaurants(),
-            SeoulApiService.getZeroWasteShops() // 제로식당 관련 API 데이터도 함께 가져오기
-          ]);
-          localData = csvData;
-          apiData = apiRestaurantData;
+          // StoreDataService에서 제로식당 데이터 가져오기
+          try {
+            console.log('🔍 제로식당 데이터 로드 시작...');
+            
+            // StoreDataService는 이미 인스턴스화된 객체
+            const storeDataService = StoreDataService;
+            console.log('✅ StoreDataService 인스턴스 생성 완료');
+            
+            // 모든 제로식당 데이터 가져오기 (거리 제한 없이)
+            const allZeroRestaurants = storeDataService.getAllStores();
+            console.log(`📊 총 ${allZeroRestaurants.length}개의 제로식당 데이터 가져옴`);
+            
+            // 좌표 유효성 검증
+            const validZeroRestaurants = allZeroRestaurants.filter(place => 
+              place.latitude && place.longitude && 
+              place.latitude !== 0 && place.longitude !== 0
+            );
+            console.log(`✅ 유효한 좌표를 가진 제로식당: ${validZeroRestaurants.length}개`);
+            
+            setStorePlaces(validZeroRestaurants);
+            
+            // 제로식당의 경우 바로 validZeroRestaurants를 사용
+            const totalData = [
+              ...(apiData || []), 
+              ...(localData || []), 
+              ...(validZeroRestaurants || [])
+            ];
+            console.log(`🎯 총 표시할 데이터: ${totalData.length}개`);
+            
+            if (totalData.length === 0) {
+              console.warn('⚠️ 표시할 데이터가 없음');
+              Alert.alert('알림', '해당 카테고리의 데이터가 없습니다.');
+            } else {
+              console.log('✅ 제로식당 데이터 로드 성공');
+            }
+            
+            return; // 제로식당의 경우 여기서 종료
+          } catch (error) {
+            console.error('❌ 제로식당 데이터 로드 오류:', error);
+            console.error('오류 상세:', error.message);
+            console.error('오류 스택:', error.stack);
+            setStorePlaces([]);
+            Alert.alert('알림', '제로식당 데이터를 불러오는데 실패했습니다.');
+            return;
+          }
           break;
         case 'refillStation':
           localData = await LocalDataService.getRefillStations();
@@ -223,10 +259,7 @@ export default function MapScreen() {
           // 리필샵 데이터 로드 (현재는 빈 배열, 추후 데이터 추가 예정)
           localData = [];
           break;
-        case 'restaurant':
-          // 식당 데이터 로드 (현재는 빈 배열, 추후 데이터 추가 예정)
-          localData = [];
-          break;
+
         case 'ecoSupplies':
           // 친환경생필품점 데이터 로드 (현재는 빈 배열, 추후 데이터 추가 예정)
           localData = [];
@@ -244,33 +277,33 @@ export default function MapScreen() {
           localData = [];
       }
       
-      console.log(`카테고리 "${category}" 데이터 로드 완료:`);
-      console.log(`- API 데이터: ${apiData.length}개`);
-      console.log(`- 로컬 데이터: ${localData.length}개`);
-      console.log(`- 총 데이터: ${apiData.length + localData.length}개`);
-      
-      // 좌표 데이터 검증
-      const validApiData = apiData.filter(place => 
-        place.latitude && place.longitude && 
+      // 좌표 데이터 검증 (안전한 배열 처리)
+      const validApiData = (apiData || []).filter(place => 
+        place && place.latitude && place.longitude && 
         place.latitude !== 0 && place.longitude !== 0
       );
-      const validLocalData = localData.filter(place => 
-        place.latitude && place.longitude && 
+      const validLocalData = (localData || []).filter(place => 
+        place && place.latitude && place.longitude && 
         place.latitude !== 0 && place.longitude !== 0
       );
-      
-      console.log(`- 유효한 API 데이터: ${validApiData.length}개`);
-      console.log(`- 유효한 로컬 데이터: ${validLocalData.length}개`);
+      const validStoreData = (storePlaces || []).filter(place => 
+        place && place.latitude && place.longitude && 
+        place.latitude !== 0 && place.longitude !== 0
+      );
       
       setPlaces(validApiData);
       setLocalPlaces(validLocalData);
       
-      const totalData = [...validApiData, ...validLocalData];
+      const totalData = [
+        ...(validApiData || []), 
+        ...(validLocalData || []), 
+        ...(validStoreData || [])
+      ];
+      
       if (totalData.length === 0) {
         Alert.alert('알림', '해당 카테고리의 데이터가 없습니다.');
       }
     } catch (error) {
-      console.error('데이터 로드 오류:', error);
       Alert.alert(
         '오류', 
         '데이터를 불러오는데 실패했습니다.\n\nAPI 키와 엔드포인트를 확인해주세요.',
@@ -296,7 +329,7 @@ export default function MapScreen() {
   };
 
   // 마커 클릭 시 처리
-  const handleMarkerClick = (place: PlaceData | LocalPlaceData) => {
+  const handleMarkerClick = (place: PlaceData | LocalPlaceData | StoreData) => {
     setSelectedPlace(place);
     setShowPlaceModal(true);
   };
@@ -315,7 +348,7 @@ export default function MapScreen() {
     setIsSearching(true);
     
     // 모든 장소 데이터에서 검색
-    const allPlaces = [...places, ...localPlaces];
+    const allPlaces = [...places, ...localPlaces, ...storePlaces];
     const results = SearchService.searchPlaces(query, allPlaces);
     const suggestions = SearchService.getSearchSuggestions(query, allPlaces);
     
@@ -455,7 +488,10 @@ export default function MapScreen() {
                 style={[styles.modalButton, styles.primaryButton]}
                 onPress={() => {
                   setShowPlaceModal(false);
-                  navigation.navigate('WriteReview');
+                  navigation.navigate('WriteReview', { 
+                    placeName: selectedPlace?.name,
+                    placeId: selectedPlace?.id || 'unknown-place'
+                  });
                 }}
               >
                 <Text style={[styles.modalButtonText, styles.primaryButtonText]}>리뷰쓰기</Text>
@@ -468,7 +504,7 @@ export default function MapScreen() {
   };
 
   // 리스트 아이템 컴포넌트
-  const PlaceListItem = ({ place, index }: { place: PlaceData | LocalPlaceData; index: number }) => {
+  const PlaceListItem = ({ place, index }: { place: PlaceData | LocalPlaceData | StoreData; index: number }) => {
     // 거리 계산
     const distance = calculateDistance(
       CURRENT_LOCATION.latitude,
@@ -515,11 +551,42 @@ export default function MapScreen() {
   };
 
   // 현재 표시할 장소 데이터 (검색 중일 때는 검색 결과만, 아니면 전체)
-  const getDisplayPlaces = (): (PlaceData | LocalPlaceData)[] => {
+  const getDisplayPlaces = (): PlaceData[] => {
     if (showSearchResults && searchQuery.trim()) {
       return searchResults.map(result => result.place);
     }
-    return getSortedPlaces(); // 정렬된 데이터 반환
+    
+    // 제로식당의 경우 storePlaces를 PlaceData 형식으로 변환
+    if (selectedCategory === 'zeroRestaurant') {
+      console.log(`🗺️ 제로식당 표시 데이터: ${storePlaces.length}개`);
+      return storePlaces.map(store => ({
+        id: store.id,
+        name: store.name,
+        address: store.address,
+        latitude: store.latitude,
+        longitude: store.longitude,
+        category: store.category || '제로식당',
+        description: store.description || ''
+      }));
+    }
+    
+    // 다른 카테고리의 경우 기존 로직 사용
+    const allPlaces = [...places, ...localPlaces];
+    return allPlaces.sort((a, b) => {
+      const distanceA = calculateDistance(
+        CURRENT_LOCATION.latitude, 
+        CURRENT_LOCATION.longitude, 
+        a.latitude, 
+        a.longitude
+      );
+      const distanceB = calculateDistance(
+        CURRENT_LOCATION.latitude, 
+        CURRENT_LOCATION.longitude, 
+        b.latitude, 
+        b.longitude
+      );
+      return distanceA - distanceB;
+    });
   };
 
   // 화면 로드 시 기본 데이터 로드
@@ -543,10 +610,10 @@ export default function MapScreen() {
     }
   }, [searchResults, showSearchResults, viewMode]);
 
-  // 모든 장소 데이터 (API + 로컬)
-  const allPlaces = [...places, ...localPlaces];
+  // 모든 장소 데이터 (API + 로컬 + 스토어)
+  const allPlaces = [...places, ...localPlaces, ...storePlaces];
   const displayPlaces = getDisplayPlaces();
-
+  
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />

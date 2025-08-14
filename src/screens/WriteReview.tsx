@@ -16,12 +16,18 @@ import { colors } from '../styles/colors';
 import { typography } from '../styles/typography';
 import { spacing } from '../styles/spacing';
 import { shadows } from '../styles/shadows';
+import FirestoreService from '../services/firestoreService';
+import { ReviewInput } from '../types/review';
+import AuthService from '../services/authService';
 
 type RootStackParamList = {
   Home: undefined;
   Map: undefined;
   MapDetail: undefined;
-  WriteReview: undefined;
+  WriteReview: { 
+    placeName?: string;
+    placeId?: string;
+  };
 };
 
 // 가데이터
@@ -32,12 +38,15 @@ const userData = {
   avatar: "https://via.placeholder.com/80x80/4CAF50/FFFFFF?text=User"
 };
 
-export default function WriteReview() {
+export default function WriteReview({ route }: { route: { params?: { placeName?: string; placeId?: string } } }) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'WriteReview'>>();
   
-  const [rating, setRating] = useState(1);
+  const placeName = route.params?.placeName || "제로웨이스트 스토어";
+  const placeId = route.params?.placeId || "default-place-id";
+  const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleRatingPress = (selectedRating: number) => {
     setRating(selectedRating);
@@ -48,22 +57,55 @@ export default function WriteReview() {
     Alert.alert('알림', '이미지 업로드 기능이 곧 추가됩니다!');
   };
 
-  const handleSubmitReview = () => {
-    if (!reviewText.trim()) {
-      Alert.alert('알림', '리뷰 내용을 입력해주세요.');
+  const handleSubmitReview = async () => {
+    if (!rating || !reviewText.trim()) {
+      Alert.alert('알림', '평점과 리뷰 내용을 입력해주세요.');
       return;
     }
 
-    Alert.alert(
-      '리뷰 작성 완료',
-      '리뷰가 성공적으로 작성되었습니다!',
-      [
-        {
-          text: '확인',
-          onPress: () => navigation.goBack()
-        }
-      ]
-    );
+    try {
+      const currentUser = AuthService.getCurrentUser();
+      
+      if (!currentUser) {
+        Alert.alert('오류', '로그인이 필요합니다.');
+        return;
+      }
+
+      const userDetails = await AuthService.getUserFromFirestore(currentUser.uid);
+      
+      if (!userDetails) {
+        Alert.alert('오류', '사용자 정보를 찾을 수 없습니다.');
+        return;
+      }
+
+      const reviewData: ReviewInput = {
+        placeId: placeId,
+        placeName: placeName,
+        userId: currentUser.uid,
+        userName: userDetails.name,
+        rating: rating,
+        reviewText: reviewText.trim(),
+        imageUrl: selectedImages.length > 0 ? selectedImages[0] : undefined
+      };
+
+      const reviewId = await FirestoreService.saveReviewWithImage(
+        reviewData, 
+        selectedImages.length > 0 ? selectedImages[0] : undefined
+      );
+      
+      Alert.alert(
+        '리뷰 등록 완료',
+        '리뷰가 성공적으로 등록되었습니다.',
+        [
+          {
+            text: '확인',
+            onPress: () => navigation.goBack()
+          }
+        ]
+      );
+    } catch (error: any) {
+      Alert.alert('오류', error.message || '리뷰 등록에 실패했습니다.');
+    }
   };
 
   const handleCancel = () => {
@@ -77,6 +119,8 @@ export default function WriteReview() {
     );
   };
 
+  const isFormValid = rating > 0 && reviewText.trim().length > 0;
+
   return (
     <SafeAreaView style={styles.container}>
       {/* 상단 헤더 */}
@@ -88,32 +132,21 @@ export default function WriteReview() {
           <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>리뷰 작성하기</Text>
-        <TouchableOpacity 
-          style={styles.backTextButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backText}>BACK</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight} />
       </View>
 
-      <ScrollView style={styles.scrollView}>
-        {/* 사용자 정보 섹션 */}
-        <View style={styles.userSection}>
-          <Image 
-            source={{ uri: userData.avatar }}
-            style={styles.userAvatar}
-          />
-          <View style={styles.userInfo}>
-            <Text style={styles.userName}>{userData.name}</Text>
-            <Text style={styles.userLevel}>
-              Level {userData.level} - {userData.points} Points
-            </Text>
-          </View>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* 가게 이름 섹션 */}
+        <View style={styles.placeSection}>
+          <Text style={styles.placeName}>{placeName}</Text>
         </View>
 
         {/* 별점 섹션 */}
-        <View style={styles.ratingSection}>
-          <Text style={styles.sectionTitle}>Rating</Text>
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>별점</Text>
+            <Text style={styles.requiredBadge}>필수</Text>
+          </View>
           <View style={styles.starsContainer}>
             {[1, 2, 3, 4, 5].map((star) => (
               <TouchableOpacity
@@ -125,51 +158,56 @@ export default function WriteReview() {
                   styles.star,
                   star <= rating ? styles.filledStar : styles.emptyStar
                 ]}>
-                  {star <= rating ? "⭐" : "☆"}
+                  ★
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={styles.ratingHint}>원하는 별 개수 누르기</Text>
         </View>
 
         {/* 리뷰 텍스트 작성 섹션 */}
-        <View style={styles.reviewTextSection}>
-          <Text style={styles.sectionTitle}>리뷰 작성 (텍스트)</Text>
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>리뷰 작성</Text>
+            <Text style={styles.requiredBadge}>필수</Text>
+          </View>
           <TextInput
             style={styles.reviewTextInput}
             value={reviewText}
             onChangeText={setReviewText}
-            placeholder="리뷰를 작성하세요..."
-            placeholderTextColor="#999"
+            placeholder="이 가게에 대한 솔직한 리뷰를 작성해주세요..."
+            placeholderTextColor={colors.textDisabled}
             multiline
             numberOfLines={6}
             textAlignVertical="top"
+            maxLength={500}
           />
+          <Text style={styles.characterCount}>
+            {reviewText.length}/500
+          </Text>
         </View>
 
         {/* 이미지 선택 섹션 */}
-        <View style={styles.imageSection}>
-          <Text style={styles.sectionTitle}>리뷰 작성을 위한 이미지 선택하기</Text>
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>이미지 추가</Text>
+            <Text style={styles.optionalBadge}>선택</Text>
+          </View>
           <TouchableOpacity
             style={styles.imageUploadArea}
             onPress={handleImageUpload}
           >
-            <Text style={styles.imageUploadText}>+ 이미지 추가</Text>
+            <View style={styles.imageUploadContent}>
+              <Text style={styles.imageUploadIcon}>📷</Text>
+              <Text style={styles.imageUploadText}>사진을 추가해주세요</Text>
+              <Text style={styles.imageUploadSubtext}>최대 5장까지 업로드 가능</Text>
+            </View>
           </TouchableOpacity>
           
-          {/* 이미지 미리보기 점들 */}
+          {/* 이미지 미리보기 */}
           {selectedImages.length > 0 && (
-            <View style={styles.imageDots}>
-              {selectedImages.map((_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.dot,
-                    index === 0 ? styles.activeDot : styles.inactiveDot
-                  ]}
-                />
-              ))}
+            <View style={styles.imagePreviewContainer}>
+              <Text style={styles.imagePreviewText}>이미지가 선택되었습니다</Text>
             </View>
           )}
         </View>
@@ -180,13 +218,22 @@ export default function WriteReview() {
             style={styles.cancelButton}
             onPress={handleCancel}
           >
-            <Text style={styles.cancelButtonText}>취소하기</Text>
+            <Text style={styles.cancelButtonText}>취소</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.submitButton}
+            style={[
+              styles.submitButton,
+              (!isFormValid || isSubmitting) && styles.submitButtonDisabled
+            ]}
             onPress={handleSubmitReview}
+            disabled={!isFormValid || isSubmitting}
           >
-            <Text style={styles.submitButtonText}>리뷰 작성하기</Text>
+            <Text style={[
+              styles.submitButtonText,
+              (!isFormValid || isSubmitting) && styles.submitButtonTextDisabled
+            ]}>
+              {isSubmitting ? '저장 중...' : '리뷰 작성하기'}
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -197,7 +244,7 @@ export default function WriteReview() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -206,7 +253,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screenPaddingHorizontal,
     paddingVertical: spacing.paddingMedium,
     backgroundColor: colors.card,
-    borderBottomWidth: 2,
+    borderBottomWidth: 1,
     borderBottomColor: colors.divider,
     ...shadows.header,
   },
@@ -215,163 +262,199 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 24,
-    color: "#000000",
+    color: colors.textPrimary,
+    fontWeight: 'bold',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#000000",
+    color: colors.textPrimary,
   },
-  backTextButton: {
-    padding: 8,
-  },
-  backText: {
-    fontSize: 14,
-    color: "#000000",
-    fontWeight: "500",
+  headerRight: {
+    width: 40,
   },
   scrollView: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.screenPaddingHorizontal,
   },
-  userSection: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 20,
+  placeSection: {
+    paddingVertical: 24,
     borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    borderBottomColor: colors.divider,
   },
-  userAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginRight: 16,
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 18,
+  placeName: {
+    fontSize: 20,
     fontWeight: "bold",
-    color: "#000000",
-    marginBottom: 4,
+    color: colors.textPrimary,
+    textAlign: 'center',
   },
-  userLevel: {
-    fontSize: 14,
-    color: "#666666",
-  },
-  ratingSection: {
+  section: {
     paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    borderBottomColor: colors.divider,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#000000",
-    marginBottom: 12,
+    fontWeight: "600",
+    color: colors.textPrimary,
+    marginRight: 8,
+  },
+  requiredBadge: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: colors.error,
+    backgroundColor: colors.error + '10',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  optionalBadge: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: colors.textSecondary,
+    backgroundColor: colors.textSecondary + '10',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   starsContainer: {
     flexDirection: "row",
-    marginBottom: 8,
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   starButton: {
-    marginRight: 8,
+    marginHorizontal: 8,
+    padding: 4,
   },
   star: {
-    fontSize: 32,
+    fontSize: 36,
   },
   filledStar: {
-    color: "#FFD700",
+    color: colors.secondary,
   },
   emptyStar: {
-    color: "#E0E0E0",
+    color: colors.divider,
   },
-  ratingHint: {
-    fontSize: 12,
-    color: "#999999",
-  },
-  reviewTextSection: {
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-  },
+
   reviewTextInput: {
-    borderColor: "#E0E0E0",
+    borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 14,
-    color: "#000000",
-    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    fontSize: 16,
+    color: colors.textPrimary,
+    backgroundColor: colors.surface,
     minHeight: 120,
+    textAlignVertical: "top",
   },
-  imageSection: {
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+  characterCount: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'right',
+    marginTop: 8,
   },
   imageUploadArea: {
-    borderColor: "#E0E0E0",
+    borderColor: colors.border,
     borderWidth: 2,
     borderStyle: "dashed",
-    borderRadius: 8,
-    paddingVertical: 40,
+    borderRadius: 12,
+    paddingVertical: 32,
     alignItems: "center",
-    backgroundColor: "#F8F8F8",
-    marginBottom: 12,
+    backgroundColor: colors.surface,
+  },
+  imageUploadContent: {
+    alignItems: 'center',
+  },
+  imageUploadIcon: {
+    fontSize: 32,
+    marginBottom: 8,
   },
   imageUploadText: {
     fontSize: 16,
-    color: "#666666",
+    color: colors.textPrimary,
     fontWeight: "500",
+    marginBottom: 4,
   },
-  imageDots: {
-    flexDirection: "row",
-    justifyContent: "center",
+  imageUploadSubtext: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginHorizontal: 4,
+  imagePreviewContainer: {
+    marginTop: 16,
+    alignItems: 'center',
   },
-  activeDot: {
-    backgroundColor: "#4CAF50",
+  imagePreviewText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
-  inactiveDot: {
-    backgroundColor: "#E0E0E0",
+  imagePreviewItem: {
+    marginRight: 12,
+    position: 'relative',
+  },
+  imagePreview: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.error,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeImageText: {
+    color: colors.background,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   actionButtons: {
     flexDirection: "row",
-    paddingVertical: 20,
+    paddingVertical: 24,
     gap: 12,
   },
   cancelButton: {
     flex: 1,
-    borderColor: "#000000",
+    borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: 8,
-    paddingVertical: 12,
+    borderRadius: 12,
+    paddingVertical: 16,
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.background,
   },
   cancelButtonText: {
     fontSize: 16,
-    fontWeight: "500",
-    color: "#000000",
+    fontWeight: "600",
+    color: colors.textPrimary,
   },
   submitButton: {
     flex: 1,
-    backgroundColor: "#000000",
-    borderRadius: 8,
-    paddingVertical: 12,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingVertical: 16,
     alignItems: "center",
+    ...shadows.button,
+  },
+  submitButtonDisabled: {
+    backgroundColor: colors.divider,
   },
   submitButtonText: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#FFFFFF",
+    color: colors.background,
+  },
+  submitButtonTextDisabled: {
+    color: colors.textDisabled,
   },
 }); 

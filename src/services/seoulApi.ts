@@ -183,22 +183,7 @@ export class SeoulApiService {
     }
   }
 
-  // 비건식당 데이터 가져오기
-  static async getVeganRestaurants(): Promise<PlaceData[]> {
-    try {
-      const allPlaces = await this.getZeroWasteShops();
-      
-      // 비건 관련 콘텐츠만 필터링
-      return allPlaces.filter(place => 
-        place.name.includes('비건') || 
-        place.name.includes('채식') || 
-        place.description?.includes('비건') ||
-        place.category.includes('식당')
-      );
-    } catch (error) {
-      return [];
-    }
-  }
+
 
   // 특정 위치 기준으로 콘텐츠 검색
   static async searchContentsByLocation(

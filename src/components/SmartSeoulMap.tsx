@@ -57,29 +57,13 @@ const SmartSeoulMap: React.FC<SmartSeoulMapProps> = ({
     try {
       const data = JSON.parse(event.nativeEvent.data);
       
-      switch (data.type) {
-        case 'mapReady':
-          setIsMapReady(true);
-          console.log('지도 준비 완료');
-          break;
-          
-        case 'markerClick':
-          if (onMarkerClick) {
-            onMarkerClick(data.data);
-          }
-          break;
-          
-        case 'mapClick':
-          if (onMapClick) {
-            onMapClick(data.coordinates);
-          }
-          break;
-          
-        default:
-          console.log('WebView 메시지:', data);
+      if (data.type === 'mapReady') {
+        setIsMapReady(true);
+      } else if (data.type === 'markerClick' && onMarkerClick) {
+        onMarkerClick(data.place);
       }
     } catch (error) {
-      console.error('WebView 메시지 파싱 오류:', error);
+      // 메시지 파싱 오류 무시
     }
   };
 
@@ -182,7 +166,7 @@ const SmartSeoulMap: React.FC<SmartSeoulMapProps> = ({
                     });
                 });
 
-                console.log('지도 초기화 완료');
+                // 지도 초기화 완료
             }
 
             // 마커 추가 함수
@@ -206,7 +190,7 @@ const SmartSeoulMap: React.FC<SmartSeoulMapProps> = ({
                     });
                 });
                 
-                console.log(\`\${places.length}개의 마커 추가됨\`);
+                // 마커 추가 완료
             }
 
             // 마커 제거 함수
@@ -250,7 +234,7 @@ const SmartSeoulMap: React.FC<SmartSeoulMapProps> = ({
                             break;
                     }
                 } catch (error) {
-                    console.error('메시지 처리 오류:', error);
+                    // 메시지 처리 오류 무시
                 }
             }
 
