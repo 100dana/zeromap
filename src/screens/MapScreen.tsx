@@ -120,7 +120,7 @@ type RootStackParamList = {
   Home: undefined;
   Map: undefined;
   ReportPlace: undefined;
-  WriteReview: undefined;
+  WriteReview: { placeName?: string };
 };
 
 export default function MapScreen() {
@@ -484,7 +484,9 @@ export default function MapScreen() {
                 style={[styles.modalButton, styles.primaryButton]}
                 onPress={() => {
                   setShowPlaceModal(false);
-                  navigation.navigate('WriteReview');
+                  navigation.navigate('WriteReview', { 
+                    placeName: selectedPlace?.name 
+                  });
                 }}
               >
                 <Text style={[styles.modalButtonText, styles.primaryButtonText]}>리뷰쓰기</Text>

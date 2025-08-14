@@ -8,6 +8,20 @@
 import React from "react";
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
+type RootStackParamList = {
+  SignUp: undefined;
+  SignIn: undefined;
+  Home: undefined;
+  Map: undefined;
+  ReportPlace: undefined;
+  WriteReview: { placeName?: string };
+  MyPage: undefined;
+  Settings: undefined;
+  Campaign: undefined;
+  CampaignDetail: undefined;
+  PolicyInfo: undefined;
+};
 import HomeScreen from "./src/screens/HomeScreen";
 import MapScreen from "./src/screens/MapScreen";
 import ReportPlace from "./src/screens/ReportPlace";
@@ -20,7 +34,7 @@ import PolicyInfo from "./src/screens/PolicyInfo";
 import SignUp from "./src/screens/SignUp";
 import SignIn from "./src/screens/SignIn";
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   return (
