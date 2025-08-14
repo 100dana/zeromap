@@ -58,54 +58,26 @@ export default function WriteReview({ route }: { route: { params?: { placeName?:
   };
 
   const handleSubmitReview = async () => {
-    if (rating === 0) {
-      Alert.alert('알림', '별점을 선택해주세요.');
+    if (!rating || !reviewText.trim()) {
+      Alert.alert('알림', '평점과 리뷰 내용을 입력해주세요.');
       return;
     }
-    
-    if (!reviewText.trim()) {
-      Alert.alert('알림', '리뷰 내용을 입력해주세요.');
-      return;
-    }
-
-    // 리뷰 텍스트 길이 검증
-    if (reviewText.trim().length < 10) {
-      Alert.alert('알림', '리뷰는 최소 10자 이상 작성해주세요.');
-      return;
-    }
-
-    if (reviewText.trim().length > 1000) {
-      Alert.alert('알림', '리뷰는 최대 1000자까지 작성 가능합니다.');
-      return;
-    }
-
-    setIsSubmitting(true);
 
     try {
-      console.log('리뷰 제출 시작 - 사용자 인증 확인 중...');
-      
-      // 현재 인증된 사용자 정보 가져오기
       const currentUser = AuthService.getCurrentUser();
-      console.log('현재 인증된 사용자:', currentUser);
       
       if (!currentUser) {
-        console.error('사용자가 로그인되지 않음');
         Alert.alert('오류', '로그인이 필요합니다.');
         return;
       }
 
-      // Firestore에서 사용자 상세 정보 가져오기
-      console.log('Firestore에서 사용자 상세 정보 조회 중...');
       const userDetails = await AuthService.getUserFromFirestore(currentUser.uid);
-      console.log('사용자 상세 정보:', userDetails);
       
       if (!userDetails) {
-        console.error('사용자 상세 정보를 찾을 수 없음');
         Alert.alert('오류', '사용자 정보를 찾을 수 없습니다.');
         return;
       }
 
-      // 리뷰 데이터 준비
       const reviewData: ReviewInput = {
         placeId: placeId,
         placeName: placeName,
@@ -116,62 +88,23 @@ export default function WriteReview({ route }: { route: { params?: { placeName?:
         imageUrl: selectedImages.length > 0 ? selectedImages[0] : undefined
       };
 
-      console.log('Firebase 인증 상태 확인:');
-      console.log('- 현재 사용자 UID:', currentUser.uid);
-      console.log('- 사용자 이메일:', currentUser.email);
-      console.log('- 사용자 표시명:', currentUser.displayName);
-      
-      // Firebase 인증 상태 추가 확인
-      console.log('- 인증된 사용자 객체:', JSON.stringify(currentUser, null, 2));
-      
-      // Firebase Auth 직접 확인
-      try {
-        const auth = require('@react-native-firebase/auth').default();
-        const currentAuthUser = auth.currentUser;
-        console.log('- Firebase Auth 현재 사용자:', currentAuthUser);
-        console.log('- Firebase Auth UID:', currentAuthUser?.uid);
-        console.log('- Firebase Auth 이메일:', currentAuthUser?.email);
-      } catch (authError) {
-        console.error('- Firebase Auth 확인 실패:', authError);
-      }
-      
-      console.log('- 리뷰 데이터:', reviewData);
-
-            // Firestore에 리뷰 저장
       const reviewId = await FirestoreService.saveReviewWithImage(
         reviewData, 
         selectedImages.length > 0 ? selectedImages[0] : undefined
       );
-
-    Alert.alert(
-      '리뷰 작성 완료',
-      '리뷰가 성공적으로 작성되었습니다!',
-      [
-        {
-          text: '확인',
-          onPress: () => navigation.goBack()
-        }
-      ]
-    );
+      
+      Alert.alert(
+        '리뷰 등록 완료',
+        '리뷰가 성공적으로 등록되었습니다.',
+        [
+          {
+            text: '확인',
+            onPress: () => navigation.goBack()
+          }
+        ]
+      );
     } catch (error: any) {
-      console.error('리뷰 저장 실패:', error);
-      console.error('에러 코드:', error.code);
-      console.error('에러 메시지:', error.message);
-      console.error('에러 스택:', error.stack);
-      
-      let errorMessage = '리뷰 저장에 실패했습니다. 다시 시도해주세요.';
-      
-      if (error.code === 'permission-denied') {
-        errorMessage = '권한이 없습니다. 로그인 상태를 확인해주세요.';
-      } else if (error.code === 'unavailable') {
-        errorMessage = '네트워크 연결을 확인해주세요.';
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      Alert.alert('오류', errorMessage);
-    } finally {
-      setIsSubmitting(false);
+      Alert.alert('오류', error.message || '리뷰 등록에 실패했습니다.');
     }
   };
 

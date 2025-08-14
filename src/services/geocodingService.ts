@@ -21,7 +21,6 @@ export class GeocodingService {
       );
       
       if (!response.ok) {
-        console.error(`주소 변환 API 응답 오류: ${response.status} ${response.statusText}`);
         return null;
       }
       
@@ -37,11 +36,65 @@ export class GeocodingService {
       
       return null;
     } catch (error) {
-      console.error('주소-좌표 변환 실패:', error);
       return null;
     }
   }
-  
+
+  // 간단한 주소 매칭 (카카오 API 사용 불가능한 경우)
+  static simpleAddressToCoordinates(address: string): Coordinates {
+    // 서울시청 좌표 (기준점)
+    const seoulCityHall = { latitude: 37.5665, longitude: 126.9780 };
+    
+    if (!address) {
+      return seoulCityHall;
+    }
+    
+    // 서울시청 근처 주요 지역 좌표 (반경 2km 이내 우선)
+    const nearbyCoords: { [key: string]: Coordinates } = {
+      // 서울시청 바로 근처 (0-1km)
+      '종로': { latitude: 37.5735, longitude: 126.9789 },
+      '중구': { latitude: 37.5640, longitude: 126.9979 },
+      '서대문': { latitude: 37.5791, longitude: 126.9368 },
+      '용산': { latitude: 37.5384, longitude: 126.9654 },
+      '성동': { latitude: 37.5634, longitude: 127.0369 },
+      
+      // 서울시청에서 1-2km 거리
+      '마포': { latitude: 37.5636, longitude: 126.9084 },
+      '동대문': { latitude: 37.5744, longitude: 127.0395 },
+      '성북': { latitude: 37.5894, longitude: 127.0167 },
+      '광진': { latitude: 37.5384, longitude: 127.0822 },
+      '서초': { latitude: 37.4837, longitude: 127.0324 },
+      
+      // 서울시청에서 2-3km 거리
+      '강남': { latitude: 37.5172, longitude: 127.0473 },
+      '동작': { latitude: 37.5124, longitude: 126.9393 },
+      '관악': { latitude: 37.4784, longitude: 126.9516 },
+      '은평': { latitude: 37.6027, longitude: 126.9291 },
+      '중랑': { latitude: 37.6064, longitude: 127.0926 },
+      
+      // 서울시청에서 3km 이상 거리 (추후 확장)
+      '강동': { latitude: 37.5301, longitude: 127.1238 },
+      '강북': { latitude: 37.6396, longitude: 127.0257 },
+      '강서': { latitude: 37.5509, longitude: 126.8495 },
+      '구로': { latitude: 37.4954, longitude: 126.8874 },
+      '금천': { latitude: 37.4569, longitude: 126.8956 },
+      '노원': { latitude: 37.6542, longitude: 127.0568 },
+      '도봉': { latitude: 37.6688, longitude: 127.0471 },
+      '송파': { latitude: 37.5145, longitude: 127.1059 },
+      '양천': { latitude: 37.5270, longitude: 126.8566 },
+      '영등포': { latitude: 37.5264, longitude: 126.8892 }
+    };
+    
+    // 주소에서 구 이름 찾기 (우선순위: 가까운 지역부터)
+    for (const [district, coords] of Object.entries(nearbyCoords)) {
+      if (address.includes(district)) {
+        return coords;
+      }
+    }
+    
+    return seoulCityHall;
+  }
+
   // 두 지점 간의 거리 계산 (km 단위)
   static calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371; // 지구의 반지름 (km)
@@ -81,7 +134,7 @@ export class GeocodingService {
           coordinates.push(coords);
         }
       } catch (error) {
-        console.error(`주소 변환 실패: ${address}`, error);
+        // 오류 무시하고 계속 진행
       }
     }
     
@@ -101,7 +154,6 @@ export class GeocodingService {
       );
       
       if (!response.ok) {
-        console.error(`좌표 변환 API 응답 오류: ${response.status} ${response.statusText}`);
         return null;
       }
       
@@ -116,7 +168,6 @@ export class GeocodingService {
       
       return null;
     } catch (error) {
-      console.error('좌표-주소 변환 실패:', error);
       return null;
     }
   }

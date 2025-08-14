@@ -205,21 +205,50 @@ export default function MapScreen() {
           apiData = await SeoulApiService.getCupDiscountCafes();
           break;
         case 'zeroRestaurant':
-          // StoreDataService에서 제로식당 데이터 가져오기 (캐시 기반)
+          // StoreDataService에서 제로식당 데이터 가져오기
           try {
-            // StoreDataService는 이미 인스턴스화된 객체
-            const zeroRestaurants = await StoreDataService.getZeroRestaurants(5); // 5km 반경
+            console.log('🔍 제로식당 데이터 로드 시작...');
             
-            // 좌표 유효성 검증 (이미 StoreDataService에서 처리됨)
-            const validZeroRestaurants = zeroRestaurants.filter(place => 
+            // StoreDataService는 이미 인스턴스화된 객체
+            const storeDataService = StoreDataService;
+            console.log('✅ StoreDataService 인스턴스 생성 완료');
+            
+            // 모든 제로식당 데이터 가져오기 (거리 제한 없이)
+            const allZeroRestaurants = storeDataService.getAllStores();
+            console.log(`📊 총 ${allZeroRestaurants.length}개의 제로식당 데이터 가져옴`);
+            
+            // 좌표 유효성 검증
+            const validZeroRestaurants = allZeroRestaurants.filter(place => 
               place.latitude && place.longitude && 
               place.latitude !== 0 && place.longitude !== 0
             );
+            console.log(`✅ 유효한 좌표를 가진 제로식당: ${validZeroRestaurants.length}개`);
             
             setStorePlaces(validZeroRestaurants);
+            
+            // 제로식당의 경우 바로 validZeroRestaurants를 사용
+            const totalData = [
+              ...(apiData || []), 
+              ...(localData || []), 
+              ...(validZeroRestaurants || [])
+            ];
+            console.log(`🎯 총 표시할 데이터: ${totalData.length}개`);
+            
+            if (totalData.length === 0) {
+              console.warn('⚠️ 표시할 데이터가 없음');
+              Alert.alert('알림', '해당 카테고리의 데이터가 없습니다.');
+            } else {
+              console.log('✅ 제로식당 데이터 로드 성공');
+            }
+            
+            return; // 제로식당의 경우 여기서 종료
           } catch (error) {
-            console.error('제로식당 데이터 로드 오류:', error);
+            console.error('❌ 제로식당 데이터 로드 오류:', error);
+            console.error('오류 상세:', error.message);
+            console.error('오류 스택:', error.stack);
             setStorePlaces([]);
+            Alert.alert('알림', '제로식당 데이터를 불러오는데 실패했습니다.');
+            return;
           }
           break;
         case 'refillStation':
@@ -247,33 +276,33 @@ export default function MapScreen() {
           localData = [];
       }
       
-      // 좌표 데이터 검증
-      const validApiData = apiData.filter(place => 
-        place.latitude && place.longitude && 
+      // 좌표 데이터 검증 (안전한 배열 처리)
+      const validApiData = (apiData || []).filter(place => 
+        place && place.latitude && place.longitude && 
         place.latitude !== 0 && place.longitude !== 0
       );
-      const validLocalData = localData.filter(place => 
-        place.latitude && place.longitude && 
+      const validLocalData = (localData || []).filter(place => 
+        place && place.latitude && place.longitude && 
         place.latitude !== 0 && place.longitude !== 0
       );
-      const validStoreData = storePlaces.filter(place => 
-        place.latitude && place.longitude && 
+      const validStoreData = (storePlaces || []).filter(place => 
+        place && place.latitude && place.longitude && 
         place.latitude !== 0 && place.longitude !== 0
       );
       
       setPlaces(validApiData);
       setLocalPlaces(validLocalData);
       
-      const totalData = [...validApiData, ...validLocalData, ...validStoreData];
+      const totalData = [
+        ...(validApiData || []), 
+        ...(validLocalData || []), 
+        ...(validStoreData || [])
+      ];
       
       if (totalData.length === 0) {
-        console.warn('⚠️ 해당 카테고리에 유효한 데이터가 없습니다.');
         Alert.alert('알림', '해당 카테고리의 데이터가 없습니다.');
-      } else {
-        console.log('✅ 데이터 로드 및 설정 완료');
       }
     } catch (error) {
-      console.error('데이터 로드 오류:', error);
       Alert.alert(
         '오류', 
         '데이터를 불러오는데 실패했습니다.\n\nAPI 키와 엔드포인트를 확인해주세요.',
@@ -521,11 +550,42 @@ export default function MapScreen() {
   };
 
   // 현재 표시할 장소 데이터 (검색 중일 때는 검색 결과만, 아니면 전체)
-  const getDisplayPlaces = (): (PlaceData | LocalPlaceData | StoreData)[] => {
+  const getDisplayPlaces = (): PlaceData[] => {
     if (showSearchResults && searchQuery.trim()) {
       return searchResults.map(result => result.place);
     }
-    return getSortedPlaces(); // 정렬된 데이터 반환
+    
+    // 제로식당의 경우 storePlaces를 PlaceData 형식으로 변환
+    if (selectedCategory === 'zeroRestaurant') {
+      console.log(`🗺️ 제로식당 표시 데이터: ${storePlaces.length}개`);
+      return storePlaces.map(store => ({
+        id: store.id,
+        name: store.name,
+        address: store.address,
+        latitude: store.latitude,
+        longitude: store.longitude,
+        category: store.category || '제로식당',
+        description: store.description || ''
+      }));
+    }
+    
+    // 다른 카테고리의 경우 기존 로직 사용
+    const allPlaces = [...places, ...localPlaces];
+    return allPlaces.sort((a, b) => {
+      const distanceA = calculateDistance(
+        CURRENT_LOCATION.latitude, 
+        CURRENT_LOCATION.longitude, 
+        a.latitude, 
+        a.longitude
+      );
+      const distanceB = calculateDistance(
+        CURRENT_LOCATION.latitude, 
+        CURRENT_LOCATION.longitude, 
+        b.latitude, 
+        b.longitude
+      );
+      return distanceA - distanceB;
+    });
   };
 
   // 화면 로드 시 기본 데이터 로드
@@ -553,16 +613,6 @@ export default function MapScreen() {
   const allPlaces = [...places, ...localPlaces, ...storePlaces];
   const displayPlaces = getDisplayPlaces();
   
-  // 디버깅: 현재 상태 로그
-  console.log('=== 현재 데이터 상태 ===');
-  console.log(`- places: ${places.length}개`);
-  console.log(`- localPlaces: ${localPlaces.length}개`);
-  console.log(`- storePlaces: ${storePlaces.length}개`);
-  console.log(`- allPlaces: ${allPlaces.length}개`);
-  console.log(`- displayPlaces: ${displayPlaces.length}개`);
-  console.log(`- selectedCategory: ${selectedCategory}`);
-  console.log(`- viewMode: ${viewMode}`);
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>

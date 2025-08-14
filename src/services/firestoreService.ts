@@ -24,12 +24,10 @@ class FirestoreService {
    */
   async addReview(reviewData: ReviewInput): Promise<string> {
     try {
-      console.log('리뷰 저장 시작:', reviewData);
       
       // 필수 필드 검증
       if (!reviewData.placeId || !reviewData.userId || !reviewData.rating || !reviewData.reviewText) {
-        console.error('필수 필드 누락:', { placeId: reviewData.placeId, userId: reviewData.userId, rating: reviewData.rating, reviewText: reviewData.reviewText });
-        throw new Error('필수 정보가 누락되었습니다.');
+        throw new Error('필수 필드가 누락되었습니다.');
       }
 
       // 데이터 검증 및 정제
@@ -61,33 +59,9 @@ class FirestoreService {
         updatedAt: new Date()
       };
 
-      console.log('Firestore에 저장할 리뷰 데이터:', review);
-      console.log('reviews 컬렉션 참조:', this.reviewsCollection.path);
-
       const docRef = await this.reviewsCollection.add(review);
-      console.log('리뷰가 성공적으로 저장되었습니다. ID:', docRef.id);
       return docRef.id;
     } catch (error: any) {
-      console.error('리뷰 저장 실패 - 상세 정보:');
-      console.error('에러 코드:', error.code);
-      console.error('에러 메시지:', error.message);
-      console.error('에러 스택:', error.stack);
-      console.error('전체 에러 객체:', error);
-      console.error('Firebase 프로젝트 ID:', firestore().app.options.projectId);
-      console.error('현재 사용자 UID:', reviewData.userId);
-      
-      // Firebase Auth 상태 직접 확인
-      try {
-        const auth = require('@react-native-firebase/auth').default();
-        const currentAuthUser = auth.currentUser;
-        console.error('Firebase Auth 현재 사용자:', currentAuthUser);
-        console.error('Firebase Auth UID:', currentAuthUser?.uid);
-        console.error('Firebase Auth 이메일:', currentAuthUser?.email);
-        console.error('Firebase Auth 토큰 존재:', !!currentAuthUser?.uid);
-      } catch (authError) {
-        console.error('Firebase Auth 확인 실패:', authError);
-      }
-      
       if (error.code === 'permission-denied') {
         throw new Error('권한이 없습니다. 로그인 후 다시 시도해주세요.');
       } else if (error.code === 'unavailable') {
@@ -103,7 +77,6 @@ class FirestoreService {
    */
   async getReviewsByPlaceId(placeId: string): Promise<Review[]> {
     try {
-      console.log(`장소 ${placeId}의 모든 리뷰 조회 중...`);
       
       const snapshot = await this.reviewsCollection
         .where('placeId', '==', placeId)
@@ -129,10 +102,8 @@ class FirestoreService {
       // 클라이언트에서 정렬 (최신순)
       reviews.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-      console.log(`장소 ${placeId}에서 ${reviews.length}개의 리뷰 조회 완료`);
       return reviews;
     } catch (error) {
-      console.error('리뷰 조회 실패:', error);
       throw new Error('리뷰 조회에 실패했습니다.');
     }
   }
@@ -142,7 +113,6 @@ class FirestoreService {
    */
   async getReviewsByUserAndPlace(userId: string, placeId: string): Promise<Review[]> {
     try {
-      console.log(`사용자 ${userId}가 장소 ${placeId}에 작성한 리뷰 조회 중...`);
       
       const snapshot = await this.reviewsCollection
         .where('userId', '==', userId)
@@ -169,10 +139,8 @@ class FirestoreService {
       // 클라이언트에서 정렬 (최신순)
       reviews.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-      console.log(`사용자 ${userId}가 장소 ${placeId}에 작성한 ${reviews.length}개의 리뷰 조회 완료`);
       return reviews;
     } catch (error) {
-      console.error('사용자별 장소 리뷰 조회 실패:', error);
       throw new Error('사용자별 장소 리뷰 조회에 실패했습니다.');
     }
   }
@@ -182,7 +150,6 @@ class FirestoreService {
    */
   async getReviewsByUserId(userId: string): Promise<Review[]> {
     try {
-      console.log(`사용자 ${userId}의 모든 리뷰 조회 중...`);
       
       const snapshot = await this.reviewsCollection
         .where('userId', '==', userId)
@@ -208,10 +175,8 @@ class FirestoreService {
       // 클라이언트에서 정렬 (최신순)
       reviews.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-      console.log(`사용자 ${userId}의 ${reviews.length}개의 리뷰 조회 완료`);
       return reviews;
     } catch (error) {
-      console.error('사용자 리뷰 조회 실패:', error);
       throw new Error('사용자 리뷰 조회에 실패했습니다.');
     }
   }
@@ -242,10 +207,8 @@ class FirestoreService {
       await storageRef.put(blob);
       
       const downloadURL = await storageRef.getDownloadURL();
-      console.log('리뷰 이미지 업로드 성공:', downloadURL);
       return downloadURL;
     } catch (error) {
-      console.error('리뷰 이미지 업로드 실패:', error);
       throw new Error('이미지 업로드에 실패했습니다.');
     }
   }
@@ -268,7 +231,6 @@ class FirestoreService {
       
       return reviewId;
     } catch (error) {
-      console.error('리뷰 및 이미지 저장 실패:', error);
       throw error;
     }
   }
@@ -278,13 +240,10 @@ class FirestoreService {
    */
   async deleteReview(reviewId: string): Promise<void> {
     try {
-      console.log(`리뷰 ${reviewId} 삭제 중...`);
       
       await this.reviewsCollection.doc(reviewId).delete();
       
-      console.log(`리뷰 ${reviewId} 삭제 완료`);
     } catch (error) {
-      console.error('리뷰 삭제 실패:', error);
       throw new Error('리뷰 삭제에 실패했습니다.');
     }
   }
@@ -294,7 +253,6 @@ class FirestoreService {
    */
   async updateReview(reviewId: string, updateData: Partial<ReviewInput>): Promise<void> {
     try {
-      console.log(`리뷰 ${reviewId} 수정 중...`);
       
       const sanitizedData: any = {};
       
@@ -323,9 +281,7 @@ class FirestoreService {
       
       await this.reviewsCollection.doc(reviewId).update(sanitizedData);
       
-      console.log(`리뷰 ${reviewId} 수정 완료`);
     } catch (error) {
-      console.error('리뷰 수정 실패:', error);
       throw new Error('리뷰 수정에 실패했습니다.');
     }
   }

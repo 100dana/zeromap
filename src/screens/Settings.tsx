@@ -26,7 +26,6 @@ export default function Settings() {
               await CacheInitializer.initializeCache();
               Alert.alert('완료', '제로식당 캐시 초기화가 완료되었습니다.');
             } catch (error) {
-              console.error('캐시 초기화 오류:', error);
               Alert.alert('오류', '캐시 초기화 중 오류가 발생했습니다.');
             } finally {
               setIsInitializing(false);

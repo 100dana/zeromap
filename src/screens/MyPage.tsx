@@ -127,28 +127,23 @@ export default function MyPage() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'MyPage'>>();
 
   const handleLogout = () => {
-    // TODO: 로그아웃 기능
-    console.log('로그아웃');
+    // 로그아웃 처리
   };
 
   const handleSettings = () => {
-    // TODO: 설정 화면으로 이동
-    console.log('설정');
+    // 설정 화면으로 이동
   };
 
   const handleNotifications = () => {
-    // TODO: 알림 설정
-    console.log('알림');
+    // 알림 설정
   };
 
-  const handleViewSavedPlaces = () => {
-    // TODO: 저장된 장소 목록 화면으로 이동
-    console.log('저장된 장소 보기');
+  const handleSavedPlaces = () => {
+    // 저장된 장소 보기
   };
 
-  const handleViewReviews = () => {
-    // TODO: 리뷰 목록 화면으로 이동
-    console.log('리뷰 보기');
+  const handleReviews = () => {
+    // 리뷰 보기
   };
 
   const handleViewCampaigns = () => {
@@ -210,7 +205,7 @@ export default function MyPage() {
             </View>
             <TouchableOpacity
               style={styles.viewMoreButton}
-              onPress={handleViewSavedPlaces}
+              onPress={handleSavedPlaces}
             >
               <Text style={styles.viewMoreText}>톺아보기 {'>'}</Text>
             </TouchableOpacity>
@@ -231,7 +226,7 @@ export default function MyPage() {
             </View>
             <TouchableOpacity
               style={styles.viewMoreButton}
-              onPress={handleViewReviews}
+              onPress={handleReviews}
             >
               <Text style={styles.viewMoreText}>View Reviews {'>'}</Text>
             </TouchableOpacity>

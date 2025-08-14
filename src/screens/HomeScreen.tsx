@@ -74,6 +74,9 @@ function ShopCard({ tag, name, address, type, tagColor, tagMargin, paddingBottom
 }
 
 export default function HomeScreen({ navigation }: HomeScreenProps) {
+  const handleMarkerPress = (place: PlaceData) => {
+    // 마커 클릭 처리
+  };
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scrollView}>
@@ -91,7 +94,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               places={[]} // 빈 배열로 설정 (홈 화면에서는 마커 없음)
               opacity={0.8} // 80% 투명도 적용
               onMarkerClick={(place) => {
-                console.log('마커 클릭:', place);
                 // 여기서 상세 페이지로 이동하거나 다른 액션 수행
               }}
             />

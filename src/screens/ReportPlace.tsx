@@ -150,7 +150,6 @@ export default function ReportPlace() {
         const status = await PermissionsAndroid.check(
           PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE
         );
-        console.log('갤러리 권한 상태:', status ? '허용됨' : '거부됨');
         return status;
       } catch (err) {
         console.warn('권한 상태 확인 실패:', err);
@@ -164,7 +163,6 @@ export default function ReportPlace() {
   const handleImageSelect = async () => {
     // 권한 상태 먼저 확인
     const hasPermission = await checkPermissionStatus();
-    console.log('현재 권한 상태:', hasPermission);
     
     Alert.alert(
       '이미지 선택',
@@ -191,10 +189,8 @@ export default function ReportPlace() {
           }
         );
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-          console.log("갤러리 접근 권한이 승인되었습니다.");
           return true;
         } else {
-          console.log("갤러리 접근 권한이 거부되었습니다.");
           Alert.alert(
             '권한 필요', 
             '이미지를 선택하려면 갤러리 접근 권한이 필요합니다.\n\n설정에서 권한을 허용해주세요.',
@@ -202,14 +198,12 @@ export default function ReportPlace() {
               { text: '취소', style: 'cancel' },
               { text: '설정으로 이동', onPress: () => {
                 // 설정 앱으로 이동하는 로직 (선택사항)
-                console.log('설정 앱으로 이동');
               }}
             ]
           );
           return false;
         }
       } catch (err) {
-        console.warn(err);
         Alert.alert('오류', '권한 요청 중 오류가 발생했습니다.');
         return false;
       }
@@ -224,34 +218,39 @@ export default function ReportPlace() {
       return;
     }
 
-    launchImageLibrary({
-      mediaType: 'photo',
-      maxWidth: 800,
-      maxHeight: 800,
-      quality: 0.8,
-      includeBase64: false,
-      selectionLimit: 1,
-    }, (response: ImagePickerResponse) => {
-      if (response.didCancel) {
-        console.log('사용자가 이미지 선택을 취소했습니다.');
-      } else if (response.errorMessage) {
-        console.log('이미지 선택 중 오류가 발생했습니다:', response.errorMessage);
-        Alert.alert('오류', '이미지 선택 중 오류가 발생했습니다. 다시 시도해주세요.');
-      } else if (response.assets && response.assets.length > 0) {
-        const asset = response.assets[0];
-        if (asset.uri) {
-          // 파일 크기 확인 (5MB 제한)
-          if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
-            Alert.alert('파일 크기 초과', '이미지 파일 크기는 5MB 이하여야 합니다.');
-            return;
-          }
-          
-          setSelectedImage(asset.uri);
-          console.log('선택된 이미지 URI:', asset.uri);
-          console.log('파일 크기:', asset.fileSize ? `${(asset.fileSize / 1024 / 1024).toFixed(2)}MB` : '알 수 없음');
-        }
+    try {
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        maxWidth: 800,
+        maxHeight: 800,
+        quality: 0.8,
+        includeBase64: false,
+        selectionLimit: 1,
+      });
+
+      if (result.didCancel) {
+        return;
       }
-    });
+
+      if (result.errorMessage) {
+        Alert.alert('오류', '이미지 선택 중 오류가 발생했습니다.');
+        return;
+      }
+
+      if (result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        
+        // 파일 크기 검증 (5MB 제한)
+        if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+          Alert.alert('오류', '파일 크기는 5MB 이하여야 합니다.');
+          return;
+        }
+
+        setSelectedImage(asset.uri || '');
+      }
+    } catch (error) {
+      Alert.alert('오류', '이미지 선택 중 오류가 발생했습니다.');
+    }
   };
 
   // 이미지 제거

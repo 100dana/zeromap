@@ -28,40 +28,41 @@ export interface User {
 
 export class AuthService {
   // Firestore에 사용자 정보 저장
-  static async createUserInFirestore(userData: Omit<User, 'createdAt' | 'updatedAt'>): Promise<void> {
+  static async createUserInFirestore(user: any): Promise<void> {
     try {
-      const now = new Date();
-      const userDoc = {
-        ...userData,
-        createdAt: now,
-        updatedAt: now,
+      const userData = {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName || user.email?.split('@')[0] || '사용자',
+        photoURL: user.photoURL || null,
+        createdAt: firestore.FieldValue.serverTimestamp(),
+        lastLoginAt: firestore.FieldValue.serverTimestamp(),
+        points: 0
       };
-      
+
       await firestore()
         .collection('users')
-        .doc(userData.userId)
-        .set(userDoc);
+        .doc(user.uid)
+        .set(userData);
     } catch (error) {
-      console.error('Firestore 사용자 생성 오류:', error);
-      throw error;
+      // 오류 무시
     }
   }
 
   // Firestore에서 사용자 정보 가져오기
-  static async getUserFromFirestore(userId: string): Promise<User | null> {
+  static async getUserFromFirestore(uid: string): Promise<any> {
     try {
-      const userDoc = await firestore()
+      const doc = await firestore()
         .collection('users')
-        .doc(userId)
+        .doc(uid)
         .get();
-      
-      if (userDoc.exists) {
-        return userDoc.data() as User;
+
+      if (doc.exists) {
+        return doc.data();
       }
       return null;
     } catch (error) {
-      console.error('Firestore 사용자 조회 오류:', error);
-      throw error;
+      return null;
     }
   }
 
@@ -124,20 +125,8 @@ export class AuthService {
   }
 
   // Google 회원가입/로그인 (새 사용자는 회원가입, 기존 사용자는 로그인)
-  static async signInWithGoogle(): Promise<{ user: AuthUser; isNewUser: boolean }> {
+  static async signInWithGoogle(): Promise<any> {
     try {
-      // Google Sign-In 토큰 가져오기
-      // Play Services 확인 (업데이트 다이얼로그 표시)
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      
-      // 기존 로그인 상태 확인 및 로그아웃
-      try {
-        await GoogleSignin.signOut();
-      } catch (error) {
-        // 이미 로그아웃된 상태일 수 있음
-        console.log('기존 로그인 상태 정리 중:', error);
-      }
-      
       const signInResult = await GoogleSignin.signIn();
       const tokens = await GoogleSignin.getTokens();
       const idToken = tokens.idToken;
@@ -146,39 +135,9 @@ export class AuthService {
         throw new Error('Google ID 토큰을 가져올 수 없습니다.');
       }
       
-      // Firebase에 Google 토큰으로 인증
       const googleCredential = auth.GoogleAuthProvider.credential(idToken);
-      const userCredential = await auth().signInWithCredential(googleCredential);
-      const user = userCredential.user;
-      
-      // Firestore에서 사용자 정보 확인
-      const existingUser = await this.getUserFromFirestore(user.uid);
-      
-      let isNewUser = false;
-      
-      // 새 사용자인 경우 Firestore에 저장 (회원가입)
-      if (!existingUser) {
-        await this.createUserInFirestore({
-          userId: user.uid,
-          name: user.displayName || '사용자',
-          email: user.email || '',
-          authProvider: 'google',
-          points: 0,
-        });
-        isNewUser = true;
-      }
-      
-      return {
-        user: {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL,
-        },
-        isNewUser: isNewUser
-      };
+      return auth().signInWithCredential(googleCredential);
     } catch (error) {
-      console.error('Google 로그인 오류:', error);
       throw error;
     }
   }
@@ -186,10 +145,9 @@ export class AuthService {
   // 로그아웃
   static async signOut(): Promise<void> {
     try {
-      await GoogleSignin.signOut();
       await auth().signOut();
     } catch (error) {
-      throw error;
+      // 오류 무시
     }
   }
 
@@ -231,37 +189,31 @@ export class AuthService {
     }
   }
 
-  // 포인트 업데이트
-  static async updatePoints(userId: string, points: number): Promise<void> {
+  static async updateUserPoints(userId: string, points: number): Promise<void> {
     try {
       await firestore()
         .collection('users')
         .doc(userId)
         .update({
-          points: points,
-          updatedAt: new Date(),
+          points: firestore.FieldValue.increment(points),
+          updatedAt: firestore.FieldValue.serverTimestamp()
         });
     } catch (error) {
-      console.error('포인트 업데이트 오류:', error);
-      throw error;
+      // 오류 무시
     }
   }
 
-  // 포인트 추가
-  static async addPoints(userId: string, pointsToAdd: number): Promise<void> {
+  static async addUserPoints(userId: string, pointsToAdd: number): Promise<void> {
     try {
-      const userDoc = await firestore()
+      await firestore()
         .collection('users')
         .doc(userId)
-        .get();
-      
-      if (userDoc.exists) {
-        const currentPoints = userDoc.data()?.points || 0;
-        await this.updatePoints(userId, currentPoints + pointsToAdd);
-      }
+        .update({
+          points: firestore.FieldValue.increment(pointsToAdd),
+          updatedAt: firestore.FieldValue.serverTimestamp()
+        });
     } catch (error) {
-      console.error('포인트 추가 오류:', error);
-      throw error;
+      // 오류 무시
     }
   }
 }

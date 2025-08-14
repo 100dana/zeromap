@@ -24,7 +24,6 @@ export class CacheInitializer {
   static async initializeCache(): Promise<void> {
     try {
       // 임시로 캐시 기능 비활성화 (권한 오류 방지)
-      console.log('캐시 기능이 임시로 비활성화되었습니다. 로컬 데이터를 사용합니다.');
       return;
       
       // 기존 캐시 삭제
@@ -45,7 +44,6 @@ export class CacheInitializer {
       }
       
     } catch (error) {
-      console.error('캐시 초기화 오류:', error);
       throw error;
     }
   }
@@ -64,13 +62,11 @@ export class CacheInitializer {
         
         // 좌표 유효성 검증
         if (!coords || !this.isValidCoordinates(coords)) {
-          console.warn(`  → 유효하지 않은 좌표: ${restaurant.상호명} (${coords?.latitude}, ${coords?.longitude})`);
           continue; // 이 항목 건너뛰기
         }
         
         // 데이터 검증
         if (!this.isValidRestaurantData(restaurant)) {
-          console.warn(`  → 유효하지 않은 데이터: ${restaurant.상호명}`);
           continue;
         }
         
@@ -96,7 +92,7 @@ export class CacheInitializer {
         batchWrite.set(docRef, cachedData);
         
       } catch (error) {
-        console.error(`  → 오류 발생: ${restaurant.상호명}`, error);
+        // 오류 무시하고 계속 진행
       }
     }
 
@@ -119,7 +115,6 @@ export class CacheInitializer {
         await batch.commit();
       }
     } catch (error) {
-      console.error('기존 캐시 삭제 오류:', error);
       // 권한 오류가 발생해도 계속 진행
     }
   }
@@ -175,7 +170,6 @@ export class CacheInitializer {
         cached: snapshot.size
       };
     } catch (error) {
-      console.error('캐시 상태 확인 오류:', error);
       return { total: 0, cached: 0 };
     }
   }
@@ -194,7 +188,6 @@ export class CacheInitializer {
       
       return restaurants;
     } catch (error) {
-      console.error('캐시된 데이터 가져오기 오류:', error);
       return [];
     }
   }
@@ -217,7 +210,6 @@ export class CacheInitializer {
       
       return nearbyRestaurants;
     } catch (error) {
-      console.error('거리별 캐시 데이터 가져오기 오류:', error);
       return [];
     }
   }

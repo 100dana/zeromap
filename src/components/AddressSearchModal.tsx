@@ -31,62 +31,23 @@ export default function AddressSearchModal({ visible, onClose, onAddressSelect }
 
   // 주소 검색 실행
   const handleSearch = async () => {
-    if (!searchQuery.trim()) {
-      Alert.alert('알림', '검색할 주소를 입력해주세요.');
-      return;
-    }
-
+    if (!searchQuery.trim()) return;
+    
     setIsSearching(true);
     try {
-      // 카카오 주소 검색 API 호출
-      const response = await fetch(
-        `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(searchQuery)}`,
-        {
-          headers: {
-            'Authorization': 'KakaoAK 7cebd6bb4502a8537b8030c7c134e311'
-          }
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`검색 실패: ${response.status}`);
+      const coordinates = await GeocodingService.addressToCoordinates(searchQuery);
+      
+      if (coordinates) {
+        const searchResult: SearchResult = {
+          address: searchQuery,
+          coordinates: coordinates,
+          type: '지번주소'
+        };
+        setSearchResults([searchResult]);
+      } else {
+        setSearchResults([]);
       }
-
-      const data = await response.json();
-      const results: SearchResult[] = [];
-
-      if (data.documents && data.documents.length > 0) {
-        data.documents.forEach((doc: any) => {
-          // 지번주소 추가
-          if (doc.address && doc.address.address_name) {
-            results.push({
-              address: doc.address.address_name,
-              coordinates: {
-                latitude: parseFloat(doc.y),
-                longitude: parseFloat(doc.x)
-              },
-              type: '지번주소'
-            });
-          }
-
-          // 도로명주소 추가
-          if (doc.road_address && doc.road_address.address_name) {
-            results.push({
-              address: doc.road_address.address_name,
-              coordinates: {
-                latitude: parseFloat(doc.y),
-                longitude: parseFloat(doc.x)
-              },
-              type: '도로명주소'
-            });
-          }
-        });
-      }
-
-      setSearchResults(results);
     } catch (error) {
-      console.error('주소 검색 실패:', error);
-      Alert.alert('오류', '주소 검색 중 오류가 발생했습니다. 다시 시도해주세요.');
       setSearchResults([]);
     } finally {
       setIsSearching(false);
