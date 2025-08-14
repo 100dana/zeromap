@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { SafeAreaView, View, ScrollView, Image, Text, TouchableOpacity, ImageBackground, StyleSheet, Alert, TextInput, FlatList, Modal } from "react-native";
+import { View, ScrollView, Image, Text, TouchableOpacity, ImageBackground, StyleSheet, Alert, TextInput, FlatList, Modal, StatusBar } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import KakaoMap, { KakaoMapRef } from '../components/KakaoMap';
@@ -615,6 +616,7 @@ export default function MapScreen() {
   
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <View style={styles.container}>
           {/* 상단 헤더 */}
@@ -823,7 +825,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: spacing.screenPaddingHorizontal,
-    paddingVertical: spacing.paddingLarge,
+    paddingTop: 10,
+    paddingBottom: spacing.paddingLarge,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 2,
     borderBottomColor: '#F0F0F0',

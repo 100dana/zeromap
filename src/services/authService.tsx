@@ -7,6 +7,8 @@ GoogleSignin.configure({
   webClientId: '143037001238-kadtrtrsmuqiovctg6k4sbh92uquq16p.apps.googleusercontent.com',
   offlineAccess: true,
   forceCodeForRefreshToken: true,
+  // 추가 설정으로 안정성 향상
+  scopes: ['profile', 'email'],
 });
 
 export interface AuthUser {
@@ -127,11 +129,63 @@ export class AuthService {
   // Google 회원가입/로그인 (새 사용자는 회원가입, 기존 사용자는 로그인)
   static async signInWithGoogle(): Promise<any> {
     try {
-      const signInResult = await GoogleSignin.signIn();
-      const tokens = await GoogleSignin.getTokens();
-      const idToken = tokens.idToken;
+
+      // Google Sign-In 토큰 가져오기
+      await GoogleSignin.hasPlayServices();
       
+      // 기존 로그인 상태 확인 및 로그아웃
+      try {
+        console.log('기존 로그인 상태 정리 중...');
+        await GoogleSignin.signOut();
+        console.log('기존 로그인 상태 정리 완료');
+      } catch (error) {
+        // 이미 로그아웃된 상태일 수 있음
+        console.log('기존 로그인 상태 정리 중:', error);
+      }
+      
+      // Google Sign-In 실행
+      console.log('Google Sign-In 시작...');
+
+      const signInResult = await GoogleSignin.signIn();
+      console.log('Google Sign-In 결과:', signInResult);
+      
+      if (!signInResult) {
+        throw new Error('Google 로그인이 완료되지 않았습니다.');
+      }
+      
+      // 잠시 대기하여 로그인 프로세스 완료 보장
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // 토큰 가져오기 (재시도 로직 포함)
+      console.log('Google 토큰 가져오기 시작...');
+      let tokens;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          console.log(`토큰 가져오기 시도 ${retryCount + 1}/${maxRetries}...`);
+          tokens = await GoogleSignin.getTokens();
+          console.log('토큰 가져오기 성공:', tokens ? '토큰 존재' : '토큰 없음');
+          break;
+        } catch (tokenError) {
+          retryCount++;
+          console.log(`토큰 가져오기 시도 ${retryCount}/${maxRetries} 실패:`, tokenError);
+          
+          if (retryCount >= maxRetries) {
+            console.error('최대 재시도 횟수 초과');
+            throw new Error('Google 토큰을 가져올 수 없습니다. 다시 시도해주세요.');
+          }
+          
+          // 잠시 대기 후 재시도
+          console.log(`${retryCount}초 후 재시도...`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      
+      const idToken = tokens?.idToken;
       if (!idToken) {
+        console.error('토큰 객체:', tokens);
         throw new Error('Google ID 토큰을 가져올 수 없습니다.');
       }
       

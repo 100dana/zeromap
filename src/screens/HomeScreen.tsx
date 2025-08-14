@@ -1,5 +1,6 @@
 import React from "react";
-import { SafeAreaView, View, ScrollView, Image, Text, ImageBackground, TouchableOpacity, StyleSheet } from "react-native";
+import { View, ScrollView, Image, Text, ImageBackground, TouchableOpacity, StyleSheet, StatusBar } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { WebView } from 'react-native-webview';
 import KakaoMap from '../components/KakaoMap';
@@ -79,6 +80,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   };
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <ScrollView style={styles.scrollView}>
         <View style={styles.headerContainer}>
           <Text style={styles.headerTitle}>{"Zero Map : 제로 맵"}</Text>
@@ -117,14 +119,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         </View>
         
         {/* 캠페인 섹션 */}
-        <View style={styles.campaignSection}>
-          <Text style={styles.campaignTitle}>{"진행 중인 캠페인"}</Text>
+        <View style={styles.newsSection}>
+          <Text style={styles.newsTitle}>{"서울시 환경 뉴스"}</Text>
           <TouchableOpacity
-            style={styles.campaignButton}
+            style={styles.newsButton}
             onPress={() => navigation.navigate('Campaign')}
             accessibilityLabel="캠페인 화면으로 이동"
           >
-            <Text style={styles.campaignButtonText}>캠페인 보기</Text>
+            <Text style={styles.newsButtonText}>뉴스 보기</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -146,7 +148,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     marginBottom: spacing.md,
     marginHorizontal: spacing.screenPaddingHorizontal,
-    paddingVertical: spacing.paddingMedium,
+    paddingTop: 10,
+    paddingBottom: spacing.paddingMedium,
     paddingHorizontal: spacing.paddingLarge,
     borderRadius: spacing.borderRadiusLarge,
     ...shadows.card,
@@ -275,7 +278,7 @@ const styles = StyleSheet.create({
   noMarginRight: {
     marginRight: 0,
   },
-  campaignSection: {
+  newsSection: {
     backgroundColor: colors.card,
     marginHorizontal: spacing.screenPaddingHorizontal,
     marginBottom: spacing.elementSpacing,
@@ -284,18 +287,18 @@ const styles = StyleSheet.create({
     borderRadius: spacing.borderRadiusLarge,
     ...shadows.card,
   },
-  campaignTitle: {
+  newsTitle: {
     ...typography.h3,
     textAlign: "center",
     marginBottom: spacing.paddingMedium,
   },
-  campaignButton: {
+  newsButton: {
     backgroundColor: colors.primary,
     borderRadius: spacing.borderRadiusMedium,
     paddingVertical: spacing.paddingMedium,
     alignItems: "center",
   },
-  campaignButtonText: {
+  newsButtonText: {
     ...typography.body1,
     color: colors.background,
     fontWeight: "600",

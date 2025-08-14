@@ -1,5 +1,17 @@
 import React, { useState } from 'react';
 import { SafeAreaView, View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import React from "react";
+import { 
+  View, 
+  ScrollView, 
+  Text, 
+  TouchableOpacity, 
+  StyleSheet, 
+  Switch,
+  Alert,
+  StatusBar
+} from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../styles/colors';
 import { typography } from '../styles/typography';
@@ -50,6 +62,7 @@ export default function Settings() {
 
   return (
     <SafeAreaView style={styles.container}>
+
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* 헤더 */}
         <View style={styles.header}>
@@ -62,6 +75,20 @@ export default function Settings() {
           <Text style={styles.headerTitle}>설정</Text>
           <View style={styles.headerRight} />
         </View>
+
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      {/* 상단 헤더 */}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>환경 설정</Text>
+        <View style={styles.headerRight} />
+      </View>
+
 
         {/* 개발자 도구 섹션 */}
         <View style={styles.section}>

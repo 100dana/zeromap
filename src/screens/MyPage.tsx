@@ -1,19 +1,22 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { 
-  SafeAreaView, 
   View, 
   ScrollView, 
   Text, 
   TouchableOpacity, 
   StyleSheet, 
-  Image 
+  Image,
+  StatusBar
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import BottomTabBar from '../components/BottomTabBar';
 import { colors } from '../styles/colors';
 import { spacing } from '../styles/spacing';
 import { shadows } from '../styles/shadows';
+import displayUserName from "../components/UserDisplay";
+import { AuthService } from "../services/authService";
 
 type RootStackParamList = {
   Home: undefined;
@@ -21,11 +24,11 @@ type RootStackParamList = {
   MyPage: undefined;
   Campaign: undefined;
   PolicyInfo: undefined;
+  SignIn: undefined;
 };
 
-// 가데이터
-const userData = {
-  name: "사용자 이름",
+const defaultUserData = {
+  name: "사용자",
   level: 3,
   points: 1200,
   avatar: "https://via.placeholder.com/80x80/4CAF50/FFFFFF?text=User"
@@ -61,17 +64,6 @@ const reviewedPlaces = [
     name: "장소 이름",
     review: "왜 좋았는지... 어쩌구 저쩌구",
     rating: 4
-  }
-];
-
-const campaigns = [
-  {
-    id: 1,
-    name: "캠페인 이름"
-  },
-  {
-    id: 2,
-    name: "캠페인 이름"
   }
 ];
 
@@ -114,20 +106,34 @@ function ReviewedPlaceItem({ place }: { place: typeof reviewedPlaces[0] }) {
   );
 }
 
-function CampaignItem({ campaign }: { campaign: typeof campaigns[0] }) {
-  return (
-    <View style={styles.campaignItem}>
-      <Text style={styles.campaignIcon}>⭐</Text>
-      <Text style={styles.campaignName}>{campaign.name}</Text>
-    </View>
-  );
-}
-
 export default function MyPage() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'MyPage'>>();
+  const [userName, setUserName] = useState("사용자");
 
-  const handleLogout = () => {
+  useEffect(() => {
+    const loadUserName = async () => {
+      try {
+        const currentUser = AuthService.getCurrentUser();
+        if (currentUser) {
+          const name = await displayUserName(currentUser.uid);
+          setUserName(name);
+        }
+      } catch (error) {
+        console.error('사용자 이름 로드 오류:', error);
+      }
+    };
+    loadUserName();
+  }, []);
+
+const handleLogout = () => {
     // 로그아웃 처리
+  const handleLogout = async () => {
+    try {
+      await AuthService.signOut();
+      navigation.navigate('SignIn');
+    } catch (error) {
+      console.error('로그아웃 오류:', error);
+    }
   };
 
   const handleSettings = () => {
@@ -146,16 +152,13 @@ export default function MyPage() {
     // 리뷰 보기
   };
 
-  const handleViewCampaigns = () => {
-    navigation.navigate('Campaign');
-  };
-
   const handleViewPolicyInfo = () => {
     navigation.navigate('PolicyInfo');
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       {/* 상단 헤더 */}
       <View style={styles.header}>
         <TouchableOpacity 
@@ -179,14 +182,11 @@ export default function MyPage() {
         {/* 사용자 정보 섹션 */}
         <View style={styles.userSection}>
           <Image 
-            source={{ uri: userData.avatar }}
+            source={{ uri: defaultUserData.avatar }}
             style={styles.userAvatar}
           />
           <View style={styles.userInfo}>
-            <Text style={styles.userName}>{userData.name}</Text>
-            <Text style={styles.userLevel}>
-              Level {userData.level} - {userData.points} Points
-            </Text>
+            <Text style={styles.userName}>{userName}</Text>
           </View>
           <TouchableOpacity
             style={styles.logoutButton}
@@ -238,27 +238,6 @@ export default function MyPage() {
           </View>
         </View>
 
-        {/* 참여한 캠페인 목록 섹션 */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleContainer}>
-              <Text style={styles.sectionTitle}>참여한 캠페인 목록</Text>
-              <Text style={styles.sectionSubtitle}>Active Campaigns</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.viewMoreButton}
-              onPress={handleViewCampaigns}
-            >
-              <Text style={styles.viewMoreText}>View Campaigns {'>'}</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.campaignsContainer}>
-            {campaigns.map((campaign) => (
-              <CampaignItem key={campaign.id} campaign={campaign} />
-            ))}
-          </View>
-        </View>
-
         {/* 지역 정책 정보 섹션 */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -296,7 +275,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.screenPaddingHorizontal,
-    paddingVertical: spacing.paddingMedium,
+    paddingTop: 10,
+    paddingBottom: spacing.paddingMedium,
     backgroundColor: colors.card,
     borderBottomWidth: 2,
     borderBottomColor: colors.divider,
@@ -356,14 +336,14 @@ const styles = StyleSheet.create({
     color: "#666666",
   },
   logoutButton: {
-    backgroundColor: "#F44336",
+    backgroundColor: "#F8F8F8",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
   },
   logoutButtonText: {
     fontSize: 12,
-    color: "#FFFFFF",
+    color: "#666666",
     fontWeight: "500",
   },
   section: {
@@ -485,22 +465,6 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 12,
     color: "#666666",
-  },
-  campaignsContainer: {
-    gap: 12,
-  },
-  campaignItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
-  },
-  campaignIcon: {
-    fontSize: 16,
-    marginRight: 12,
-  },
-  campaignName: {
-    fontSize: 14,
-    color: "#000000",
   },
   policyInfoContainer: {
     gap: 12,

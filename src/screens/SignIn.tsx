@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import {
-  SafeAreaView,
+import { 
   View,
   ScrollView,
   Text,
@@ -10,7 +9,9 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthService } from '../services/authService';
@@ -104,6 +105,25 @@ export default function SignIn() {
       navigation.navigate('Home');
     } catch (error: any) {
       Alert.alert('로그인 실패', error.message || 'Google 로그인에 실패했습니다.');
+
+      console.error('Google 로그인 오류:', error);
+      
+      // 사용자에게 더 친화적인 오류 메시지 표시
+      let errorMessage = 'Google 로그인 중 오류가 발생했습니다.';
+      
+      if (error.message?.includes('토큰을 가져올 수 없습니다')) {
+        errorMessage = 'Google 로그인 토큰을 가져올 수 없습니다. 다시 시도해주세요.';
+      } else if (error.message?.includes('로그인이 완료되지 않았습니다')) {
+        errorMessage = 'Google 로그인이 완료되지 않았습니다. 다시 시도해주세요.';
+      } else if (error.message?.includes('network')) {
+        errorMessage = '네트워크 연결을 확인하고 다시 시도해주세요.';
+      } else if (error.message?.includes('cancelled')) {
+        errorMessage = '로그인이 취소되었습니다.';
+        return; // 취소된 경우 알림을 표시하지 않음
+      }
+      
+      Alert.alert('로그인 오류', errorMessage, [{ text: '확인' }]);
+
     } finally {
       setIsLoading(false);
     }
@@ -111,6 +131,7 @@ export default function SignIn() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <KeyboardAvoidingView 
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
