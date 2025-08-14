@@ -137,6 +137,9 @@ class StoreDataService {
   // 제로식당만 가져오기 (캐시 기반)
   async getZeroRestaurants(maxDistanceKm: number = 5): Promise<StoreData[]> {
     try {
+      // 캐시 기능이 임시로 비활성화되어 폴백 방식 사용
+      return this.getZeroRestaurantsFallback(maxDistanceKm);
+      
       // 캐시 상태 확인
       const cacheStatus = await CacheInitializer.getCacheStatus();
       
@@ -145,11 +148,11 @@ class StoreDataService {
         await CacheInitializer.initializeCache();
       }
       
-      // 캐시에서 데이터 가져오기
+      // 캐시된 데이터 가져오기
       const cachedRestaurants = await CacheInitializer.getCachedRestaurantsByDistance(maxDistanceKm);
       
-      // StoreData 형태로 변환
-      const storeData: StoreData[] = cachedRestaurants.map(restaurant => ({
+      // StoreData 형식으로 변환
+      const storeData = cachedRestaurants.map(restaurant => ({
         id: restaurant.id,
         name: restaurant.name,
         address: restaurant.address,
@@ -163,6 +166,7 @@ class StoreDataService {
       }));
       
       return storeData;
+      
     } catch (error) {
       console.error('캐시 기반 제로식당 데이터 가져오기 오류:', error);
       

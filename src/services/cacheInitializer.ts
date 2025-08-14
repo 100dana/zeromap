@@ -23,6 +23,10 @@ export class CacheInitializer {
   // 제로식당 좌표 정보를 Firebase에 캐시로 저장
   static async initializeCache(): Promise<void> {
     try {
+      // 임시로 캐시 기능 비활성화 (권한 오류 방지)
+      console.log('캐시 기능이 임시로 비활성화되었습니다. 로컬 데이터를 사용합니다.');
+      return;
+      
       // 기존 캐시 삭제
       await this.clearExistingCache();
       
@@ -159,6 +163,9 @@ export class CacheInitializer {
   // 캐시 상태 확인
   static async getCacheStatus(): Promise<{ total: number; cached: number }> {
     try {
+      // 임시로 캐시 기능 비활성화
+      return { total: zeroRestaurantData.length, cached: 0 };
+      
       const snapshot = await firestore()
         .collection(this.COLLECTION_NAME)
         .get();
@@ -176,6 +183,9 @@ export class CacheInitializer {
   // 캐시된 데이터 가져오기
   static async getCachedRestaurants(): Promise<CachedRestaurantData[]> {
     try {
+      // 임시로 캐시 기능 비활성화
+      return [];
+      
       const snapshot = await firestore()
         .collection(this.COLLECTION_NAME)
         .get();
