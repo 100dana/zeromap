@@ -8,6 +8,19 @@
 import React from "react";
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import HomeScreen from "./src/screens/HomeScreen";
+import MapScreen from "./src/screens/MapScreen";
+import ReportPlace from "./src/screens/ReportPlace";
+import WriteReview from "./src/screens/WriteReview";
+import MyPage from "./src/screens/MyPage";
+import Settings from "./src/screens/Settings";
+import Campaign from "./src/screens/News";
+import CampaignDetail from "./src/screens/NewsDetail";
+import PolicyInfo from "./src/screens/PolicyInfo";
+import SignUp from "./src/screens/SignUp";
+import SignIn from "./src/screens/SignIn";
+
 
 type RootStackParamList = {
   SignUp: undefined;
@@ -25,19 +38,6 @@ type RootStackParamList = {
   CampaignDetail: undefined;
   PolicyInfo: undefined;
 };
-
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import HomeScreen from "./src/screens/HomeScreen";
-import MapScreen from "./src/screens/MapScreen";
-import ReportPlace from "./src/screens/ReportPlace";
-import WriteReview from "./src/screens/WriteReview";
-import MyPage from "./src/screens/MyPage";
-import Settings from "./src/screens/Settings";
-import Campaign from "./src/screens/News";
-import CampaignDetail from "./src/screens/NewsDetail";
-import PolicyInfo from "./src/screens/PolicyInfo";
-import SignUp from "./src/screens/SignUp";
-import SignIn from "./src/screens/SignIn";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
