@@ -125,11 +125,10 @@ export default function MyPage() {
     loadUserName();
   }, []);
 
-const handleLogout = () => {
+  const handleLogout = () => {
     // 로그아웃 처리
-  const handleLogout = async () => {
     try {
-      await AuthService.signOut();
+      AuthService.signOut();
       navigation.navigate('SignIn');
     } catch (error) {
       console.error('로그아웃 오류:', error);
