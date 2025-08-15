@@ -313,36 +313,54 @@ export default function MapScreen() {
         shadowColor:'#000',shadowOpacity:0.1,shadowOffset:{width:0,height:-2},shadowRadius:8,elevation:8,
         zIndex:100,
       }} {...panResponder.panHandlers}>
-        <View style={{alignItems:'center',padding:8}}>
+        <View style={{alignItems:'center',padding:4}}>
           <View style={{width:40,height:5,borderRadius:3,backgroundColor:'#ccc',marginVertical:6}}/>
         </View>
-        <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',padding:20,paddingBottom:10}}>
-          <View>
-            <Text style={{fontWeight:'bold',fontSize:18}}>{selectedPlace.name}</Text>
-            <Text style={{color:'#f5b50a',marginTop:2}}>★ {avgRating} ({reviews.length})</Text>
+        <View style={{backgroundColor:'#fff',borderRadius:18,marginHorizontal:18,marginTop:8,marginBottom:12,shadowColor:'#000',shadowOpacity:0.07,shadowOffset:{width:0,height:2},shadowRadius:8,elevation:3,paddingTop:18,paddingBottom:18,paddingHorizontal:18}}>
+          <View style={{flexDirection:'row',alignItems:'center',justifyContent:'flex-start',marginBottom:6}}>
+            <Text style={{fontWeight:'bold',fontSize:20,marginRight:14}}>{selectedPlace.name}</Text>
+            <Text style={{fontSize:14,marginTop:2}}>
+              <Text style={{color:'#f5b50a'}}>★ </Text>
+              <Text style={{color:'#222'}}>{avgRating} ({reviews.length})</Text>
+            </Text>
+            <View style={{flex:1}} />
+            <TouchableOpacity onPress={()=>{setSelectedPlace(null);hideBar();}} style={{padding:8, marginLeft: 10, marginTop: 0}}>
+              <Text style={{fontSize:22,color:'#888'}}>✕</Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity onPress={()=>{setSelectedPlace(null);hideBar();}} style={{padding:8}}>
-            <Text style={{fontSize:20,color:'#888'}}>✕</Text>
-              </TouchableOpacity>
-            </View>
-        <ScrollView style={{flex:1,paddingHorizontal:20}} contentContainerStyle={{paddingBottom:80}}>
-          <Text style={{fontWeight:'bold',fontSize:15,marginTop:8,marginBottom:6}}>가게 정보</Text>
-          <View style={{marginBottom:16}}>
-            <Text style={{color:'#888',marginBottom:4}}>📍 {selectedPlace.address}</Text>
-            {selectedPlace.description ? <Text style={{color:'#444'}}>{selectedPlace.description}</Text> : null}
-              </View>
-          <View style={{height:1,backgroundColor:'#eee',marginVertical:8}}/>
-          <Text style={{fontWeight:'bold',fontSize:15,marginBottom:6}}>리뷰</Text>
+          <View style={{marginBottom:8}}>
+            <Text style={{color:'#888',marginBottom:2,fontSize:13}}>📍 {selectedPlace.address}</Text>
+            {selectedPlace.description ? <Text style={{color:'#444',marginBottom:2,fontSize:14}}>{selectedPlace.description}</Text> : null}
+          </View>
+          <TouchableOpacity
+            style={{
+              backgroundColor: '#4CAF50',
+              borderRadius: 18,
+              paddingVertical: 10,
+              paddingHorizontal: 28,
+              alignSelf: 'flex-end',
+              marginTop: 8,
+              marginRight: 2,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.10,
+              shadowRadius: 4,
+              elevation: 1,
+            }}
+            onPress={() => {
+              setSelectedPlace(null); hideBar();
+              navigation.navigate('WriteReview', {placeName: selectedPlace.name, placeId: selectedPlace.id || 'unknown-place'});
+            }}
+          >
+            <Text style={{color:'#fff',fontWeight:'bold',fontSize:16,letterSpacing:0.2}}>리뷰쓰기</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView style={{flex:1,paddingHorizontal:24}} contentContainerStyle={{paddingBottom:80}}>
+          <Text style={{fontWeight:'bold',fontSize:15,marginTop:8,marginBottom:6}}>리뷰</Text>
           {loadingReviews ? <Text>리뷰 불러오는 중...</Text> : reviews.length === 0 ? (
             <View style={{alignItems:'center',marginVertical:24}}>
               <Text style={{color:'#888',marginBottom:8}}>아직 리뷰가 없습니다.</Text>
-              <TouchableOpacity style={{backgroundColor:'#4CAF50',borderRadius:8,paddingHorizontal:24,paddingVertical:10}} onPress={()=>{
-                setSelectedPlace(null);hideBar();
-                navigation.navigate('WriteReview', {placeName:selectedPlace.name,placeId:selectedPlace.id||'unknown-place'});
-              }}>
-                <Text style={{color:'#fff',fontWeight:'bold'}}>첫 리뷰를 남겨보세요!</Text>
-              </TouchableOpacity>
-              </View>
+            </View>
           ) : (
             <>
               {reviews.slice(0,3).map((r) => (
@@ -361,14 +379,8 @@ export default function MapScreen() {
                 </TouchableOpacity>
               )}
             </>
-              )}
-            </ScrollView>
-        <TouchableOpacity style={{position:'absolute',right:24,bottom:24,backgroundColor:'#4CAF50',borderRadius:32,paddingHorizontal:24,paddingVertical:12,shadowColor:'#000',shadowOpacity:0.15,shadowOffset:{width:0,height:2},shadowRadius:8,elevation:8}} onPress={()=>{
-          setSelectedPlace(null);hideBar();
-          navigation.navigate('WriteReview', {placeName:selectedPlace.name,placeId:selectedPlace.id||'unknown-place'});
-        }}>
-          <Text style={{color:'#fff',fontWeight:'bold',fontSize:16}}>리뷰쓰기</Text>
-              </TouchableOpacity>
+          )}
+        </ScrollView>
       </Animated.View>
     );
   };
