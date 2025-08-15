@@ -139,19 +139,6 @@ export default function WriteReview({ route }: { route: { params?: { placeName?:
         {/* 가게 이름 + 리뷰쓰기 버튼 섹션 */}
         <View style={styles.placeSectionRow}>
           <Text style={styles.placeName}>{placeName}</Text>
-          <TouchableOpacity
-            style={styles.inlineWriteButton}
-            onPress={handleSubmitReview}
-            disabled={!isFormValid || isSubmitting}
-            activeOpacity={0.85}
-          >
-            <Text style={[
-              styles.inlineWriteButtonText,
-              (!isFormValid || isSubmitting) && styles.inlineWriteButtonTextDisabled
-            ]}>
-              {isSubmitting ? '저장 중...' : '✍️ 리뷰쓰기'}
-            </Text>
-          </TouchableOpacity>
         </View>
 
         {/* 별점 섹션 */}
@@ -243,14 +230,12 @@ export default function WriteReview({ route }: { route: { params?: { placeName?:
             disabled={!isFormValid || isSubmitting}
             activeOpacity={0.85}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={[
-                styles.submitButtonText,
-                (!isFormValid || isSubmitting) && styles.submitButtonTextDisabled
-              ]}>
-                {isSubmitting ? '저장 중...' : '✍️ 리뷰 작성하기'}
-              </Text>
-            </View>
+            <Text style={[
+              styles.submitButtonText,
+              (!isFormValid || isSubmitting) && styles.submitButtonTextDisabled
+            ]}>
+              {isSubmitting ? '저장 중...' : '리뷰쓰기'}
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
