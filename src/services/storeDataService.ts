@@ -16,7 +16,7 @@ export interface StoreData {
   activities?: string;
   operatingHours?: string;
   products?: string;
-  category?: string;
+  category: string;
   isZeroRestaurant?: boolean;
 }
 

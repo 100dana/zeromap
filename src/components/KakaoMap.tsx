@@ -333,15 +333,15 @@ const KakaoMap = forwardRef<KakaoMapRef, KakaoMapProps>(({
         addMarkers(places);
       } else {
         // 테스트용 기본 마커 추가 (서울시청)
-        addMarkers([{
-          id: 'test',
-          name: '서울시청 (테스트)',
-          category: '테스트',
-          address: '서울특별시 중구 세종대로 110',
-          latitude: 37.5665,
-          longitude: 126.9780,
-          description: '테스트 마커입니다.'
-        }]);
+        // addMarkers([{
+        //   id: 'test',
+        //   name: '서울시청 (테스트)',
+        //   category: '테스트',
+        //   address: '서울특별시 중구 세종대로 110',
+        //   latitude: 37.5665,
+        //   longitude: 126.9780,
+        //   description: '테스트 마커입니다.'
+        // }]);
       }
     }
   }, [places, webViewLoaded, mapInitialized]);

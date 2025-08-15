@@ -82,7 +82,7 @@ export default function WriteReview({ route }: { route: { params?: { placeName?:
         placeId: placeId,
         placeName: placeName,
         userId: currentUser.uid,
-        userName: userDetails.name,
+        userName: userDetails.name || '알수없음', // name 필드 사용, 없으면 기본값
         rating: rating,
         reviewText: reviewText.trim(),
         imageUrl: selectedImages.length > 0 ? selectedImages[0] : undefined
@@ -136,9 +136,22 @@ export default function WriteReview({ route }: { route: { params?: { placeName?:
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* 가게 이름 섹션 */}
-        <View style={styles.placeSection}>
+        {/* 가게 이름 + 리뷰쓰기 버튼 섹션 */}
+        <View style={styles.placeSectionRow}>
           <Text style={styles.placeName}>{placeName}</Text>
+          <TouchableOpacity
+            style={styles.inlineWriteButton}
+            onPress={handleSubmitReview}
+            disabled={!isFormValid || isSubmitting}
+            activeOpacity={0.85}
+          >
+            <Text style={[
+              styles.inlineWriteButtonText,
+              (!isFormValid || isSubmitting) && styles.inlineWriteButtonTextDisabled
+            ]}>
+              {isSubmitting ? '저장 중...' : '✍️ 리뷰쓰기'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* 별점 섹션 */}
@@ -223,17 +236,21 @@ export default function WriteReview({ route }: { route: { params?: { placeName?:
           <TouchableOpacity
             style={[
               styles.submitButton,
-              (!isFormValid || isSubmitting) && styles.submitButtonDisabled
+              (!isFormValid || isSubmitting) && styles.submitButtonDisabled,
+              isSubmitting && { opacity: 0.7 }
             ]}
             onPress={handleSubmitReview}
             disabled={!isFormValid || isSubmitting}
+            activeOpacity={0.85}
           >
-            <Text style={[
-              styles.submitButtonText,
-              (!isFormValid || isSubmitting) && styles.submitButtonTextDisabled
-            ]}>
-              {isSubmitting ? '저장 중...' : '리뷰 작성하기'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={[
+                styles.submitButtonText,
+                (!isFormValid || isSubmitting) && styles.submitButtonTextDisabled
+              ]}>
+                {isSubmitting ? '저장 중...' : '✍️ 리뷰 작성하기'}
+              </Text>
+            </View>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -277,16 +294,40 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: spacing.screenPaddingHorizontal,
   },
-  placeSection: {
+  placeSectionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: 24,
     borderBottomWidth: 1,
     borderBottomColor: colors.divider,
+    gap: 12,
   },
   placeName: {
     fontSize: 20,
     fontWeight: "bold",
     color: colors.textPrimary,
-    textAlign: 'center',
+  },
+  inlineWriteButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginLeft: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  inlineWriteButtonText: {
+    color: colors.background,
+    fontWeight: 'bold',
+    fontSize: 14,
+    letterSpacing: 0.2,
+  },
+  inlineWriteButtonTextDisabled: {
+    color: colors.textDisabled,
   },
   section: {
     paddingVertical: 20,
@@ -441,18 +482,24 @@ const styles = StyleSheet.create({
   submitButton: {
     flex: 1,
     backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
+    borderRadius: 24, // 더 둥글게
+    paddingVertical: 18,
     alignItems: "center",
-    ...shadows.button,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+    marginTop: 8,
   },
   submitButtonDisabled: {
     backgroundColor: colors.divider,
   },
   submitButtonText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
     color: colors.background,
+    letterSpacing: 0.5,
   },
   submitButtonTextDisabled: {
     color: colors.textDisabled,
