@@ -20,6 +20,7 @@ import CampaignDetail from "./src/screens/NewsDetail";
 import PolicyInfo from "./src/screens/PolicyInfo";
 import SignUp from "./src/screens/SignUp";
 import SignIn from "./src/screens/SignIn";
+import ReviewListScreen from './src/screens/ReviewListScreen';
 
 
 type RootStackParamList = {
@@ -37,6 +38,7 @@ type RootStackParamList = {
   Campaign: undefined;
   CampaignDetail: undefined;
   PolicyInfo: undefined;
+  ReviewList: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -58,6 +60,7 @@ export default function App() {
           <Stack.Screen name="Campaign" component={Campaign} />
           <Stack.Screen name="CampaignDetail" component={CampaignDetail} />
           <Stack.Screen name="PolicyInfo" component={PolicyInfo} />
+          <Stack.Screen name="ReviewList" component={ReviewListScreen} options={{ title: '전체 리뷰' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
