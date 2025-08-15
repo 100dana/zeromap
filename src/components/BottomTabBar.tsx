@@ -23,7 +23,7 @@ type TabItem = {
 };
 
 const tabItems: TabItem[] = [
-  { key: 'home', title: '홈', icon: '🏠', route: 'Home' },
+  { key: 'home', title: '홈', icon: '🏠', route: 'Map' },
   { key: 'campaign', title: '뉴스', icon: '🎯', route: 'Campaign' },
   { key: 'mypage', title: '마이페이지', icon: '👤', route: 'MyPage' },
   { key: 'settings', title: '설정', icon: '⚙', route: 'Settings' }

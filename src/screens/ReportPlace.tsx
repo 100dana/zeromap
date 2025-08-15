@@ -38,7 +38,7 @@ const categories = [
   },
   {
     id: 'cupDiscountCafe',
-    label: "개인컵할인카페",
+    label: "개인컵 할인\n카페",
     icon: "☕"
   },
   {
@@ -403,7 +403,7 @@ export default function ReportPlace() {
             style={[styles.textInput, styles.descriptionInput]}
             value={description}
             onChangeText={setDescription}
-            placeholder="장소에 대한 설명을 입력하세요"
+            placeholder="장소에 대한 설명을 입력해주세요"
             placeholderTextColor="#999"
             multiline
             numberOfLines={4}
@@ -414,8 +414,8 @@ export default function ReportPlace() {
         {/* 이미지 업로드 */}
         <View style={styles.inputSection}>
           <Text style={styles.inputLabel}>이미지 첨부 <Text style={styles.optionalText}>(선택)</Text></Text>
-          <View style={styles.imageUploadContainer}>
-            {selectedImage ? (
+          {selectedImage ? (
+            <View style={styles.imageUploadContainer}>
               <View style={styles.selectedImageWrapper}>
                 <Image 
                   source={{ uri: selectedImage }} 
@@ -442,22 +442,22 @@ export default function ReportPlace() {
                   <Text style={styles.imageInfoText}>📷 선택된 이미지</Text>
                 </View>
               </View>
-            ) : (
-              <TouchableOpacity
-                style={styles.imageUploadArea}
-                onPress={handleImageSelect}
-                activeOpacity={0.7}
-              >
-                <View style={styles.uploadIconContainer}>
-                  <Text style={styles.uploadIcon}>📷</Text>
-                  <Text style={styles.uploadPlusIcon}>+</Text>
-                </View>
-                <Text style={styles.uploadTitle}>이미지 추가</Text>
-                <Text style={styles.uploadSubtitle}>장소 사진을 첨부해주세요</Text>
-                <Text style={styles.uploadHint}>JPG, PNG 파일만 가능 • 최대 5MB</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.imageUploadContainer}
+              onPress={handleImageSelect}
+              activeOpacity={0.7}
+            >
+              <View style={styles.uploadIconContainer}>
+                <Text style={styles.uploadIcon}>📷</Text>
+                <Text style={styles.uploadPlusIcon}>+</Text>
+              </View>
+              <Text style={styles.uploadTitle}>이미지 추가</Text>
+              <Text style={styles.uploadSubtitle}>장소 사진을 첨부해주세요</Text>
+              <Text style={styles.uploadHint}>JPG, PNG 파일만 가능 • 최대 5MB</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* 버튼 영역 */}
@@ -501,7 +501,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: spacing.screenPaddingHorizontal,
-    paddingVertical: spacing.paddingMedium,
+    paddingTop: 50,
+    paddingBottom: spacing.paddingMedium,
     backgroundColor: colors.card,
     borderBottomWidth: 2,
     borderBottomColor: colors.divider,
@@ -536,14 +537,16 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   inputSection: {
-    marginBottom: 20,
-    marginHorizontal: 16,
+    marginTop: 20,
+    marginBottom: 10,
+    marginHorizontal: 24,
   },
   inputLabel: {
     color: "#000000",
     fontSize: 16,
     fontWeight: "bold",
-    marginBottom: 8,
+    marginBottom: 10,
+    marginLeft: 6,
   },
   textInput: {
     borderColor: "#0000001A",
@@ -577,6 +580,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   mapContainer: {
+    marginTop: 6,
     height: 200,
     borderRadius: 6,
     overflow: 'hidden',
@@ -584,15 +588,16 @@ const styles = StyleSheet.create({
     borderColor: "#0000001A",
   },
   categoryListContainer: {
-    paddingHorizontal: 4,
+    paddingHorizontal: 2,
   },
   categoryCard: {
-    width: 120,
+    width: 100,
+    height: 100,
     borderColor: "#0000001A",
     borderWidth: 1,
     borderRadius: 6,
     paddingVertical: 12,
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
     alignItems: "center",
     backgroundColor: "#FFFFFF",
     marginHorizontal: 4,
@@ -610,6 +615,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "center",
     fontWeight: "500",
+    marginTop: 4,
   },
   selectedCategoryLabel: {
     color: "#4CAF50",
@@ -677,16 +683,6 @@ const styles = StyleSheet.create({
   },
   
   imageUploadContainer: {
-    borderColor: "#E0E0E0",
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderRadius: 12,
-    paddingVertical: 24,
-    alignItems: "center",
-    backgroundColor: "#FAFAFA",
-    minHeight: 160,
-  },
-  imageUploadArea: {
     borderColor: "#E0E0E0",
     borderWidth: 2,
     borderStyle: 'dashed',

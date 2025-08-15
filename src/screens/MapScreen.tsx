@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import KakaoMap, { KakaoMapRef } from '../components/KakaoMap';
+import BottomTabBar from '../components/BottomTabBar';
 import { SeoulApiService, PlaceData } from '../services/seoulApi';
 import { LocalDataService, LocalPlaceData } from '../services/localDataService';
 import { SearchService, SearchResult } from '../services/searchService';
@@ -14,10 +15,199 @@ import { typography } from '../styles/typography';
 import { spacing } from '../styles/spacing';
 import { shadows } from '../styles/shadows';
 
+// 검색 결과 아이템 컴포넌트
+const SearchResultItem = ({ 
+  result, 
+  onPress 
+}: { 
+  result: SearchResult; 
+  onPress: (result: SearchResult) => void;
+}) => (
+  <TouchableOpacity
+    style={styles.searchResultItem}
+    onPress={() => onPress(result)}
+  >
+    <View style={styles.searchResultContent}>
+      <Text style={styles.searchResultName}>{result.place.name}</Text>
+      <Text style={styles.searchResultAddress}>{result.place.address}</Text>
+    </View>
+  </TouchableOpacity>
+);
+
+// 검색 제안 아이템 컴포넌트
+const SearchSuggestionItem = ({ 
+  suggestion, 
+  onPress 
+}: { 
+  suggestion: string; 
+  onPress: (suggestion: string) => void;
+}) => (
+  <TouchableOpacity
+    style={styles.searchSuggestionItem}
+    onPress={() => onPress(suggestion)}
+  >
+    <Text style={styles.searchSuggestionText}>💡 {suggestion}</Text>
+  </TouchableOpacity>
+);
+
+// 커스텀 모달 컴포넌트
+const PlaceDetailModal = ({ 
+  visible, 
+  selectedPlace, 
+  selectedCategory, 
+  onClose, 
+  onWriteReview 
+}: { 
+  visible: boolean;
+  selectedPlace: PlaceData | LocalPlaceData | StoreData | null;
+  selectedCategory: string;
+  onClose: () => void;
+  onWriteReview: (placeName?: string, placeId?: string) => void;
+}) => {
+  if (!selectedPlace) return null;
+  
+  // 카테고리별 설명 추가
+  let categoryDescription = '';
+  switch (selectedCategory) {
+    case 'zeroWaste':
+      categoryDescription = '제로웨이스트 상점';
+      break;
+    case 'cupDiscountCafe':
+      categoryDescription = '개인 컵 할인 카페';
+      break;
+    case 'zeroRestaurant':
+      categoryDescription = '제로식당';
+      break;
+    default:
+      categoryDescription = '친환경 시설';
+  }
+  
+  return (
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          {/* 헤더 */}
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>🏪 {selectedPlace.name}</Text>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={onClose}
+            >
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {/* 내용 */}
+          <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+            {/* 카테고리 배지 */}
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryBadgeText}>{categoryDescription}</Text>
+            </View>
+            
+            {/* 주소 */}
+            <View style={styles.infoSection}>
+              <Text style={styles.infoLabel}>📍 주소</Text>
+              <Text style={styles.infoValue}>{selectedPlace.address}</Text>
+            </View>
+            
+            {/* 설명 */}
+            {selectedPlace.description && (
+              <View style={styles.infoSection}>
+                <Text style={styles.infoLabel}>📝 장소 설명</Text>
+                <Text style={styles.infoValue}>{selectedPlace.description}</Text>
+              </View>
+            )}
+          </ScrollView>
+          
+          {/* 액션 버튼 */}
+          <View style={styles.modalActions}>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={onClose}
+            >
+              <Text style={styles.modalButtonText}>닫기</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.primaryButton]}
+              onPress={() => {
+                onClose();
+                onWriteReview(selectedPlace?.name, selectedPlace?.id || 'unknown-place');
+              }}
+            >
+              <Text style={[styles.modalButtonText, styles.primaryButtonText]}>리뷰쓰기</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+// 리스트 아이템 컴포넌트
+const PlaceListItem = ({ 
+  place, 
+  index, 
+  onPress,
+  calculateDistance,
+  currentLocation
+}: { 
+  place: PlaceData | LocalPlaceData | StoreData; 
+  index: number;
+  onPress: (place: PlaceData | LocalPlaceData | StoreData) => void;
+  calculateDistance: (lat1: number, lon1: number, lat2: number, lon2: number) => number;
+  currentLocation: { latitude: number; longitude: number };
+}) => {
+  // 거리 계산
+  const distance = calculateDistance(
+    currentLocation.latitude,
+    currentLocation.longitude,
+    place.latitude,
+    place.longitude
+  );
+  
+  return (
+    <TouchableOpacity
+      style={styles.placeListItem}
+      onPress={() => onPress(place)}
+    >
+      <View style={styles.placeListItemHeader}>
+        <View style={styles.placeListItemIcon}>
+          <Text style={styles.placeListItemIconText}>📍</Text>
+        </View>
+        <View style={styles.placeListItemContent}>
+          <Text style={styles.placeListItemName}>{place.name}</Text>
+        </View>
+        <View style={styles.placeListItemMeta}>
+          <Text style={styles.placeListItemDistance}>
+            {distance < 1 ? `${(distance * 1000).toFixed(0)}m` : `${distance.toFixed(1)}km`}
+          </Text>
+        </View>
+      </View>
+      
+      <Text style={styles.placeListItemAddress}>{place.address}</Text>
+      
+      {place.description && (
+        <Text style={styles.placeListItemDescription} numberOfLines={2}>
+          {place.description}
+        </Text>
+      )}
+      
+      <View style={styles.placeListItemFooter}>
+        <Text style={styles.placeListItemDetail}>상세보기 ›</Text>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
 const categories = [
   {
     icon: "🛒",
-    label: "제로웨이스트상점",
+    label: "제로웨이스트",
     iconBgMargin: 38,
     textMargin: 4,
     type: 'zeroWaste',
@@ -26,7 +216,7 @@ const categories = [
   },
   {
     icon: "☕",
-    label: "개인컵할인카페",
+    label: "개인컵 할인\n카페",
     iconBgMargin: 38,
     textMargin: 3,
     type: 'cupDiscountCafe',
@@ -35,7 +225,7 @@ const categories = [
   },
   {
     icon: "🍽️",
-    label: "제로식당",
+    label: "비건",
     iconBgMargin: 38,
     textMargin: 3,
     type: 'zeroRestaurant',
@@ -391,164 +581,7 @@ export default function MapScreen() {
     setShowSearchResults(false);
   };
 
-  // 검색 결과 아이템 컴포넌트
-  const SearchResultItem = ({ result }: { result: SearchResult }) => (
-    <TouchableOpacity
-      style={styles.searchResultItem}
-      onPress={() => handleSearchResultSelect(result)}
-    >
-      <View style={styles.searchResultContent}>
-        <Text style={styles.searchResultName}>{result.place.name}</Text>
-        <Text style={styles.searchResultAddress}>{result.place.address}</Text>
-      </View>
-    </TouchableOpacity>
-  );
 
-  // 검색 제안 아이템 컴포넌트
-  const SearchSuggestionItem = ({ suggestion }: { suggestion: string }) => (
-    <TouchableOpacity
-      style={styles.searchSuggestionItem}
-      onPress={() => handleSuggestionSelect(suggestion)}
-    >
-      <Text style={styles.searchSuggestionText}>💡 {suggestion}</Text>
-    </TouchableOpacity>
-  );
-
-  // 커스텀 모달 컴포넌트
-  const PlaceDetailModal = () => {
-    if (!selectedPlace) return null;
-    
-    // 카테고리별 설명 추가
-    let categoryDescription = '';
-    switch (selectedCategory) {
-      case 'zeroWaste':
-        categoryDescription = '제로웨이스트 상점';
-        break;
-      case 'cupDiscountCafe':
-        categoryDescription = '개인 컵 할인 카페';
-        break;
-      case 'zeroRestaurant':
-        categoryDescription = '제로식당';
-        break;
-      default:
-        categoryDescription = '친환경 시설';
-    }
-    
-    return (
-      <Modal
-        visible={showPlaceModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowPlaceModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            {/* 헤더 */}
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>🏪 {selectedPlace.name}</Text>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setShowPlaceModal(false)}
-              >
-                <Text style={styles.closeButtonText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            
-            {/* 내용 */}
-            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-              {/* 카테고리 배지 */}
-              <View style={styles.categoryBadge}>
-                <Text style={styles.categoryBadgeText}>{categoryDescription}</Text>
-              </View>
-              
-              {/* 주소 */}
-              <View style={styles.infoSection}>
-                <Text style={styles.infoLabel}>📍 주소</Text>
-                <Text style={styles.infoValue}>{selectedPlace.address}</Text>
-              </View>
-              
-              {/* 설명 */}
-              {selectedPlace.description && (
-                <View style={styles.infoSection}>
-                  <Text style={styles.infoLabel}>📝 장소 설명</Text>
-                  <Text style={styles.infoValue}>{selectedPlace.description}</Text>
-                </View>
-              )}
-            </ScrollView>
-            
-            {/* 액션 버튼 */}
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={() => setShowPlaceModal(false)}
-              >
-                <Text style={styles.modalButtonText}>닫기</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.primaryButton]}
-                onPress={() => {
-                  setShowPlaceModal(false);
-                  navigation.navigate('WriteReview', { 
-                    placeName: selectedPlace?.name,
-                    placeId: selectedPlace?.id || 'unknown-place'
-                  });
-                }}
-              >
-                <Text style={[styles.modalButtonText, styles.primaryButtonText]}>리뷰쓰기</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    );
-  };
-
-  // 리스트 아이템 컴포넌트
-  const PlaceListItem = ({ place, index }: { place: PlaceData | LocalPlaceData | StoreData; index: number }) => {
-    // 거리 계산
-    const distance = calculateDistance(
-      CURRENT_LOCATION.latitude,
-      CURRENT_LOCATION.longitude,
-      place.latitude,
-      place.longitude
-    );
-    
-    return (
-      <TouchableOpacity
-        style={styles.placeListItem}
-        onPress={() => {
-          setSelectedPlace(place);
-          setShowPlaceModal(true);
-        }}
-      >
-        <View style={styles.placeListItemHeader}>
-          <View style={styles.placeListItemIcon}>
-            <Text style={styles.placeListItemIconText}>📍</Text>
-          </View>
-          <View style={styles.placeListItemContent}>
-            <Text style={styles.placeListItemName}>{place.name}</Text>
-          </View>
-          <View style={styles.placeListItemMeta}>
-            <Text style={styles.placeListItemDistance}>
-              {distance < 1 ? `${(distance * 1000).toFixed(0)}m` : `${distance.toFixed(1)}km`}
-            </Text>
-          </View>
-        </View>
-        
-        <Text style={styles.placeListItemAddress}>{place.address}</Text>
-        
-        {place.description && (
-          <Text style={styles.placeListItemDescription} numberOfLines={2}>
-            {place.description}
-          </Text>
-        )}
-        
-        <View style={styles.placeListItemFooter}>
-          <Text style={styles.placeListItemDetail}>상세보기 ›</Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
 
   // 현재 표시할 장소 데이터 (검색 중일 때는 검색 결과만, 아니면 전체)
   const getDisplayPlaces = (): PlaceData[] => {
@@ -615,28 +648,18 @@ export default function MapScreen() {
   const displayPlaces = getDisplayPlaces();
   
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+      <SafeAreaView style={styles.safeAreaContent}>
         <View style={styles.container}>
           {/* 상단 헤더 */}
           <View style={styles.headerContainer}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.navigate('Home')}
-            >
-              <Text style={styles.backButtonText}>‹</Text>
-            </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
-              <Text style={styles.headerIcon}>🌱</Text>
               <View style={styles.headerTextContainer}>
                 <Text style={styles.headerTitle}>ZeroMap</Text>
                 <Text style={styles.headerSubtitle}>제로웨이스트 맵</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.headerActionButton}>
-              <Text style={styles.headerActionIcon}>🔍</Text>
-            </TouchableOpacity>
           </View>
 
           {/* 검색바 */}
@@ -673,7 +696,11 @@ export default function MapScreen() {
                       <View style={styles.searchSuggestionsContainer}>
                         <Text style={styles.searchSuggestionsTitle}>검색 제안</Text>
                         {searchSuggestions.map((suggestion, index) => (
-                          <SearchSuggestionItem key={index} suggestion={suggestion} />
+                          <SearchSuggestionItem 
+                            key={index} 
+                            suggestion={suggestion} 
+                            onPress={handleSuggestionSelect}
+                          />
                         ))}
                       </View>
                     )}
@@ -685,7 +712,11 @@ export default function MapScreen() {
                           검색 결과 ({searchResults.length}개)
                         </Text>
                         {searchResults.map((result, index) => (
-                          <SearchResultItem key={index} result={result} />
+                          <SearchResultItem 
+                            key={index} 
+                            result={result} 
+                            onPress={handleSearchResultSelect}
+                          />
                         ))}
                       </View>
                     )}
@@ -704,56 +735,56 @@ export default function MapScreen() {
             )}
           </View>
 
-          {/* 지도/리스트 전환 버튼 */}
-          <View style={styles.viewToggleContainer}>
-            <TouchableOpacity
-              style={[
-                styles.viewToggleButton,
-                viewMode === 'map' && styles.viewToggleButtonActive
-              ]}
-              onPress={() => setViewMode('map')}
-            >
-              <Text style={[
-                styles.viewToggleText,
-                viewMode === 'map' && styles.viewToggleTextActive
-              ]}>🗺️ 지도</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.viewToggleButton,
-                viewMode === 'list' && styles.viewToggleButtonActive
-              ]}
-              onPress={() => setViewMode('list')}
-            >
-              <Text style={[
-                styles.viewToggleText,
-                viewMode === 'list' && styles.viewToggleTextActive
-              ]}>📋 리스트</Text>
-            </TouchableOpacity>
-          </View>
+                  {/* 카테고리 스크롤 영역 */}
+        <View style={styles.categoryContainer}>
+          <Text style={styles.categoryTitle}>카테고리 선택</Text>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoryScrollContainer}
+          >
+            {categories.map((cat, idx) => (
+              <CategoryCard
+                key={idx}
+                {...cat}
+                style={idx === categories.length - 1 ? styles.noMarginRight : undefined}
+                isSelected={selectedCategory === cat.type}
+                onPress={() => handleCategoryPress(cat.type)}
+              />
+            ))}
+          </ScrollView>
+        </View>
 
-          {/* 카테고리 스크롤 영역 */}
-          <View style={styles.categoryContainer}>
-            <Text style={styles.categoryTitle}>카테고리 선택</Text>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.categoryScrollContainer}
-            >
-              {categories.map((cat, idx) => (
-                <CategoryCard
-                  key={idx}
-                  {...cat}
-                  style={idx === categories.length - 1 ? styles.noMarginRight : undefined}
-                  isSelected={selectedCategory === cat.type}
-                  onPress={() => handleCategoryPress(cat.type)}
-                />
-              ))}
-            </ScrollView>
-          </View>
+        {/* 지도/리스트 전환 버튼 */}
+        <View style={styles.viewToggleContainer}>
+          <TouchableOpacity
+            style={[
+              styles.viewToggleButton,
+              viewMode === 'map' && styles.viewToggleButtonActive
+            ]}
+            onPress={() => setViewMode('map')}
+          >
+            <Text style={[
+              styles.viewToggleText,
+              viewMode === 'map' && styles.viewToggleTextActive
+            ]}>🗺️ 지도</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.viewToggleButton,
+              viewMode === 'list' && styles.viewToggleButtonActive
+            ]}
+            onPress={() => setViewMode('list')}
+          >
+            <Text style={[
+              styles.viewToggleText,
+              viewMode === 'list' && styles.viewToggleTextActive
+            ]}>📋 리스트</Text>
+          </TouchableOpacity>
+        </View>
           
           {/* 메인 컨텐츠 */}
-          <View style={styles.mainContent}>
+          <View style={styles.mainMap}>
             {viewMode === 'map' ? (
               // 지도 뷰 - 검색 결과가 있으면 검색 결과만, 없으면 전체 표시
               <KakaoMap
@@ -781,7 +812,17 @@ export default function MapScreen() {
                       </Text>
                     </View>
                     {displayPlaces.map((place, index) => (
-                      <PlaceListItem key={`${place.id}-${index}`} place={place} index={index} />
+                      <PlaceListItem 
+                        key={`${place.id}-${index}`} 
+                        place={place} 
+                        index={index}
+                        onPress={(selectedPlace) => {
+                          setSelectedPlace(selectedPlace);
+                          setShowPlaceModal(true);
+                        }}
+                        calculateDistance={calculateDistance}
+                        currentLocation={CURRENT_LOCATION}
+                      />
                     ))}
                   </>
                 ) : (
@@ -805,14 +846,33 @@ export default function MapScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
-      <PlaceDetailModal />
-    </SafeAreaView>
+        <PlaceDetailModal 
+          visible={showPlaceModal}
+          selectedPlace={selectedPlace}
+          selectedCategory={selectedCategory}
+          onClose={() => setShowPlaceModal(false)}
+          onWriteReview={(placeName, placeId) => {
+            setShowPlaceModal(false);
+            navigation.navigate('WriteReview', { 
+              placeName,
+              placeId: placeId || 'unknown-place'
+            });
+          }}
+        />
+        
+        {/* BottomTabBar를 SafeAreaView 안에 배치 */}
+        <BottomTabBar currentRoute="Home" />
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  safeAreaContent: {
     flex: 1,
     backgroundColor: colors.background,
   },
@@ -823,7 +883,7 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
     paddingHorizontal: spacing.screenPaddingHorizontal,
     paddingTop: 12,
     paddingBottom: spacing.paddingLarge,
@@ -893,7 +953,7 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     marginHorizontal: spacing.screenPaddingHorizontal,
-    marginTop: 8,
+    marginTop: 16,
     marginBottom: 4,
     paddingHorizontal: spacing.paddingMedium,
     paddingVertical: spacing.paddingSmall,
@@ -970,18 +1030,19 @@ const styles = StyleSheet.create({
     marginHorizontal: 35,
   },
   categoryContainer: {
-    marginTop: 8,
-    marginBottom: 12,
+    marginTop: 4,
+    marginBottom: 4,
     marginHorizontal: spacing.screenPaddingHorizontal,
     alignItems: 'center',
   },
   categoryTitle: {
     ...typography.h4,
     color: colors.textPrimary,
-    marginBottom: spacing.paddingSmall,
-    fontWeight: '600',
+    marginTop: 8,
+    fontWeight: '500',
   },
   categoryScrollContainer: {
+    marginTop: 8,
     paddingRight: spacing.paddingMedium,
   },
   categoryCard: {
@@ -989,10 +1050,10 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 1,
     paddingVertical: 4,
-    marginRight: 9,
+    marginRight: 8,
     backgroundColor: "#fff",
     minWidth: 0,
-    width: 80,
+    width: 90,
     alignItems: 'center',
   },
   selectedCategoryCard: {
@@ -1000,13 +1061,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#E8F5E8",
   },
   categoryIconWrap: {
-    marginBottom: 7,
+    marginTop: 8,
+    marginBottom: 6,
     alignItems: "center",
     justifyContent: "center",
   },
   categoryIconBg: {
-    height: 50,
-    width: 50,
+    height: 55,
+    width: 55,
     backgroundColor: "#0000000D",
     borderRadius: 25,
     alignItems: "center",
@@ -1025,6 +1087,7 @@ const styles = StyleSheet.create({
     color: "#000000",
     fontSize: 12,
     textAlign: "center",
+    fontWeight: 300
   },
   loadingContainer: {
     flex: 1,
@@ -1064,22 +1127,21 @@ const styles = StyleSheet.create({
   },
   reportButton: {
     backgroundColor: "#4CAF50",
-    borderRadius: 6,
+    borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 24,
-    marginHorizontal: 16,
-    marginBottom: 20,
+    marginHorizontal: 2,
     alignItems: "center",
-    shadowColor: "#0000001C",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
+    shadowColor: "#0000001c",
+    shadowOpacity: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
     elevation: 4,
   },
   reportButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: 600,
   },
   searchResultItem: {
     paddingVertical: 10,
@@ -1209,7 +1271,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     marginHorizontal: 16,
     marginTop: 8,
-    marginBottom: 12,
+    marginBottom: 4,
     backgroundColor: colors.surface,
     borderRadius: 8,
     borderColor: colors.divider,
@@ -1228,7 +1290,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   viewToggleText: {
-    ...typography.body2,
+    ...typography.h4,
     color: colors.textSecondary,
     fontWeight: '500',
   },
@@ -1313,13 +1375,14 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '600',
   },
-  mainContent: {
+  mainMap: {
     flex: 1,
     marginHorizontal: 16,
     marginTop: 8,
-    marginBottom: 20,
+    marginBottom: 16,
     borderRadius: 6,
     overflow: 'hidden',
+    minHeight: 300, // TODO: 현재는 최소 크기 정해놨지만 나중에 비율로 설정하기
   },
   listContainer: {
     flex: 1,

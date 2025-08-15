@@ -97,7 +97,7 @@ export default function SignUp() {
     try {
       await AuthService.signUp(formData.email, formData.password, formData.nickname);
       Alert.alert('회원가입 성공', `${formData.nickname}님, 환영합니다!`, [
-        { text: '확인', onPress: () => { setShowEmailModal(false); navigation.navigate('Home'); } }
+        { text: '확인', onPress: () => { setShowEmailModal(false); navigation.navigate('Map'); } }
       ]);
     } catch (error: any) {
       console.error('회원가입 오류:', error);
@@ -118,7 +118,7 @@ export default function SignUp() {
       const message = result.isNewUser ? '회원가입 성공' : '로그인 성공';
       const name = result.user.displayName || result.user.email;
       Alert.alert(message, `${name}님, 환영합니다!`, [
-        { text: '확인', onPress: () => navigation.navigate('Home') }
+        { text: '확인', onPress: () => navigation.navigate('Map') }
       ]);
     } catch (error: any) {
       console.error('Google 로그인 오류:', error);
@@ -173,7 +173,7 @@ export default function SignUp() {
       setIsLoading(true);
       await AuthService.signUpWithEmail(formData.email, formData.password);
       Alert.alert('회원가입 성공', '회원가입이 완료되었습니다.', [
-        { text: '확인', onPress: () => navigation.navigate('Home') }
+        { text: '확인', onPress: () => navigation.navigate('Map') }
       ]);
     } catch (error: any) {
       Alert.alert('회원가입 실패', error.message || '회원가입에 실패했습니다.');
@@ -187,7 +187,7 @@ export default function SignUp() {
       setIsLoading(true);
       await AuthService.signInWithGoogle();
       Alert.alert('회원가입 성공', 'Google 계정으로 회원가입이 완료되었습니다.', [
-        { text: '확인', onPress: () => navigation.navigate('Home') }
+        { text: '확인', onPress: () => navigation.navigate('Map') }
       ]);
     } catch (error: any) {
       Alert.alert('회원가입 실패', error.message || 'Google 회원가입에 실패했습니다.');
