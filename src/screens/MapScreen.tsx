@@ -348,7 +348,9 @@ export default function MapScreen() {
               {reviews.slice(0,3).map((r) => (
                 // @ts-ignore
                 <View style={{marginBottom:16,borderBottomWidth:1,borderBottomColor:'#eee',paddingBottom:8}} key={r.id}>
-                  <Text style={{fontWeight:'bold'}}>{r.userName} <Text style={{color:'#f5b50a'}}>{'★'.repeat(r.rating)}</Text></Text>
+                  <Text style={{fontWeight:'bold'}}>
+                    {r.userName} <Text style={{color:'#f5b50a'}}>{'★'.repeat(r.rating)}</Text>
+                  </Text>
                   <Text style={{marginVertical:2}}>{r.reviewText}</Text>
                   <Text style={{fontSize:12,color:'#888'}}>{new Date(r.createdAt).toISOString().slice(0,10)}</Text>
                 </View>

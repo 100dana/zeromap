@@ -82,7 +82,7 @@ export default function WriteReview({ route }: { route: { params?: { placeName?:
         placeId: placeId,
         placeName: placeName,
         userId: currentUser.uid,
-        userName: userDetails.name,
+        userName: userDetails.name || '알수없음', // name 필드 사용, 없으면 기본값
         rating: rating,
         reviewText: reviewText.trim(),
         imageUrl: selectedImages.length > 0 ? selectedImages[0] : undefined
