@@ -49,33 +49,23 @@ export default function Settings() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* 헤더 */}
-        <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backButtonText}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>설정</Text>
-          <View style={styles.headerRight} />
-        </View>
-
+    <View style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      {/* 상단 헤더 */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>환경 설정</Text>
-        <View style={styles.headerRight} />
-      </View>
+      <SafeAreaView style={styles.safeAreaContent}>
+        <View style={styles.container}>
+          {/* 헤더 */}
+          <View style={styles.header}>
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Text style={styles.backButtonText}>‹</Text>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>설정</Text>
+            <View style={styles.backButton} />
+          </View>
+
+          <ScrollView contentContainerStyle={styles.scrollContent}>
 
 
         {/* 개발자 도구 섹션 */}
@@ -114,12 +104,22 @@ export default function Settings() {
             • 초기화는 한 번만 하면 되며, 약 2-3분 정도 소요됩니다.
           </Text>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  safeAreaContent: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -129,40 +129,35 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
+    textAlign: 'center',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.screenPaddingHorizontal,
-    paddingVertical: spacing.paddingLarge,
-    backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingTop: 60,
+    paddingBottom: spacing.paddingMedium,
+    backgroundColor: colors.card,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.divider,
     ...shadows.header,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.button,
+    padding: 8,
   },
   backButtonText: {
-    fontSize: 18,
-    color: colors.textPrimary,
-    fontWeight: '600',
+    fontSize: 24,
+    color: "#000000",
   },
   headerTitle: {
-    ...typography.h2,
-    color: colors.textPrimary,
-  },
-  headerRight: {
-    width: 40,
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#000000",
   },
   section: {
     padding: spacing.paddingLarge,
   },
   sectionTitle: {
+    textAlign: 'center',
     ...typography.h3,
     color: colors.textPrimary,
     marginBottom: spacing.paddingMedium,

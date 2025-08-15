@@ -167,14 +167,7 @@ export default function MyPage() {
           <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>마이페이지</Text>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.notificationButton}>
-            <Text style={styles.notificationIcon}>🔔</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.settingsButton}>
-            <Text style={styles.settingsIcon}>⚙</Text>
-          </TouchableOpacity>
-        </View>
+        <View style={styles.backButton} />
       </View>
 
       <ScrollView style={styles.scrollView}>
@@ -271,6 +264,7 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
+    textAlign: 'center',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.screenPaddingHorizontal,
@@ -289,13 +283,10 @@ const styles = StyleSheet.create({
     color: "#000000",
   },
   headerTitle: {
+    textAlign: 'center',
     fontSize: 18,
     fontWeight: "bold",
     color: "#000000",
-  },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
   },
   headerIcon: {
     padding: 8,

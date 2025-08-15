@@ -85,7 +85,7 @@ export default function SignIn() {
         formData.password
       );
       
-      navigation.navigate('Home');
+      navigation.navigate('Map');
     } catch (error: any) {
       Alert.alert('로그인 실패', error.message || '로그인에 실패했습니다.');
     } finally {
