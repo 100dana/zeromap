@@ -1,5 +1,5 @@
 import React from "react";
-import { View, ScrollView, Image, Text, ImageBackground, TouchableOpacity, StyleSheet, StatusBar } from "react-native";
+import { View, ScrollView, Text, TouchableOpacity, StyleSheet, StatusBar } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { WebView } from 'react-native-webview';
@@ -117,8 +117,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             />
           ))}
         </View>
-        
-        {/* 캠페인 섹션 */}
+        {/* 뉴스 섹션 */}
         <View style={styles.newsSection}>
           <Text style={styles.newsTitle}>{"서울시 환경 뉴스"}</Text>
           <TouchableOpacity
@@ -169,7 +168,7 @@ const styles = StyleSheet.create({
     ...shadows.card,
   },
   mapPreviewContainer: {
-    height: 200,
+    height: 300,
     borderRadius: spacing.borderRadiusLarge,
     overflow: 'hidden',
     backgroundColor: colors.surface,
