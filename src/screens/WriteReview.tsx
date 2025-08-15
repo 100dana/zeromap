@@ -19,6 +19,8 @@ import { shadows } from '../styles/shadows';
 import FirestoreService from '../services/firestoreService';
 import { ReviewInput } from '../types/review';
 import AuthService from '../services/authService';
+import { launchImageLibrary } from 'react-native-image-picker';
+import storage from '@react-native-firebase/storage';
 
 type RootStackParamList = {
   Home: undefined;
@@ -52,9 +54,29 @@ export default function WriteReview({ route }: { route: { params?: { placeName?:
     setRating(selectedRating);
   };
 
-  const handleImageUpload = () => {
-    // TODO: 실제 이미지 업로드 기능
-    Alert.alert('알림', '이미지 업로드 기능이 곧 추가됩니다!');
+  const handleImageUpload = async () => {
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      selectionLimit: 5,
+      quality: 0.8,
+    });
+    if (result.didCancel) return;
+    if (result.errorCode) {
+      Alert.alert('오류', '이미지 선택에 실패했습니다.');
+      return;
+    }
+    if (result.assets) {
+      setSelectedImages(result.assets.map(asset => asset.uri!).slice(0, 5));
+    }
+  };
+
+  const uploadImageAsync = async (uri: string, placeId: string) => {
+    const filename = `reviews/${placeId}_${Date.now()}.jpg`;
+    const reference = storage().ref(filename);
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    await reference.put(blob);
+    return await reference.getDownloadURL();
   };
 
   const handleSubmitReview = async () => {
@@ -78,6 +100,11 @@ export default function WriteReview({ route }: { route: { params?: { placeName?:
         return;
       }
 
+      let imageUrl;
+      if (selectedImages.length > 0) {
+        imageUrl = await uploadImageAsync(selectedImages[0], placeId);
+      }
+
       const reviewData: ReviewInput = {
         placeId: placeId,
         placeName: placeName,
@@ -85,12 +112,12 @@ export default function WriteReview({ route }: { route: { params?: { placeName?:
         userName: userDetails.name || '알수없음', // name 필드 사용, 없으면 기본값
         rating: rating,
         reviewText: reviewText.trim(),
-        imageUrl: selectedImages.length > 0 ? selectedImages[0] : undefined
+        imageUrl: imageUrl,
       };
 
       const reviewId = await FirestoreService.saveReviewWithImage(
         reviewData, 
-        selectedImages.length > 0 ? selectedImages[0] : undefined
+        imageUrl
       );
       
       Alert.alert(
@@ -139,6 +166,19 @@ export default function WriteReview({ route }: { route: { params?: { placeName?:
         {/* 가게 이름 + 리뷰쓰기 버튼 섹션 */}
         <View style={styles.placeSectionRow}>
           <Text style={styles.placeName}>{placeName}</Text>
+          <TouchableOpacity
+            style={styles.inlineWriteButton}
+            onPress={handleSubmitReview}
+            disabled={!isFormValid || isSubmitting}
+            activeOpacity={0.85}
+          >
+            <Text style={[
+              styles.inlineWriteButtonText,
+              (!isFormValid || isSubmitting) && styles.inlineWriteButtonTextDisabled
+            ]}>
+              {isSubmitting ? '저장 중...' : '✍️ 리뷰쓰기'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* 별점 섹션 */}
@@ -207,7 +247,17 @@ export default function WriteReview({ route }: { route: { params?: { placeName?:
           {/* 이미지 미리보기 */}
           {selectedImages.length > 0 && (
             <View style={styles.imagePreviewContainer}>
-              <Text style={styles.imagePreviewText}>이미지가 선택되었습니다</Text>
+              {selectedImages.map((uri, idx) => (
+                <View key={idx} style={styles.imagePreviewItem}>
+                  <Image source={{ uri }} style={styles.imagePreview} />
+                  <TouchableOpacity
+                    style={styles.removeImageButton}
+                    onPress={() => setSelectedImages(selectedImages.filter((_, i) => i !== idx))}
+                  >
+                    <Text style={styles.removeImageText}>×</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
             </View>
           )}
         </View>
@@ -230,12 +280,14 @@ export default function WriteReview({ route }: { route: { params?: { placeName?:
             disabled={!isFormValid || isSubmitting}
             activeOpacity={0.85}
           >
-            <Text style={[
-              styles.submitButtonText,
-              (!isFormValid || isSubmitting) && styles.submitButtonTextDisabled
-            ]}>
-              {isSubmitting ? '저장 중...' : '리뷰쓰기'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={[
+                styles.submitButtonText,
+                (!isFormValid || isSubmitting) && styles.submitButtonTextDisabled
+              ]}>
+                {isSubmitting ? '저장 중...' : '✍️ 리뷰 작성하기'}
+              </Text>
+            </View>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -413,7 +465,9 @@ const styles = StyleSheet.create({
   },
   imagePreviewContainer: {
     marginTop: 16,
-    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
   },
   imagePreviewText: {
     fontSize: 14,
