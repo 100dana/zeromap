@@ -326,13 +326,13 @@ export default function MapScreen() {
             <View style={{flex:1}} />
             <TouchableOpacity onPress={()=>{setSelectedPlace(null);hideBar();}} style={{padding:8, marginLeft: 10, marginTop: 0}}>
               <Text style={{fontSize:22,color:'#888'}}>✕</Text>
-            </TouchableOpacity>
-          </View>
+              </TouchableOpacity>
+            </View>
           <View style={{marginBottom:8}}>
             <Text style={{color:'#888',marginBottom:2,fontSize:13}}>📍 {selectedPlace.address}</Text>
             {selectedPlace.description ? <Text style={{color:'#444',marginBottom:2,fontSize:14}}>{selectedPlace.description}</Text> : null}
-          </View>
-          <TouchableOpacity
+              </View>
+              <TouchableOpacity
             style={{
               backgroundColor: '#4CAF50',
               borderRadius: 18,
@@ -347,20 +347,20 @@ export default function MapScreen() {
               shadowRadius: 4,
               elevation: 1,
             }}
-            onPress={() => {
+                onPress={() => {
               setSelectedPlace(null); hideBar();
               navigation.navigate('WriteReview', {placeName: selectedPlace.name, placeId: selectedPlace.id || 'unknown-place'});
             }}
           >
             <Text style={{color:'#fff',fontWeight:'bold',fontSize:16,letterSpacing:0.2}}>리뷰쓰기</Text>
-          </TouchableOpacity>
-        </View>
+              </TouchableOpacity>
+            </View>
         <ScrollView style={{flex:1,paddingHorizontal:24}} contentContainerStyle={{paddingBottom:80}}>
           <Text style={{fontWeight:'bold',fontSize:15,marginTop:8,marginBottom:6}}>리뷰</Text>
           {loadingReviews ? <Text>리뷰 불러오는 중...</Text> : reviews.length === 0 ? (
             <View style={{alignItems:'center',marginVertical:24}}>
               <Text style={{color:'#888',marginBottom:8}}>아직 리뷰가 없습니다.</Text>
-            </View>
+          </View>
           ) : (
             <>
               {reviews.slice(0,3).map((r) => (
@@ -371,7 +371,7 @@ export default function MapScreen() {
                   </Text>
                   <Text style={{marginVertical:2}}>{r.reviewText}</Text>
                   <Text style={{fontSize:12,color:'#888'}}>{new Date(r.createdAt).toISOString().slice(0,10)}</Text>
-                </View>
+        </View>
               ))}
               {reviews.length > 3 && (
                 <TouchableOpacity style={{alignSelf:'flex-end',marginTop:4}} onPress={()=>navigation.navigate('ReviewList', { placeId: selectedPlace.id, placeName: selectedPlace.name })}>
@@ -772,12 +772,12 @@ export default function MapScreen() {
               {categories.map((cat, idx) => (
                 // @ts-ignore
                 <View key={idx}>
-                  <CategoryCard
-                    {...cat}
-                    style={idx === categories.length - 1 ? styles.noMarginRight : undefined}
-                    isSelected={selectedCategory === cat.type}
-                    onPress={() => handleCategoryPress(cat.type)}
-                  />
+                <CategoryCard
+                  {...cat}
+                  style={idx === categories.length - 1 ? styles.noMarginRight : undefined}
+                  isSelected={selectedCategory === cat.type}
+                  onPress={() => handleCategoryPress(cat.type)}
+                />
                 </View>
               ))}
             </ScrollView>
