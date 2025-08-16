@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, ScrollView, Image, Text, TouchableOpacity, ImageBackground, StyleSheet, Alert, TextInput, FlatList, Modal, StatusBar, Animated, PanResponder, Dimensions } from "react-native";
+import { View, ScrollView, Image, Text, TouchableOpacity, ImageBackground, StyleSheet, Alert, TextInput, FlatList, Modal, StatusBar, Animated, PanResponder, Dimensions, ActivityIndicator } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
@@ -10,12 +10,11 @@ import { LocalDataService, LocalPlaceData } from '../services/localDataService';
 import { SearchService, SearchResult } from '../services/searchService';
 import StoreDataService, { StoreData } from '../services/storeDataService';
 import { GeocodingService } from '../services/geocodingService';
+import { mapScreenStyles } from '../styles/mapScreenStyles';
 import { colors } from '../styles/colors';
-import { typography } from '../styles/typography';
-import { spacing } from '../styles/spacing';
-import { shadows } from '../styles/shadows';
 import firestoreService from '../services/firestoreService';
 import { Review } from '../types/review';
+import auth from '@react-native-firebase/auth';
 
 const CURRENT_LOCATION = { latitude: 37.5665, longitude: 126.9780 };
 
@@ -36,12 +35,12 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 function SearchResultItem({ result, onPress }: { result: SearchResult; onPress: (result: SearchResult) => void }) {
   return (
     <TouchableOpacity
-      style={styles.searchResultItem}
+      style={mapScreenStyles.searchResultItem}
       onPress={() => onPress(result)}
     >
-      <View style={styles.searchResultContent}>
-        <Text style={styles.searchResultName}>{result.place.name}</Text>
-        <Text style={styles.searchResultAddress}>{result.place.address}</Text>
+      <View style={mapScreenStyles.searchResultContent}>
+        <Text style={mapScreenStyles.searchResultName}>{result.place.name}</Text>
+        <Text style={mapScreenStyles.searchResultAddress}>{result.place.address}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -51,10 +50,10 @@ function SearchResultItem({ result, onPress }: { result: SearchResult; onPress: 
 function SearchSuggestionItem({ suggestion, onPress }: { suggestion: string; onPress: (suggestion: string) => void }) {
   return (
     <TouchableOpacity
-      style={styles.searchSuggestionItem}
+      style={mapScreenStyles.searchSuggestionItem}
       onPress={() => onPress(suggestion)}
     >
-      <Text style={styles.searchSuggestionText}>💡 {suggestion}</Text>
+      <Text style={mapScreenStyles.searchSuggestionText}>💡 {suggestion}</Text>
     </TouchableOpacity>
   );
 }
@@ -65,13 +64,19 @@ const PlaceDetailModal = ({
   selectedPlace, 
   selectedCategory, 
   onClose, 
-  onWriteReview 
+  onWriteReview,
+  favorites,
+  onToggleFavorite,
+  loadingFavorite
 }: { 
   visible: boolean;
   selectedPlace: PlaceData | LocalPlaceData | StoreData | null;
   selectedCategory: string;
   onClose: () => void;
   onWriteReview: (placeName?: string, placeId?: string) => void;
+  favorites: string[];
+  onToggleFavorite: (placeId: string) => void;
+  loadingFavorite: boolean;
 }) => {
   if (!selectedPlace) return null;
   
@@ -98,57 +103,71 @@ const PlaceDetailModal = ({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+      <View style={mapScreenStyles.modalOverlay}>
+        <View style={mapScreenStyles.modalContent}>
           {/* 헤더 */}
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>🏪 {selectedPlace.name}</Text>
+          <View style={mapScreenStyles.modalHeader}>
+            <View style={mapScreenStyles.modalTitleContainer}>
+              <TouchableOpacity
+                style={mapScreenStyles.favoriteButton}
+                onPress={() => onToggleFavorite(selectedPlace.id || '')}
+                disabled={loadingFavorite}
+              >
+                <Text style={[
+                  mapScreenStyles.favoriteButtonText,
+                  favorites.includes(selectedPlace.id || '') && mapScreenStyles.favoriteButtonTextActive
+                ]}>
+                  {favorites.includes(selectedPlace.id || '') ? '❤️' : '🤍'}
+                </Text>
+              </TouchableOpacity>
+              <Text style={mapScreenStyles.modalTitle}>🏪 {selectedPlace.name}</Text>
+            </View>
             <TouchableOpacity
-              style={styles.closeButton}
+              style={mapScreenStyles.closeButton}
               onPress={onClose}
             >
-              <Text style={styles.closeButtonText}>✕</Text>
+              <Text style={mapScreenStyles.closeButtonText}>✕</Text>
             </TouchableOpacity>
           </View>
           
           {/* 내용 */}
-          <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+          <ScrollView style={mapScreenStyles.modalBody} showsVerticalScrollIndicator={false}>
             {/* 카테고리 배지 */}
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryBadgeText}>{categoryDescription}</Text>
+            <View style={mapScreenStyles.categoryBadge}>
+              <Text style={mapScreenStyles.categoryBadgeText}>{categoryDescription}</Text>
             </View>
             
             {/* 주소 */}
-            <View style={styles.infoSection}>
-              <Text style={styles.infoLabel}>📍 주소</Text>
-              <Text style={styles.infoValue}>{selectedPlace.address}</Text>
+            <View style={mapScreenStyles.infoSection}>
+              <Text style={mapScreenStyles.infoLabel}>📍 주소</Text>
+              <Text style={mapScreenStyles.infoValue}>{selectedPlace.address}</Text>
             </View>
             
             {/* 설명 */}
             {selectedPlace.description && (
-              <View style={styles.infoSection}>
-                <Text style={styles.infoLabel}>📝 장소 설명</Text>
-                <Text style={styles.infoValue}>{selectedPlace.description}</Text>
+              <View style={mapScreenStyles.infoSection}>
+                <Text style={mapScreenStyles.infoLabel}>📝 장소 설명</Text>
+                <Text style={mapScreenStyles.infoValue}>{selectedPlace.description}</Text>
               </View>
             )}
           </ScrollView>
           
           {/* 액션 버튼 */}
-          <View style={styles.modalActions}>
+          <View style={mapScreenStyles.modalActions}>
             <TouchableOpacity
-              style={styles.modalButton}
+              style={mapScreenStyles.modalButton}
               onPress={onClose}
             >
-              <Text style={styles.modalButtonText}>닫기</Text>
+              <Text style={mapScreenStyles.modalButtonText}>닫기</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.modalButton, styles.primaryButton]}
+              style={[mapScreenStyles.modalButton, mapScreenStyles.primaryButton]}
               onPress={() => {
                 onClose();
                 onWriteReview(selectedPlace?.name, selectedPlace?.id || 'unknown-place');
               }}
             >
-              <Text style={[styles.modalButtonText, styles.primaryButtonText]}>리뷰쓰기</Text>
+              <Text style={[mapScreenStyles.modalButtonText, mapScreenStyles.primaryButtonText]}>리뷰쓰기</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -179,30 +198,30 @@ function PlaceListItem({
   );
   return (
     <TouchableOpacity
-      style={styles.placeListItem}
+      style={mapScreenStyles.placeListItem}
       onPress={() => onPress(place)}
     >
-      <View style={styles.placeListItemHeader}>
-        <View style={styles.placeListItemIcon}>
-          <Text style={styles.placeListItemIconText}>📍</Text>
+      <View style={mapScreenStyles.placeListItemHeader}>
+        <View style={mapScreenStyles.placeListItemIcon}>
+          <Text style={mapScreenStyles.placeListItemIconText}>📍</Text>
         </View>
-        <View style={styles.placeListItemContent}>
-          <Text style={styles.placeListItemName}>{place.name}</Text>
+        <View style={mapScreenStyles.placeListItemContent}>
+          <Text style={mapScreenStyles.placeListItemName}>{place.name}</Text>
         </View>
-        <View style={styles.placeListItemMeta}>
-          <Text style={styles.placeListItemDistance}>
+        <View style={mapScreenStyles.placeListItemMeta}>
+          <Text style={mapScreenStyles.placeListItemDistance}>
             {distance < 1 ? `${(distance * 1000).toFixed(0)}m` : `${distance.toFixed(1)}km`}
           </Text>
         </View>
       </View>
-      <Text style={styles.placeListItemAddress}>{place.address}</Text>
+      <Text style={mapScreenStyles.placeListItemAddress}>{place.address}</Text>
       {place.description && (
-        <Text style={styles.placeListItemDescription} numberOfLines={2}>
+        <Text style={mapScreenStyles.placeListItemDescription} numberOfLines={2}>
           {place.description}
         </Text>
       )}
-      <View style={styles.placeListItemFooter}>
-        <Text style={styles.placeListItemDetail}>상세보기 ›</Text>
+      <View style={mapScreenStyles.placeListItemFooter}>
+        <Text style={mapScreenStyles.placeListItemDetail}>상세보기 ›</Text>
       </View>
     </TouchableOpacity>
   );
@@ -277,34 +296,37 @@ type CategoryCardProps = {
   style?: any;
   isSelected?: boolean;
   onPress?: () => void;
+  disabled?: boolean;
 };
 
-function CategoryCard({ icon, label, iconBgMargin, textMargin, type, color, description, style, isSelected, onPress }: CategoryCardProps) {
+function CategoryCard({ icon, label, iconBgMargin, textMargin, type, color, description, style, isSelected, onPress, disabled }: CategoryCardProps) {
   return (
     <TouchableOpacity 
       style={[
-        styles.categoryCard, 
+        mapScreenStyles.categoryCard, 
         style, 
-        isSelected && styles.selectedCategoryCard
+        isSelected && mapScreenStyles.selectedCategoryCard,
+        disabled && mapScreenStyles.categoryCardDisabled
       ]} 
-      onPress={onPress}
+      onPress={disabled ? undefined : onPress}
+      disabled={disabled}
       accessibilityLabel={`${label} 카테고리 선택`}
       accessibilityHint={description}
     >
-      <View style={[styles.categoryIconWrap, { marginHorizontal: iconBgMargin }]}> 
+      <View style={[mapScreenStyles.categoryIconWrap, { marginHorizontal: iconBgMargin }]}> 
         <View style={[
-          styles.categoryIconBg, 
-          isSelected && styles.selectedCategoryIconBg,
+          mapScreenStyles.categoryIconBg, 
+          isSelected && mapScreenStyles.selectedCategoryIconBg,
           { backgroundColor: isSelected ? color : colors.surface }
         ]}>
-          <Text style={styles.categoryIcon}>{icon}</Text>
+          <Text style={mapScreenStyles.categoryIcon}>{icon}</Text>
         </View>
       </View>
       {/* label에 줄바꿈(\n)이 있으면 각 줄을 <Text>로 감싸서 렌더링 */}
       <View style={{alignItems:'center'}}>
         {label.split('\n').map((line, idx) => (
           <Text key={idx} style={[
-            styles.categoryLabel, 
+            mapScreenStyles.categoryLabel, 
             { marginHorizontal: textMargin },
             isSelected && { color: color }
           ]}>{line}</Text>
@@ -350,6 +372,8 @@ export default function MapScreen() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [showReviewListModal, setShowReviewListModal] = useState(false);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [loadingFavorite, setLoadingFavorite] = useState(false);
   const screenHeight = Dimensions.get('window').height;
   const SNAP_TOP = 0;
   const SNAP_MID = screenHeight * 0.2;
@@ -449,6 +473,37 @@ export default function MapScreen() {
     handleSearch(suggestion);
   };
 
+  // 즐겨찾기 토글 함수
+  const toggleFavorite = async (placeId: string) => {
+    if (loadingFavorite) return;
+    
+    setLoadingFavorite(true);
+    try {
+      const isFavorite = favorites.includes(placeId);
+      
+      if (isFavorite) {
+        // 즐겨찾기에서 제거
+        const updatedFavorites = favorites.filter(id => id !== placeId);
+        setFavorites(updatedFavorites);
+        
+        // Firebase에서 제거
+        await firestoreService.removeFavorite(placeId);
+      } else {
+        // 즐겨찾기에 추가
+        const updatedFavorites = [...favorites, placeId];
+        setFavorites(updatedFavorites);
+        
+        // Firebase에 추가
+        await firestoreService.addFavorite(placeId);
+      }
+    } catch (error) {
+      console.error('즐겨찾기 토글 실패:', error);
+      Alert.alert('오류', '즐겨찾기 처리 중 오류가 발생했습니다.');
+    } finally {
+      setLoadingFavorite(false);
+    }
+  };
+
   // 검색 취소
   const handleSearchCancel = () => {
     setSearchQuery('');
@@ -458,15 +513,7 @@ export default function MapScreen() {
   };
 
 
-  // 검색 제안 아이템 컴포넌트
-  const SearchSuggestionItem = ({ suggestion }: { suggestion: string }) => (
-    <TouchableOpacity
-      style={styles.searchSuggestionItem}
-      onPress={() => handleSuggestionSelect(suggestion)}
-    >
-      <Text style={styles.searchSuggestionText}>💡 {suggestion}</Text>
-    </TouchableOpacity>
-  );
+
 
   const ReviewBar = () => {
     if (!barVisible || !selectedPlace) return null;
@@ -486,6 +533,15 @@ export default function MapScreen() {
         </View>
         <View style={{backgroundColor:'#fff',borderRadius:18,marginHorizontal:18,marginTop:8,marginBottom:12,shadowColor:'#000',shadowOpacity:0.07,shadowOffset:{width:0,height:2},shadowRadius:8,elevation:3,paddingTop:18,paddingBottom:18,paddingHorizontal:18}}>
           <View style={{flexDirection:'row',alignItems:'center',justifyContent:'flex-start',marginBottom:6}}>
+            <TouchableOpacity
+              style={{padding:6, marginRight:8}}
+              onPress={() => toggleFavorite(selectedPlace.id || '')}
+              disabled={loadingFavorite}
+            >
+              <Text style={{fontSize:18, opacity: favorites.includes(selectedPlace.id || '') ? 1 : 0.7}}>
+                {favorites.includes(selectedPlace.id || '') ? '❤️' : '🤍'}
+              </Text>
+            </TouchableOpacity>
             <Text style={{fontWeight:'bold',fontSize:20,marginRight:14}}>{selectedPlace.name}</Text>
             <Text style={{fontSize:14,marginTop:2}}>
               <Text style={{color:'#f5b50a'}}>★ </Text>
@@ -525,7 +581,12 @@ export default function MapScreen() {
             </View>
         <ScrollView style={{flex:1,paddingHorizontal:24}} contentContainerStyle={{paddingBottom:80}}>
           <Text style={{fontWeight:'bold',fontSize:15,marginTop:8,marginBottom:6}}>리뷰</Text>
-          {loadingReviews ? <Text>리뷰 불러오는 중...</Text> : reviews.length === 0 ? (
+          {loadingReviews ? (
+            <View style={mapScreenStyles.reviewLoadingContainer}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={mapScreenStyles.reviewLoadingText}>리뷰 불러오는 중...</Text>
+            </View>
+          ) : reviews.length === 0 ? (
             <View style={{alignItems:'center',marginVertical:24}}>
               <Text style={{color:'#888',marginBottom:8}}>아직 리뷰가 없습니다.</Text>
           </View>
@@ -553,52 +614,7 @@ export default function MapScreen() {
     );
   };
 
-  // 리스트 아이템 컴포넌트
-  const PlaceListItem = ({ place, index }: { place: PlaceData | LocalPlaceData | StoreData; index: number }) => {
-    // 거리 계산
-    const distance = calculateDistance(
-      CURRENT_LOCATION.latitude,
-      CURRENT_LOCATION.longitude,
-      place.latitude,
-      place.longitude
-    );
-    
-    return (
-      <TouchableOpacity
-        style={styles.placeListItem}
-        onPress={() => {
-          setSelectedPlace(place);
-          setTimeout(() => hideBar(), 10); // 리스트에서 클릭 시 바 닫기
-        }}
-      >
-        <View style={styles.placeListItemHeader}>
-          <View style={styles.placeListItemIcon}>
-            <Text style={styles.placeListItemIconText}>📍</Text>
-          </View>
-          <View style={styles.placeListItemContent}>
-            <Text style={styles.placeListItemName}>{place.name}</Text>
-          </View>
-          <View style={styles.placeListItemMeta}>
-            <Text style={styles.placeListItemDistance}>
-              {distance < 1 ? `${(distance * 1000).toFixed(0)}m` : `${distance.toFixed(1)}km`}
-            </Text>
-          </View>
-        </View>
-        
-        <Text style={styles.placeListItemAddress}>{place.address}</Text>
-        
-        {place.description && (
-          <Text style={styles.placeListItemDescription} numberOfLines={2}>
-            {place.description}
-          </Text>
-        )}
-        
-        <View style={styles.placeListItemFooter}>
-          <Text style={styles.placeListItemDetail}>상세보기 ›</Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
+
   // 현재 표시할 장소 데이터 (검색 중일 때는 검색 결과만, 아니면 전체)
   const getDisplayPlaces = (): PlaceData[] => {
     if (showSearchResults && searchQuery.trim()) {
@@ -666,11 +682,14 @@ export default function MapScreen() {
             ];
             if (totalData.length === 0) {
               Alert.alert('알림', '해당 카테고리의 데이터가 없습니다.');
+              setLoading(false); // 데이터가 없으면 로딩 종료
             }
+            // 데이터가 있으면 마커 렌더링 완료까지 기다림 (onMarkersLoaded에서 처리)
             return;
           } catch (error) {
             setStorePlaces([]);
             Alert.alert('알림', '제로식당 데이터를 불러오는데 실패했습니다.');
+            setLoading(false);
             return;
           }
         case 'refillStation':
@@ -713,7 +732,9 @@ export default function MapScreen() {
       ];
       if (totalData.length === 0) {
         Alert.alert('알림', '해당 카테고리의 데이터가 없습니다.');
+        setLoading(false); // 데이터가 없으면 로딩 종료
       }
+      // 데이터가 있으면 마커 렌더링 완료까지 기다림 (onMarkersLoaded에서 처리)
     } catch (error) {
       Alert.alert(
         '오류',
@@ -728,15 +749,42 @@ export default function MapScreen() {
           }
         ]
       );
-    } finally {
-      setLoading(false);
+      setLoading(false); // 에러 발생 시 로딩 종료
     }
+    // finally 블록 제거: 마커 렌더링 완료 시에만 로딩 종료
+  };
+
+  // 마커 렌더링 완료 콜백
+  const handleMarkersLoaded = () => {
+    setLoading(false);
   };
 
   // 화면 로드 시 기본 데이터 로드
   useEffect(() => {
     loadPlaces(selectedCategory);
   }, []); // 컴포넌트 마운트 시 한 번만 실행
+
+  // 익명 로그인 및 즐겨찾기 목록 로드
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        // 현재 사용자가 없으면 익명 로그인
+        const currentUser = auth().currentUser;
+        if (!currentUser) {
+          await auth().signInAnonymously();
+          console.log('익명 로그인 성공');
+        }
+        
+        // 즐겨찾기 목록 로드
+        const favoritesList = await firestoreService.getFavorites();
+        setFavorites(favoritesList);
+      } catch (error) {
+        console.error('인증 또는 즐겨찾기 로드 실패:', error);
+      }
+    };
+    
+    initializeAuth();
+  }, []);
 
   // 검색 상태가 변경될 때마다 지도 마커 업데이트
   useEffect(() => {
@@ -766,15 +814,15 @@ export default function MapScreen() {
   //     animationType="slide"
   //     onRequestClose={() => setShowReviewListModal(false)}
   //   >
-  //     <View style={styles.modalOverlay}>
-  //       <View style={[styles.modalContent, { maxHeight: '90%' }]}> 
-  //         <View style={styles.modalHeader}>
-  //           <Text style={styles.modalTitle}>전체 리뷰</Text>
-  //           <TouchableOpacity style={styles.closeButton} onPress={() => setShowReviewListModal(false)}>
-  //             <Text style={styles.closeButtonText}>✕</Text>
+  //     <View style={mapScreenStyles.modalOverlay}>
+  //       <View style={[mapScreenStyles.modalContent, { maxHeight: '90%' }]}> 
+  //         <View style={mapScreenStyles.modalHeader}>
+  //           <Text style={mapScreenStyles.modalTitle}>전체 리뷰</Text>
+  //           <TouchableOpacity style={mapScreenStyles.closeButton} onPress={() => setShowReviewListModal(false)}>
+  //             <Text style={mapScreenStyles.closeButtonText}>✕</Text>
   //           </TouchableOpacity>
   //         </View>
-  //         <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={true}>
+  //         <ScrollView style={mapScreenStyles.modalBody} showsVerticalScrollIndicator={true}>
   //           {loadingReviews ? (
   //             <Text>리뷰 불러오는 중...</Text>
   //           ) : reviews.length === 0 ? (
@@ -800,30 +848,31 @@ export default function MapScreen() {
 
   // handleCategoryPress 함수 추가
   const handleCategoryPress = (type: string) => {
+    if (loading) return; // 로딩 중이면 카테고리 변경 불가
     setSelectedCategory(type);
     loadPlaces(type);
   };
   
   return (
-    <View style={styles.safeArea}>
+    <View style={mapScreenStyles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      <SafeAreaView style={styles.safeAreaContent}>
-        <View style={styles.container}>
+      <SafeAreaView style={mapScreenStyles.safeAreaContent}>
+        <View style={mapScreenStyles.container}>
           {/* 상단 헤더 */}
-          <View style={styles.headerContainer}>
-            <View style={styles.headerTitleContainer}>
-              <View style={styles.headerTextContainer}>
-                <Text style={styles.headerTitle}>ZeroMap</Text>
-                <Text style={styles.headerSubtitle}>제로웨이스트 맵</Text>
+          <View style={mapScreenStyles.headerContainer}>
+            <View style={mapScreenStyles.headerTitleContainer}>
+              <View style={mapScreenStyles.headerTextContainer}>
+                <Text style={mapScreenStyles.headerTitle}>ZeroMap</Text>
+                <Text style={mapScreenStyles.headerSubtitle}>제로웨이스트 맵</Text>
               </View>
             </View>
           </View>
 
           {/* 검색바 */}
-          <View style={styles.searchContainer}>
-            <View style={styles.searchInputContainer}>
+          <View style={mapScreenStyles.searchContainer}>
+            <View style={mapScreenStyles.searchInputContainer}>
               <TextInput
-                style={styles.searchInput}
+                style={mapScreenStyles.searchInput}
                 placeholder="장소 검색..."
                 value={searchQuery}
                 onChangeText={handleSearch}
@@ -831,26 +880,26 @@ export default function MapScreen() {
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity
-                  style={styles.clearButton}
+                  style={mapScreenStyles.clearButton}
                   onPress={handleSearchCancel}
                 >
-                  <Text style={styles.clearButtonText}>✕</Text>
+                  <Text style={mapScreenStyles.clearButtonText}>✕</Text>
                 </TouchableOpacity>
               )}
             </View>
             {/* 검색 결과 및 제안 */}
             {showSearchResults && (
-              <View style={styles.searchResultsContainer}>
+              <View style={mapScreenStyles.searchResultsContainer}>
                 {isSearching ? (
-                  <View style={styles.searchLoading}>
-                    <Text style={styles.searchLoadingText}>검색 중...</Text>
+                  <View style={mapScreenStyles.searchLoading}>
+                    <Text style={mapScreenStyles.searchLoadingText}>검색 중...</Text>
                   </View>
                 ) : (
                   <>
                     {/* 검색 제안 */}
                     {searchSuggestions.length > 0 && searchQuery.length > 0 && (
-                      <View style={styles.searchSuggestionsContainer}>
-                        <Text style={styles.searchSuggestionsTitle}>검색 제안</Text>
+                      <View style={mapScreenStyles.searchSuggestionsContainer}>
+                        <Text style={mapScreenStyles.searchSuggestionsTitle}>검색 제안</Text>
                         {searchSuggestions.map((suggestion, index) => (
                           <SearchSuggestionItem 
                             key={index} 
@@ -862,8 +911,8 @@ export default function MapScreen() {
                     )}
                     {/* 검색 결과 */}
                     {searchResults.length > 0 && (
-                      <View style={styles.searchResultsList}>
-                        <Text style={styles.searchResultsTitle}>
+                      <View style={mapScreenStyles.searchResultsList}>
+                        <Text style={mapScreenStyles.searchResultsTitle}>
                           검색 결과 ({searchResults.length}개)
                         </Text>
                         {searchResults.map((result, index) => (
@@ -877,8 +926,8 @@ export default function MapScreen() {
                     )}
                     {/* 검색 결과가 없을 때 */}
                     {searchQuery.length > 0 && searchResults.length === 0 && searchSuggestions.length === 0 && (
-                      <View style={styles.noSearchResults}>
-                        <Text style={styles.noSearchResultsText}>
+                      <View style={mapScreenStyles.noSearchResults}>
+                        <Text style={mapScreenStyles.noSearchResultsText}>
                           "{searchQuery}"에 대한 검색 결과가 없습니다.
                         </Text>
                       </View>
@@ -890,77 +939,104 @@ export default function MapScreen() {
           </View>
 
           {/* 카테고리 스크롤 영역 */}
-          <View style={styles.categoryContainer}>
-            <Text style={styles.categoryTitle}>카테고리 선택</Text>
+          <View style={mapScreenStyles.categoryContainer}>
+            <Text style={mapScreenStyles.categoryTitle}>카테고리 선택</Text>
             <ScrollView 
               horizontal 
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.categoryScrollContainer}
+              contentContainerStyle={mapScreenStyles.categoryScrollContainer}
             >
               {categories.map((cat, idx) => (
                 <CategoryCard
                   key={idx}
                   {...cat}
-                  style={idx === categories.length - 1 ? styles.noMarginRight : undefined}
+                  style={[
+                    idx === categories.length - 1 ? mapScreenStyles.noMarginRight : undefined,
+                    loading && mapScreenStyles.categoryCardDisabled
+                  ]}
                   isSelected={selectedCategory === cat.type}
                   onPress={() => handleCategoryPress(cat.type)}
+                  disabled={loading}
                 />
               ))}
             </ScrollView>
           </View>
 
           {/* 지도/리스트 전환 버튼 */}
-          <View style={styles.viewToggleContainer}>
+          <View style={mapScreenStyles.viewToggleContainer}>
             <TouchableOpacity
               style={[
-                styles.viewToggleButton,
-                viewMode === 'map' && styles.viewToggleButtonActive
+                mapScreenStyles.viewToggleButton,
+                viewMode === 'map' && mapScreenStyles.viewToggleButtonActive
               ]}
               onPress={() => setViewMode('map')}
             >
               <Text style={[
-                styles.viewToggleText,
-                viewMode === 'map' && styles.viewToggleTextActive
+                mapScreenStyles.viewToggleText,
+                viewMode === 'map' && mapScreenStyles.viewToggleTextActive
               ]}>🗺️ 지도</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
-                styles.viewToggleButton,
-                viewMode === 'list' && styles.viewToggleButtonActive
+                mapScreenStyles.viewToggleButton,
+                viewMode === 'list' && mapScreenStyles.viewToggleButtonActive
               ]}
               onPress={() => setViewMode('list')}
             >
               <Text style={[
-                styles.viewToggleText,
-                viewMode === 'list' && styles.viewToggleTextActive
+                mapScreenStyles.viewToggleText,
+                viewMode === 'list' && mapScreenStyles.viewToggleTextActive
               ]}>📋 리스트</Text>
             </TouchableOpacity>
           </View>
 
           {/* 메인 컨텐츠 */}
-          <View style={styles.mainMap}>
+          <View style={mapScreenStyles.mainMap}>
             {viewMode === 'map' ? (
-              <KakaoMap
-                ref={mapRef}
-                places={displayPlaces}
-                onMarkerClick={handleMarkerClick}
-              />
+              <>
+                <KakaoMap
+                  ref={mapRef}
+                  places={displayPlaces}
+                  onMarkerClick={handleMarkerClick}
+                  onMarkersLoaded={handleMarkersLoaded}
+                />
+                {loading && (
+                  <View style={mapScreenStyles.mapLoadingOverlay}>
+                    <View style={mapScreenStyles.mapLoadingContainer}>
+                      <ActivityIndicator size="large" color={colors.primary} />
+                      <Text style={mapScreenStyles.mapLoadingText}>지도 마커 데이터 로딩 중...</Text>
+                      <Text style={mapScreenStyles.mapLoadingSubText}>
+                        {selectedCategory === 'zeroWaste' && '제로웨이스트 상점 위치 정보를 불러오는 중'}
+                        {selectedCategory === 'cupDiscountCafe' && '개인컵 할인 카페 위치 정보를 불러오는 중'}
+                        {selectedCategory === 'zeroRestaurant' && '제로식당 위치 정보를 불러오는 중'}
+                        {!['zeroWaste', 'cupDiscountCafe', 'zeroRestaurant'].includes(selectedCategory) && '장소 위치 정보를 불러오는 중'}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </>
             ) : (
               <ScrollView 
-                style={styles.listContainer}
+                style={mapScreenStyles.listContainer}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.listContentContainer}
+                contentContainerStyle={mapScreenStyles.listContentContainer}
               >
                 {loading ? (
-                  <View style={styles.loadingContainer}>
-                    <Text style={styles.loadingText}>데이터를 불러오는 중...</Text>
+                  <View style={mapScreenStyles.loadingContainer}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                    <Text style={mapScreenStyles.loadingText}>데이터를 불러오는 중...</Text>
+                    <Text style={mapScreenStyles.loadingSubText}>
+                      {selectedCategory === 'zeroWaste' && '제로웨이스트 상점 정보를 가져오고 있습니다'}
+                      {selectedCategory === 'cupDiscountCafe' && '개인컵 할인 카페 정보를 가져오고 있습니다'}
+                      {selectedCategory === 'zeroRestaurant' && '제로식당 정보를 가져오고 있습니다'}
+                      {!['zeroWaste', 'cupDiscountCafe', 'zeroRestaurant'].includes(selectedCategory) && '지역 데이터를 불러오고 있습니다'}
+                    </Text>
                   </View>
                 ) : displayPlaces.length > 0 ? (
                   <>
-                    <View style={styles.listHeader}>
-                      <Text style={styles.listHeaderTitle}>
-                        {showSearchResults ? '검색 결과' : categories.find(cat => cat.type === selectedCategory)?.label}
-                        <Text> ({displayPlaces.length}곳)</Text>
+                    <View style={mapScreenStyles.listHeader}>
+                      <Text style={mapScreenStyles.listHeaderTitle}>
+                        {showSearchResults ? `검색 결과 (${displayPlaces.length}곳)` : `${categories.find(cat => cat.type === selectedCategory)?.label || ''} (${displayPlaces.length}곳)`}
                       </Text>
                     </View>
                     {displayPlaces.map((place, index) => (
@@ -978,8 +1054,8 @@ export default function MapScreen() {
                     ))}
                   </>
                 ) : (
-                  <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>
+                  <View style={mapScreenStyles.emptyContainer}>
+                    <Text style={mapScreenStyles.emptyText}>
                       {showSearchResults ? '검색 결과가 없습니다.' : '해당 카테고리의 데이터가 없습니다.'}
                     </Text>
                   </View>
@@ -989,12 +1065,12 @@ export default function MapScreen() {
           </View>
 
           {/* 액션 버튼 */}
-          <View style={styles.actionButtons}>
+          <View style={mapScreenStyles.actionButtons}>
             <TouchableOpacity
-              style={styles.reportButton}
+              style={mapScreenStyles.reportButton}
               onPress={() => navigation.navigate('ReportPlace')}
             >
-              <Text style={styles.reportButtonText}>장소 제보하기</Text>
+              <Text style={mapScreenStyles.reportButtonText}>장소 제보하기</Text>
             </TouchableOpacity>
           </View>
 
@@ -1004,6 +1080,9 @@ export default function MapScreen() {
           visible={showPlaceModal}
           selectedPlace={selectedPlace}
           selectedCategory={selectedCategory}
+          favorites={favorites}
+          onToggleFavorite={toggleFavorite}
+          loadingFavorite={loadingFavorite}
           onClose={() => setShowPlaceModal(false)}
           onWriteReview={(placeName, placeId) => {
             setShowPlaceModal(false);
@@ -1013,564 +1092,9 @@ export default function MapScreen() {
             });
           }}
         />
-        <BottomTabBar currentRoute="Home" />
+        <BottomTabBar currentRoute="Map" />
       </SafeAreaView>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  safeAreaContent: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  headerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: spacing.screenPaddingHorizontal,
-    paddingTop: 12,
-    paddingBottom: spacing.paddingLarge,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 2,
-    borderBottomColor: '#F0F0F0',
-    ...shadows.header,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F8F9FA',
-    alignItems: "center",
-    justifyContent: "center",
-    ...shadows.button,
-  },
-  backButtonText: {
-    fontSize: 18,
-    color: colors.textPrimary,
-    fontWeight: "600",
-  },
-  headerRight: {
-    width: 40,
-  },
-  headerImage: {
-    height: 24,
-  },
-  headerTitleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-    justifyContent: "center",
-  },
-  headerIcon: {
-    fontSize: 32,
-    marginRight: 12,
-  },
-  headerTextContainer: {
-    flexDirection: "column",
-    alignItems: "center",
-  },
-  headerTitle: {
-    ...typography.h2,
-    color: colors.textPrimary,
-    fontWeight: "700",
-    letterSpacing: -0.5,
-  },
-  headerSubtitle: {
-    ...typography.body2,
-    color: colors.textSecondary,
-    marginTop: 2,
-    fontWeight: "500",
-  },
-  headerActionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F8F9FA',
-    alignItems: "center",
-    justifyContent: "center",
-    ...shadows.button,
-  },
-  headerActionIcon: {
-    fontSize: 20,
-    color: colors.textPrimary,
-  },
-  searchContainer: {
-    marginHorizontal: spacing.screenPaddingHorizontal,
-    marginTop: 16,
-    marginBottom: 4,
-    paddingHorizontal: spacing.paddingMedium,
-    paddingVertical: spacing.paddingSmall,
-    backgroundColor: colors.surface,
-    borderRadius: spacing.borderRadiusLarge,
-    borderColor: "#0000001A",
-    borderWidth: 1,
-    borderBottomWidth: 2,
-    borderBottomColor: '#E0E0E0',
-    ...shadows.card,
-  },
-  searchInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  searchInput: {
-    ...typography.body1,
-    flex: 1,
-    color: colors.textPrimary,
-    paddingVertical: 0,
-  },
-  searchClearButton: {
-    padding: 5,
-  },
-  searchClearText: {
-    fontSize: 18,
-    color: colors.textSecondary,
-  },
-  searchResultsContainer: {
-    marginTop: spacing.paddingSmall,
-    paddingHorizontal: spacing.paddingSmall,
-  },
-  searchResultsList: {
-    marginTop: spacing.paddingSmall,
-  },
-  searchResultsTitle: {
-    ...typography.body1,
-    color: colors.textPrimary,
-    marginBottom: spacing.paddingSmall,
-    fontWeight: "600",
-  },
-  searchSuggestionsContainer: {
-    marginBottom: spacing.paddingSmall,
-  },
-  searchSuggestionsTitle: {
-    ...typography.body1,
-    color: colors.textSecondary,
-    marginBottom: spacing.paddingSmall,
-    fontWeight: "600",
-  },
-  searchLoading: {
-    paddingVertical: spacing.paddingSmall,
-    alignItems: 'center',
-  },
-  searchLoadingText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  noSearchResults: {
-    paddingVertical: spacing.paddingSmall,
-    alignItems: 'center',
-  },
-  noSearchResultsText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  categoryRow: {
-    flexDirection: "row",
-    marginBottom: 10,
-    marginHorizontal: 35,
-  },
-  categoryContainer: {
-    marginTop: 4,
-    marginBottom: 4,
-    marginHorizontal: spacing.screenPaddingHorizontal,
-    alignItems: 'center',
-  },
-  categoryTitle: {
-    ...typography.h4,
-    color: colors.textPrimary,
-    marginTop: 8,
-    fontWeight: '500',
-  },
-  categoryScrollContainer: {
-    marginTop: 8,
-    paddingRight: spacing.paddingMedium,
-  },
-  categoryCard: {
-    borderColor: "#0000001A",
-    borderRadius: 6,
-    borderWidth: 1,
-    paddingVertical: 4,
-    marginRight: 8,
-    backgroundColor: "#fff",
-    minWidth: 0,
-    width: 90,
-    alignItems: 'center',
-  },
-  selectedCategoryCard: {
-    borderColor: "#4CAF50",
-    backgroundColor: "#E8F5E8",
-  },
-  categoryIconWrap: {
-    marginTop: 8,
-    marginBottom: 6,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  categoryIconBg: {
-    height: 55,
-    width: 55,
-    backgroundColor: "#0000000D",
-    borderRadius: 25,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  selectedCategoryIconBg: {
-    backgroundColor: "#4CAF50",
-  },
-  categoryIcon: {
-    fontSize: 30,
-    textAlign: "center",
-    textAlignVertical: "center",
-    lineHeight: 50,
-  },
-  categoryLabel: {
-    color: "#000000",
-    fontSize: 12,
-    textAlign: "center",
-    fontWeight: 300
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 50,
-  },
-  loadingText: {
-    ...typography.body1,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  mapImageBg: {
-    borderRadius: 6,
-  },
-  mapImageBgWrap: {
-    alignItems: "center",
-    paddingVertical: 137,
-    paddingHorizontal: 16,
-    marginBottom: 25,
-    marginHorizontal: 38,
-  },
-  mapIcon: {
-    borderRadius: 6,
-    width: 24,
-    height: 24,
-    marginBottom: 8,
-  },
-  mapText: {
-    color: "#000000",
-    fontSize: 16,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  noMarginRight: {
-    marginRight: 0,
-  },
-  reportButton: {
-    backgroundColor: "#4CAF50",
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    marginHorizontal: 2,
-    alignItems: "center",
-    shadowColor: "#0000001c",
-    shadowOpacity: 1,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  reportButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: 600,
-  },
-  searchResultItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-  },
-  searchResultContent: {
-    flexDirection: "column",
-  },
-  searchResultName: {
-    ...typography.body1,
-    fontWeight: "bold",
-    color: colors.textPrimary,
-  },
-  searchResultAddress: {
-    ...typography.body2,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  searchSuggestionItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-  },
-  searchSuggestionText: {
-    ...typography.body2,
-    color: colors.textSecondary,
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    width: '90%',
-    maxHeight: '80%',
-    ...shadows.card,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
-  },
-  modalTitle: {
-    ...typography.h4,
-    color: colors.textPrimary,
-    fontWeight: 'bold',
-    flex: 1,
-  },
-  closeButton: {
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: colors.textSecondary,
-    fontWeight: 'bold',
-  },
-  modalBody: {
-    padding: 20,
-  },
-  categoryBadge: {
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    alignSelf: 'flex-start',
-    marginBottom: 16,
-  },
-  categoryBadgeText: {
-    ...typography.body2,
-    color: colors.background,
-    fontWeight: '600',
-  },
-  infoSection: {
-    marginBottom: 16,
-  },
-  infoLabel: {
-    ...typography.body2,
-    color: colors.textSecondary,
-    marginBottom: 6,
-    fontWeight: '600',
-  },
-  infoValue: {
-    ...typography.body1,
-    color: colors.textPrimary,
-    lineHeight: 20,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: colors.divider,
-    gap: 12,
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  modalButtonText: {
-    ...typography.button,
-    color: colors.primary,
-  },
-  primaryButton: {
-    backgroundColor: colors.primary,
-  },
-  primaryButtonText: {
-    color: colors.background,
-  },
-  viewToggleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 4,
-    backgroundColor: colors.surface,
-    borderRadius: 8,
-    borderColor: colors.divider,
-    borderWidth: 1,
-    padding: 4,
-  },
-  viewToggleButton: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: 6,
-    marginHorizontal: 2,
-  },
-  viewToggleButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  viewToggleText: {
-    ...typography.h4,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  viewToggleTextActive: {
-    color: colors.background,
-    fontWeight: '600',
-  },
-  clearButton: {
-    padding: 5,
-  },
-  clearButtonText: {
-    fontSize: 18,
-    color: colors.textSecondary,
-  },
-  placeListItem: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    ...shadows.card,
-  },
-  placeListItemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  placeListItemIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F0F0F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  placeListItemIconText: {
-    fontSize: 24,
-    color: '#666',
-  },
-  placeListItemContent: {
-    flex: 1,
-    marginRight: 10,
-  },
-  placeListItemName: {
-    ...typography.body1,
-    fontWeight: 'bold',
-    color: colors.textPrimary,
-    marginBottom: 4,
-  },
-  placeListItemCategory: {
-    ...typography.body2,
-    color: colors.textSecondary,
-  },
-  placeListItemMeta: {
-    alignItems: 'flex-end',
-  },
-  placeListItemDistance: {
-    ...typography.body2,
-    color: colors.primary,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  placeListItemAddress: {
-    ...typography.body1,
-    color: colors.textPrimary,
-    marginBottom: 8,
-  },
-  placeListItemDescription: {
-    ...typography.body2,
-    color: colors.textSecondary,
-    marginBottom: 8,
-  },
-  placeListItemFooter: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-  },
-  placeListItemDetail: {
-    ...typography.body2,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  mainMap: {
-    flex: 1,
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 16,
-    borderRadius: 6,
-    overflow: 'hidden',
-    minHeight: 300, // TODO: 현재는 최소 크기 정해놨지만 나중에 비율로 설정하기
-  },
-  listContainer: {
-    flex: 1,
-  },
-  listContentContainer: {
-    paddingBottom: spacing.paddingMedium,
-  },
-  listHeader: {
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
-  },
-  listHeaderTitle: {
-    ...typography.h4,
-    color: colors.textPrimary,
-    fontWeight: '600',
-  },
-  listHeaderSubtitle: {
-    ...typography.body2,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 50,
-  },
-  emptyText: {
-    ...typography.body1,
-    color: colors.textSecondary,
-  },
-  actionButtons: {
-    marginHorizontal: 16,
-    marginBottom: 20,
-  },
-});

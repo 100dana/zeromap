@@ -8,6 +8,7 @@ interface KakaoMapProps {
   places?: PlaceData[];
   onMarkerClick?: (place: PlaceData) => void;
   onMapClick?: (coordinates: { latitude: number; longitude: number }) => void;
+  onMarkersLoaded?: () => void;
   selectedLocation?: { lat: number; lng: number };
   opacity?: number;
   centerLat?: number;
@@ -24,6 +25,7 @@ const KakaoMap = forwardRef<KakaoMapRef, KakaoMapProps>(({
   places = [], 
   onMarkerClick, 
   onMapClick,
+  onMarkersLoaded,
   selectedLocation,
   opacity = 1,
   centerLat = 37.5665,
@@ -267,6 +269,11 @@ const KakaoMap = forwardRef<KakaoMapRef, KakaoMapProps>(({
               type: 'markersUpdated',
               count: window.markers.length
             }));
+            
+            // 마커 로딩 완료 알림
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'markersLoaded'
+            }));
           }
           
           // 지도 영역 변경 이벤트 리스너 추가
@@ -312,6 +319,11 @@ const KakaoMap = forwardRef<KakaoMapRef, KakaoMapProps>(({
           break;
         case 'markersUpdated':
           // 현재 영역의 마커 수 업데이트 (필요시 사용)
+          break;
+        case 'markersLoaded':
+          if (onMarkersLoaded) {
+            onMarkersLoaded();
+          }
           break;
         case 'markerError':
           break;

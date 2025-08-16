@@ -23,6 +23,7 @@ import { colors } from '../styles/colors';
 import { spacing } from '../styles/spacing';
 import { shadows } from '../styles/shadows';
 import { GeocodingService } from '../services/geocodingService';
+import storage from '@react-native-firebase/storage';
 
 type RootStackParamList = {
   Home: undefined;
@@ -100,7 +101,7 @@ export default function ReportPlace() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [description, setDescription] = useState('');
   const [selectedLocation, setSelectedLocation] = useState({ lat: 37.5665, lng: 126.9780 }); // 서울시청 기본 위치
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [isAddressModalVisible, setIsAddressModalVisible] = useState(false);
 
 
@@ -161,111 +162,38 @@ export default function ReportPlace() {
 
   // 이미지 선택 처리
   const handleImageSelect = async () => {
-    // 권한 상태 먼저 확인
     const hasPermission = await checkPermissionStatus();
-    
-    Alert.alert(
-      '이미지 선택',
-      '이미지를 선택하시겠습니까?',
-      [
-        { text: '취소', style: 'cancel' },
-        { text: '갤러리에서 선택', onPress: () => selectImageFromGallery() }
-      ]
-    );
-  };
-
-  // Android 권한 요청
-  const requestCameraPermission = async () => {
-    if (Platform.OS === 'android') {
-      try {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
-          {
-            title: "갤러리 접근 권한",
-            message: "장소 사진을 첨부하기 위해 갤러리 접근 권한이 필요합니다.",
-            buttonNeutral: "나중에",
-            buttonNegative: "취소",
-            buttonPositive: "허용"
-          }
-        );
-        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-          return true;
-        } else {
-          Alert.alert(
-            '권한 필요', 
-            '이미지를 선택하려면 갤러리 접근 권한이 필요합니다.\n\n설정에서 권한을 허용해주세요.',
-            [
-              { text: '취소', style: 'cancel' },
-              { text: '설정으로 이동', onPress: () => {
-                // 설정 앱으로 이동하는 로직 (선택사항)
-              }}
-            ]
-          );
-          return false;
-        }
-      } catch (err) {
-        Alert.alert('오류', '권한 요청 중 오류가 발생했습니다.');
-        return false;
-      }
-    }
-    return true;
-  };
-
-  // 갤러리에서 이미지 선택
-  const selectImageFromGallery = async () => {
-    const hasPermission = await requestCameraPermission();
-    if (!hasPermission) {
+    if (!hasPermission) return;
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      selectionLimit: 5,
+      quality: 0.8,
+    });
+    if (result.didCancel) return;
+    if (result.errorCode) {
+      Alert.alert('오류', '이미지 선택에 실패했습니다.');
       return;
     }
-
-    try {
-      const result = await launchImageLibrary({
-        mediaType: 'photo',
-        maxWidth: 800,
-        maxHeight: 800,
-        quality: 0.8,
-        includeBase64: false,
-        selectionLimit: 1,
-      });
-
-      if (result.didCancel) {
-        return;
-      }
-
-      if (result.errorMessage) {
-        Alert.alert('오류', '이미지 선택 중 오류가 발생했습니다.');
-        return;
-      }
-
-      if (result.assets && result.assets.length > 0) {
-        const asset = result.assets[0];
-        
-        // 파일 크기 검증 (5MB 제한)
-        if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
-          Alert.alert('오류', '파일 크기는 5MB 이하여야 합니다.');
-          return;
-        }
-
-        setSelectedImage(asset.uri || '');
-      }
-    } catch (error) {
-      Alert.alert('오류', '이미지 선택 중 오류가 발생했습니다.');
+    if (result.assets) {
+      setSelectedImages(result.assets.map(asset => asset.uri!).slice(0, 5));
     }
+  };
+
+  const uploadImageAsync = async (uri: string, placeName: string) => {
+    const filename = `report/${placeName}_${Date.now()}.jpg`;
+    const reference = storage().ref(filename);
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    await reference.put(blob);
+    return await reference.getDownloadURL();
   };
 
   // 이미지 제거
-  const handleRemoveImage = () => {
-    Alert.alert(
-      '이미지 제거',
-      '선택된 이미지를 제거하시겠습니까?',
-      [
-        { text: '취소', style: 'cancel' },
-        { text: '제거', style: 'destructive', onPress: () => setSelectedImage(null) }
-      ]
-    );
+  const handleRemoveImage = (idx: number) => {
+    setSelectedImages(selectedImages.filter((_, i) => i !== idx));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!placeName.trim()) {
       Alert.alert('알림', '장소 이름을 입력해주세요.');
       return;
@@ -282,7 +210,14 @@ export default function ReportPlace() {
       Alert.alert('알림', '설명을 입력해주세요.');
       return;
     }
-
+    let imageUrls: string[] = [];
+    if (selectedImages.length > 0) {
+      for (const uri of selectedImages) {
+        const url = await uploadImageAsync(uri, placeName);
+        imageUrls.push(url);
+      }
+    }
+    // TODO: imageUrls를 포함해 제보 데이터 저장
     Alert.alert(
       '제보 완료',
       '장소 제보가 완료되었습니다!\n\n검토 후 반영됩니다.',
@@ -414,49 +349,33 @@ export default function ReportPlace() {
         {/* 이미지 업로드 */}
         <View style={styles.inputSection}>
           <Text style={styles.inputLabel}>이미지 첨부 <Text style={styles.optionalText}>(선택)</Text></Text>
-          {selectedImage ? (
-            <View style={styles.imageUploadContainer}>
-              <View style={styles.selectedImageWrapper}>
-                <Image 
-                  source={{ uri: selectedImage }} 
-                  style={styles.selectedImage}
-                  resizeMode="cover"
-                />
-                <View style={styles.imageOverlay}>
-                  <TouchableOpacity
-                    style={styles.imageActionButton}
-                    onPress={handleImageSelect}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.imageActionButtonText}>변경</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.imageActionButton, styles.removeButton]}
-                    onPress={handleRemoveImage}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.imageActionButtonText}>삭제</Text>
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.imageInfo}>
-                  <Text style={styles.imageInfoText}>📷 선택된 이미지</Text>
-                </View>
-              </View>
+          <TouchableOpacity
+            style={styles.imageUploadContainer}
+            onPress={handleImageSelect}
+            activeOpacity={0.7}
+          >
+            <View style={styles.uploadIconContainer}>
+              <Text style={styles.uploadIcon}>📷</Text>
+              <Text style={styles.uploadPlusIcon}>+</Text>
             </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.imageUploadContainer}
-              onPress={handleImageSelect}
-              activeOpacity={0.7}
-            >
-              <View style={styles.uploadIconContainer}>
-                <Text style={styles.uploadIcon}>📷</Text>
-                <Text style={styles.uploadPlusIcon}>+</Text>
-              </View>
-              <Text style={styles.uploadTitle}>이미지 추가</Text>
-              <Text style={styles.uploadSubtitle}>장소 사진을 첨부해주세요</Text>
-              <Text style={styles.uploadHint}>JPG, PNG 파일만 가능 • 최대 5MB</Text>
-            </TouchableOpacity>
+            <Text style={styles.uploadTitle}>이미지 추가</Text>
+            <Text style={styles.uploadSubtitle}>장소 사진을 첨부해주세요</Text>
+            <Text style={styles.uploadHint}>JPG, PNG 파일만 가능 • 최대 5장 • 5MB 이하</Text>
+          </TouchableOpacity>
+          {selectedImages.length > 0 && (
+            <View style={styles.imagePreviewContainer}>
+              {selectedImages.map((uri, idx) => (
+                <View key={idx} style={styles.imagePreviewItem}>
+                  <Image source={{ uri }} style={styles.selectedImage} />
+                  <TouchableOpacity
+                    style={styles.removeImageButton}
+                    onPress={() => handleRemoveImage(idx)}
+                  >
+                    <Text style={styles.removeImageText}>×</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
           )}
         </View>
 
@@ -781,6 +700,39 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     textAlign: 'center',
+  },
+  imagePreviewContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+    marginTop: 10,
+  },
+  imagePreviewItem: {
+    position: 'relative',
+    width: '30%', // 3개씩 배치
+    height: 100,
+    marginVertical: 5,
+    marginHorizontal: 5,
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  removeImageText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 
 }); 
