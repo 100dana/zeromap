@@ -18,6 +18,7 @@ import { shadows } from '../styles/shadows';
 import displayUserName from "../components/UserDisplay";
 import { AuthService } from "../services/authService";
 import firestore from '@react-native-firebase/firestore';
+import firestoreService from '../services/firestoreService';
 
 type RootStackParamList = {
   Home: undefined;
@@ -27,25 +28,19 @@ type RootStackParamList = {
   PolicyInfo: undefined;
   SignIn: undefined;
   MyReview: undefined;
+  FavoritePlaces: undefined;
 };
 
-const savedPlaces = [
-  {
-    id: 1,
-    name: "장소이름",
-    category: "제로웨이스트샵",
-    address: "서울시 종로구 송월길",
-    image: "https://via.placeholder.com/120x80/4CAF50/FFFFFF?text=Image",
-    icon: "🛒"
-  },
-  {
-    id: 2,
-    name: "장소이름",
-    category: "리필스테이션",
-    address: "서울시 종로구 송월길",
-    image: "https://via.placeholder.com/120x80/4CAF50/FFFFFF?text=Image"
-  }
-];
+// 찜한 장소 데이터 타입 정의
+interface FavoritePlaceData {
+  id: string;
+  name: string;
+  address: string;
+  category: string;
+  description?: string;
+  image?: string;
+  favoriteId: string;
+}
 
 // 리뷰 데이터 타입 정의
 interface ReviewData {
@@ -60,19 +55,30 @@ const defaultUserData = {
   avatar: "https://via.placeholder.com/60x60/4CAF50/FFFFFF?text=User"
 };
 
-function SavedPlaceCard({ place }: { place: typeof savedPlaces[0] }) {
+function SavedPlaceCard({ place }: { place: FavoritePlaceData }) {
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case '제로식당':
+        return '🍽️';
+      case '제로웨이스트샵':
+        return '🛒';
+      case '리필스테이션':
+        return '🚰';
+      default:
+        return '🏠';
+    }
+  };
+
   return (
     <View style={styles.savedPlaceCard}>
       <Image 
-        source={{ uri: place.image }}
+        source={{ uri: place.image || "https://via.placeholder.com/120x80/4CAF50/FFFFFF?text=Image" }}
         style={styles.placeImage}
         resizeMode="cover"
       />
-      {place.icon && (
-        <View style={styles.categoryIcon}>
-          <Text style={styles.categoryIconText}>{place.icon}</Text>
-        </View>
-      )}
+      <View style={styles.categoryIcon}>
+        <Text style={styles.categoryIconText}>{getCategoryIcon(place.category)}</Text>
+      </View>
       <View style={styles.placeInfo}>
         <Text style={styles.placeName}>{place.name}</Text>
         <Text style={styles.placeAddress}>{place.address}</Text>
@@ -104,6 +110,8 @@ export default function MyPage() {
   const [userName, setUserName] = useState("사용자");
   const [userReviews, setUserReviews] = useState<ReviewData[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(true);
+  const [favoritePlaces, setFavoritePlaces] = useState<FavoritePlaceData[]>([]);
+  const [loadingFavorites, setLoadingFavorites] = useState(true);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -129,11 +137,21 @@ export default function MyPage() {
           })) as ReviewData[];
           
           setUserReviews(reviews);
+
+          // 찜한 장소 데이터 로드 (최대 5개)
+          try {
+            const favorites = await firestoreService.getFavoritePlaces(5);
+            setFavoritePlaces(favorites);
+          } catch (error) {
+            console.error('찜한 장소 로드 오류:', error);
+            setFavoritePlaces([]);
+          }
         }
       } catch (error) {
         console.error('사용자 데이터 로드 오류:', error);
       } finally {
         setLoadingReviews(false);
+        setLoadingFavorites(false);
       }
     };
     loadUserData();
@@ -158,7 +176,7 @@ export default function MyPage() {
   };
 
   const handleSavedPlaces = () => {
-    // 저장된 장소 보기
+    navigation.navigate('FavoritePlaces');
   };
 
   const handleReviews = () => {
@@ -213,13 +231,23 @@ export default function MyPage() {
               style={styles.viewMoreButton}
               onPress={handleSavedPlaces}
             >
-              <Text style={styles.viewMoreText}>톺아보기 {'>'}</Text>
+              <Text style={styles.viewMoreText}>자세히 보기 {'>'}</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.savedPlacesContainer}>
-            {savedPlaces.map((place) => (
-              <SavedPlaceCard key={place.id} place={place} />
-            ))}
+            {loadingFavorites ? (
+              <View style={styles.loadingContainer}>
+                <Text style={styles.loadingText}>찜한 장소를 불러오는 중...</Text>
+              </View>
+            ) : favoritePlaces.length > 0 ? (
+              favoritePlaces.map((place) => (
+                <SavedPlaceCard key={place.id} place={place} />
+              ))
+            ) : (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>찜한 장소가 없습니다.</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -234,7 +262,7 @@ export default function MyPage() {
               style={styles.viewMoreButton}
               onPress={handleReviews}
             >
-              <Text style={styles.viewMoreText}>View Reviews {'>'}</Text>
+              <Text style={styles.viewMoreText}>자세히 보기 {'>'}</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.reviewedPlacesContainer}>
@@ -269,7 +297,7 @@ export default function MyPage() {
               style={styles.viewMoreButton}
               onPress={handleViewPolicyInfo}
             >
-              <Text style={styles.viewMoreText}>View Policy {'>'}</Text>
+              <Text style={styles.viewMoreText}>자세히 보기 {'>'}</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.policyInfoContainer}>

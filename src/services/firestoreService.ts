@@ -1,4 +1,4 @@
-import { firestore, storage, auth } from './firebaseConfig';
+import { firestore, storage } from './firebaseConfig';
 import { Review, ReviewInput } from '../types/review';
 import auth from '@react-native-firebase/auth';
 
@@ -324,13 +324,18 @@ class FirestoreService {
   /**
    * 즐겨찾기 추가
    */
-  async addFavorite(placeId: string): Promise<void> {
+  async addFavorite(placeId: string, placeData?: any): Promise<void> {
     try {
       const userId = this.getCurrentUserId();
       
       const favoriteData = {
         userId: userId,
         placeId: placeId,
+        placeName: placeData?.name || '',
+        address: placeData?.address || '',
+        category: placeData?.category || '',
+        description: placeData?.description || '',
+        image: placeData?.image || '',
         createdAt: new Date()
       };
 
@@ -427,6 +432,63 @@ class FirestoreService {
       return !snapshot.empty;
     } catch (error) {
       return false;
+    }
+  }
+
+  /**
+   * 사용자의 즐겨찾기 장소 상세 정보 조회
+   */
+  async getFavoritePlaces(limit?: number): Promise<any[]> {
+    try {
+      const userId = this.getCurrentUserId();
+      
+      console.log('즐겨찾기 장소 상세 정보 조회 시도:', userId);
+      const snapshot = await this.favoritesCollection
+        .where('userId', '==', userId)
+        .get();
+
+      console.log('찜한 장소 개수:', snapshot.docs.length);
+      
+      // 클라이언트에서 정렬 (최신순)
+      const sortedDocs = snapshot.docs.sort((a, b) => {
+        const aTime = a.data().createdAt?.toDate?.() || new Date(0);
+        const bTime = b.data().createdAt?.toDate?.() || new Date(0);
+        return bTime.getTime() - aTime.getTime();
+      });
+
+      // limit이 지정된 경우에만 제한
+      const limitedDocs = limit ? sortedDocs.slice(0, limit) : sortedDocs;
+
+      const favoritePlaces: any[] = [];
+      
+      for (const doc of limitedDocs) {
+        const data = doc.data();
+        console.log('favorites 컬렉션 데이터:', data);
+        
+        // favorites 컬렉션에서 직접 장소 정보 가져오기
+        const placeData = {
+          id: data.placeId,
+          name: data.placeName || '알 수 없는 장소',
+          address: data.address || '',
+          category: data.category || '기타',
+          description: data.description || '',
+          image: data.image || '',
+          favoriteId: doc.id
+        };
+        
+        favoritePlaces.push(placeData);
+      }
+
+      console.log('최종 찜한 장소 개수:', favoritePlaces.length);
+      return favoritePlaces;
+    } catch (error: any) {
+      console.error('즐겨찾기 장소 상세 정보 조회 에러:', error);
+      if (error.code === 'permission-denied') {
+        console.warn('권한 없음 - 빈 배열 반환');
+        return [];
+      } else {
+        throw new Error(`즐겨찾기 장소 상세 정보 조회에 실패했습니다: ${error.message || error.code}`);
+      }
     }
   }
 }

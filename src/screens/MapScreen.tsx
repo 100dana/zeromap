@@ -492,8 +492,12 @@ export default function MapScreen() {
         const updatedFavorites = [...favorites, placeId];
         setFavorites(updatedFavorites);
         
-        // Firebase에 추가
-        await firestoreService.addFavorite(placeId);
+        // 현재 선택된 장소 정보 찾기
+        const allPlaces = [...places, ...localPlaces, ...storePlaces];
+        const placeData = allPlaces.find(place => place.id === placeId);
+        
+        // Firebase에 추가 (장소 정보와 함께)
+        await firestoreService.addFavorite(placeId, placeData);
       }
     } catch (error) {
       console.error('즐겨찾기 토글 실패:', error);
