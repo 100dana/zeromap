@@ -23,6 +23,7 @@ import SignUp from "./src/screens/SignUp";
 import SignIn from "./src/screens/SignIn";
 import ReviewListScreen from './src/screens/ReviewListScreen';
 import MyReview from './src/screens/MyReview';
+import FavoritePlaces from './src/screens/FavoritePlaces';
 
 
 type RootStackParamList = {
@@ -41,6 +42,7 @@ type RootStackParamList = {
   PolicyInfo: undefined;
   ReviewList: undefined;
   MyReview: undefined;
+  FavoritePlaces: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -89,6 +91,7 @@ export default function App() {
           <Stack.Screen name="PolicyInfo" component={PolicyInfo} />
           <Stack.Screen name="ReviewList" component={ReviewListScreen} options={{ title: '전체 리뷰' }} />
           <Stack.Screen name="MyReview" component={MyReview} options={{ title: '내 리뷰' }} />
+          <Stack.Screen name="FavoritePlaces" component={FavoritePlaces} options={{ title: '내가 찜한 장소' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

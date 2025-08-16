@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: spacing.borderRadiusMedium,
-    marginRight: spacing.paddingMedium,
+    marginRight: spacing.paddingLarge,
     backgroundColor: colors.divider,
   },
   listItemContent: {
