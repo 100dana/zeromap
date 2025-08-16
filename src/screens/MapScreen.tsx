@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, ScrollView, Image, Text, TouchableOpacity, ImageBackground, StyleSheet, Alert, TextInput, FlatList, Modal, StatusBar, Animated, PanResponder, Dimensions } from "react-native";
+import { View, ScrollView, Image, Text, TouchableOpacity, ImageBackground, StyleSheet, Alert, TextInput, FlatList, Modal, StatusBar, Animated, PanResponder, Dimensions, ActivityIndicator } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
@@ -298,17 +298,20 @@ type CategoryCardProps = {
   style?: any;
   isSelected?: boolean;
   onPress?: () => void;
+  disabled?: boolean;
 };
 
-function CategoryCard({ icon, label, iconBgMargin, textMargin, type, color, description, style, isSelected, onPress }: CategoryCardProps) {
+function CategoryCard({ icon, label, iconBgMargin, textMargin, type, color, description, style, isSelected, onPress, disabled }: CategoryCardProps) {
   return (
     <TouchableOpacity 
       style={[
         styles.categoryCard, 
         style, 
-        isSelected && styles.selectedCategoryCard
+        isSelected && styles.selectedCategoryCard,
+        disabled && styles.categoryCardDisabled
       ]} 
-      onPress={onPress}
+      onPress={disabled ? undefined : onPress}
+      disabled={disabled}
       accessibilityLabel={`${label} 카테고리 선택`}
       accessibilityHint={description}
     >
@@ -580,7 +583,12 @@ export default function MapScreen() {
             </View>
         <ScrollView style={{flex:1,paddingHorizontal:24}} contentContainerStyle={{paddingBottom:80}}>
           <Text style={{fontWeight:'bold',fontSize:15,marginTop:8,marginBottom:6}}>리뷰</Text>
-          {loadingReviews ? <Text>리뷰 불러오는 중...</Text> : reviews.length === 0 ? (
+          {loadingReviews ? (
+            <View style={styles.reviewLoadingContainer}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={styles.reviewLoadingText}>리뷰 불러오는 중...</Text>
+            </View>
+          ) : reviews.length === 0 ? (
             <View style={{alignItems:'center',marginVertical:24}}>
               <Text style={{color:'#888',marginBottom:8}}>아직 리뷰가 없습니다.</Text>
           </View>
@@ -832,6 +840,7 @@ export default function MapScreen() {
 
   // handleCategoryPress 함수 추가
   const handleCategoryPress = (type: string) => {
+    if (loading) return; // 로딩 중이면 카테고리 변경 불가
     setSelectedCategory(type);
     loadPlaces(type);
   };
@@ -933,9 +942,13 @@ export default function MapScreen() {
                 <CategoryCard
                   key={idx}
                   {...cat}
-                  style={idx === categories.length - 1 ? styles.noMarginRight : undefined}
+                  style={[
+                    idx === categories.length - 1 ? styles.noMarginRight : undefined,
+                    loading && styles.categoryCardDisabled
+                  ]}
                   isSelected={selectedCategory === cat.type}
                   onPress={() => handleCategoryPress(cat.type)}
+                  disabled={loading}
                 />
               ))}
             </ScrollView>
@@ -972,11 +985,27 @@ export default function MapScreen() {
           {/* 메인 컨텐츠 */}
           <View style={styles.mainMap}>
             {viewMode === 'map' ? (
-              <KakaoMap
-                ref={mapRef}
-                places={displayPlaces}
-                onMarkerClick={handleMarkerClick}
-              />
+              <>
+                <KakaoMap
+                  ref={mapRef}
+                  places={displayPlaces}
+                  onMarkerClick={handleMarkerClick}
+                />
+                {loading && (
+                  <View style={styles.mapLoadingOverlay}>
+                    <View style={styles.mapLoadingContainer}>
+                      <ActivityIndicator size="large" color={colors.primary} />
+                      <Text style={styles.mapLoadingText}>지도 마커 데이터 로딩 중...</Text>
+                      <Text style={styles.mapLoadingSubText}>
+                        {selectedCategory === 'zeroWaste' && '제로웨이스트 상점 위치 정보를 불러오는 중'}
+                        {selectedCategory === 'cupDiscountCafe' && '개인컵 할인 카페 위치 정보를 불러오는 중'}
+                        {selectedCategory === 'zeroRestaurant' && '제로식당 위치 정보를 불러오는 중'}
+                        {!['zeroWaste', 'cupDiscountCafe', 'zeroRestaurant'].includes(selectedCategory) && '장소 위치 정보를 불러오는 중'}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </>
             ) : (
               <ScrollView 
                 style={styles.listContainer}
@@ -985,7 +1014,14 @@ export default function MapScreen() {
               >
                 {loading ? (
                   <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={colors.primary} />
                     <Text style={styles.loadingText}>데이터를 불러오는 중...</Text>
+                    <Text style={styles.loadingSubText}>
+                      {selectedCategory === 'zeroWaste' && '제로웨이스트 상점 정보를 가져오고 있습니다'}
+                      {selectedCategory === 'cupDiscountCafe' && '개인컵 할인 카페 정보를 가져오고 있습니다'}
+                      {selectedCategory === 'zeroRestaurant' && '제로식당 정보를 가져오고 있습니다'}
+                      {!['zeroWaste', 'cupDiscountCafe', 'zeroRestaurant'].includes(selectedCategory) && '지역 데이터를 불러오고 있습니다'}
+                    </Text>
                   </View>
                 ) : displayPlaces.length > 0 ? (
                   <>
@@ -1246,6 +1282,9 @@ const styles = StyleSheet.create({
     borderColor: "#4CAF50",
     backgroundColor: "#E8F5E8",
   },
+  categoryCardDisabled: {
+    opacity: 0.5,
+  },
   categoryIconWrap: {
     marginTop: 8,
     marginBottom: 6,
@@ -1285,6 +1324,60 @@ const styles = StyleSheet.create({
     ...typography.body1,
     color: colors.textSecondary,
     textAlign: 'center',
+    marginTop: 16,
+    fontWeight: '600',
+  },
+  loadingSubText: {
+    ...typography.body2,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 8,
+    fontStyle: 'italic',
+    opacity: 0.8,
+  },
+  mapLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  mapLoadingContainer: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    ...shadows.card,
+  },
+  mapLoadingText: {
+    ...typography.body1,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 12,
+    fontWeight: '600',
+  },
+  mapLoadingSubText: {
+    ...typography.body2,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 6,
+    fontStyle: 'italic',
+    opacity: 0.8,
+  },
+  reviewLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+  },
+  reviewLoadingText: {
+    ...typography.body2,
+    color: colors.textSecondary,
+    marginLeft: 8,
   },
   mapImageBg: {
     borderRadius: 6,
