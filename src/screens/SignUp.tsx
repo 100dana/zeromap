@@ -22,7 +22,6 @@ import { shadows } from '../styles/shadows';
 import { typography } from '../styles/typography';
 
 type RootStackParamList = {
-  Home: undefined;
   Map: undefined;
   MapDetail: undefined;
   SignUp: undefined;

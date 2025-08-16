@@ -25,7 +25,6 @@ import { shadows } from '../styles/shadows';
 import { GeocodingService } from '../services/geocodingService';
 
 type RootStackParamList = {
-  Home: undefined;
   Map: undefined;
   ReportPlace: undefined;
 };

@@ -8,12 +8,10 @@ import {
   TouchableOpacity, 
   StyleSheet, 
   Alert,
-  Image
 } from "react-native";
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors } from '../styles/colors';
-import { typography } from '../styles/typography';
 import { spacing } from '../styles/spacing';
 import { shadows } from '../styles/shadows';
 import FirestoreService from '../services/firestoreService';
@@ -21,7 +19,6 @@ import { ReviewInput } from '../types/review';
 import AuthService from '../services/authService';
 
 type RootStackParamList = {
-  Home: undefined;
   Map: undefined;
   MapDetail: undefined;
   WriteReview: { 

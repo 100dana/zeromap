@@ -1,5 +1,6 @@
 import { firestore, storage } from './firebaseConfig';
 import { Review, ReviewInput } from '../types/review';
+import auth from '@react-native-firebase/auth';
 
 class FirestoreService {
   private placesCollection = firestore().collection('places');
@@ -23,6 +24,11 @@ class FirestoreService {
    * 리뷰를 Firestore에 저장
    */
   async addReview(reviewData: ReviewInput): Promise<string> {
+    const currentUser = auth().currentUser;
+    if (!currentUser){
+      throw new Error('로그인 후 리뷰 작성 가능')
+    }
+
     try {
       
       // 필수 필드 검증
@@ -50,7 +56,7 @@ class FirestoreService {
       const review: Omit<Review, 'id'> = {
         placeId: reviewData.placeId,
         placeName: reviewData.placeName,
-        userId: reviewData.userId,
+        userId: currentUser.uid,
         userName: sanitizedName,
         rating: reviewData.rating,
         reviewText: sanitizedText,
@@ -59,7 +65,16 @@ class FirestoreService {
         updatedAt: new Date()
       };
 
+      // 1) reviews 컬렉션에 저장
       const docRef = await this.reviewsCollection.add(review);
+      // 2) users/{uid}/reviews 서브컬렉션에도 저장(mypage용)
+      await firestore()
+      .collection('users')
+      .doc(currentUser.uid)
+      .collection('reviews')
+      .doc(docRef.id)
+      .set(review);
+
       return docRef.id;
     } catch (error: any) {
       if (error.code === 'permission-denied') {
@@ -71,6 +86,7 @@ class FirestoreService {
       }
     }
   }
+
 
   /**
    * 특정 장소의 모든 리뷰 조회 (각 리뷰는 고유한 인덱스)
@@ -213,9 +229,6 @@ class FirestoreService {
     }
   }
 
-  /**
-   * 리뷰를 이미지와 함께 저장
-   */
   async saveReviewWithImage(reviewData: ReviewInput, imageUri?: string): Promise<string> {
     try {
       // 먼저 리뷰 데이터 저장

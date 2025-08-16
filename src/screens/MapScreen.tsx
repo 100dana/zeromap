@@ -315,7 +315,6 @@ function CategoryCard({ icon, label, iconBgMargin, textMargin, type, color, desc
 }
 
 type RootStackParamList = {
-  Home: undefined;
   Map: undefined;
   ReportPlace: undefined;
   WriteReview: { 

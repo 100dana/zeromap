@@ -21,7 +21,6 @@ import { shadows } from '../styles/shadows';
 import { typography } from '../styles/typography';
 
 type RootStackParamList = {
-  Home: undefined;
   Map: undefined;
   MapDetail: undefined;
   SignUp: undefined;
@@ -102,7 +101,7 @@ export default function SignIn() {
     try {
       setIsLoading(true);
       await AuthService.signInWithGoogle();
-      navigation.navigate('Home');
+      navigation.navigate('Map');
     } catch (error: any) {
       Alert.alert('로그인 실패', error.message || 'Google 로그인에 실패했습니다.');
 
