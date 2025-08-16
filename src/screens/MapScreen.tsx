@@ -959,7 +959,7 @@ export default function MapScreen() {
             });
           }}
         />
-        <BottomTabBar currentRoute="Home" />
+        <BottomTabBar currentRoute="Map" />
       </SafeAreaView>
     </View>
   );
