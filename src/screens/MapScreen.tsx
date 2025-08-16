@@ -16,6 +16,7 @@ import { spacing } from '../styles/spacing';
 import { shadows } from '../styles/shadows';
 import firestoreService from '../services/firestoreService';
 import { Review } from '../types/review';
+import auth from '@react-native-firebase/auth';
 
 const CURRENT_LOCATION = { latitude: 37.5665, longitude: 126.9780 };
 
@@ -65,13 +66,19 @@ const PlaceDetailModal = ({
   selectedPlace, 
   selectedCategory, 
   onClose, 
-  onWriteReview 
+  onWriteReview,
+  favorites,
+  onToggleFavorite,
+  loadingFavorite
 }: { 
   visible: boolean;
   selectedPlace: PlaceData | LocalPlaceData | StoreData | null;
   selectedCategory: string;
   onClose: () => void;
   onWriteReview: (placeName?: string, placeId?: string) => void;
+  favorites: string[];
+  onToggleFavorite: (placeId: string) => void;
+  loadingFavorite: boolean;
 }) => {
   if (!selectedPlace) return null;
   
@@ -102,7 +109,21 @@ const PlaceDetailModal = ({
         <View style={styles.modalContent}>
           {/* 헤더 */}
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>🏪 {selectedPlace.name}</Text>
+            <View style={styles.modalTitleContainer}>
+              <TouchableOpacity
+                style={styles.favoriteButton}
+                onPress={() => onToggleFavorite(selectedPlace.id || '')}
+                disabled={loadingFavorite}
+              >
+                <Text style={[
+                  styles.favoriteButtonText,
+                  favorites.includes(selectedPlace.id || '') && styles.favoriteButtonTextActive
+                ]}>
+                  {favorites.includes(selectedPlace.id || '') ? '❤️' : '🤍'}
+                </Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>🏪 {selectedPlace.name}</Text>
+            </View>
             <TouchableOpacity
               style={styles.closeButton}
               onPress={onClose}
@@ -350,6 +371,8 @@ export default function MapScreen() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [showReviewListModal, setShowReviewListModal] = useState(false);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [loadingFavorite, setLoadingFavorite] = useState(false);
   const screenHeight = Dimensions.get('window').height;
   const SNAP_TOP = 0;
   const SNAP_MID = screenHeight * 0.2;
@@ -449,6 +472,37 @@ export default function MapScreen() {
     handleSearch(suggestion);
   };
 
+  // 즐겨찾기 토글 함수
+  const toggleFavorite = async (placeId: string) => {
+    if (loadingFavorite) return;
+    
+    setLoadingFavorite(true);
+    try {
+      const isFavorite = favorites.includes(placeId);
+      
+      if (isFavorite) {
+        // 즐겨찾기에서 제거
+        const updatedFavorites = favorites.filter(id => id !== placeId);
+        setFavorites(updatedFavorites);
+        
+        // Firebase에서 제거
+        await firestoreService.removeFavorite(placeId);
+      } else {
+        // 즐겨찾기에 추가
+        const updatedFavorites = [...favorites, placeId];
+        setFavorites(updatedFavorites);
+        
+        // Firebase에 추가
+        await firestoreService.addFavorite(placeId);
+      }
+    } catch (error) {
+      console.error('즐겨찾기 토글 실패:', error);
+      Alert.alert('오류', '즐겨찾기 처리 중 오류가 발생했습니다.');
+    } finally {
+      setLoadingFavorite(false);
+    }
+  };
+
   // 검색 취소
   const handleSearchCancel = () => {
     setSearchQuery('');
@@ -478,6 +532,15 @@ export default function MapScreen() {
         </View>
         <View style={{backgroundColor:'#fff',borderRadius:18,marginHorizontal:18,marginTop:8,marginBottom:12,shadowColor:'#000',shadowOpacity:0.07,shadowOffset:{width:0,height:2},shadowRadius:8,elevation:3,paddingTop:18,paddingBottom:18,paddingHorizontal:18}}>
           <View style={{flexDirection:'row',alignItems:'center',justifyContent:'flex-start',marginBottom:6}}>
+            <TouchableOpacity
+              style={{padding:6, marginRight:8}}
+              onPress={() => toggleFavorite(selectedPlace.id || '')}
+              disabled={loadingFavorite}
+            >
+              <Text style={{fontSize:18, opacity: favorites.includes(selectedPlace.id || '') ? 1 : 0.7}}>
+                {favorites.includes(selectedPlace.id || '') ? '❤️' : '🤍'}
+              </Text>
+            </TouchableOpacity>
             <Text style={{fontWeight:'bold',fontSize:20,marginRight:14}}>{selectedPlace.name}</Text>
             <Text style={{fontSize:14,marginTop:2}}>
               <Text style={{color:'#f5b50a'}}>★ </Text>
@@ -684,6 +747,28 @@ export default function MapScreen() {
   useEffect(() => {
     loadPlaces(selectedCategory);
   }, []); // 컴포넌트 마운트 시 한 번만 실행
+
+  // 익명 로그인 및 즐겨찾기 목록 로드
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        // 현재 사용자가 없으면 익명 로그인
+        const currentUser = auth().currentUser;
+        if (!currentUser) {
+          await auth().signInAnonymously();
+          console.log('익명 로그인 성공');
+        }
+        
+        // 즐겨찾기 목록 로드
+        const favoritesList = await firestoreService.getFavorites();
+        setFavorites(favoritesList);
+      } catch (error) {
+        console.error('인증 또는 즐겨찾기 로드 실패:', error);
+      }
+    };
+    
+    initializeAuth();
+  }, []);
 
   // 검색 상태가 변경될 때마다 지도 마커 업데이트
   useEffect(() => {
@@ -950,6 +1035,9 @@ export default function MapScreen() {
           visible={showPlaceModal}
           selectedPlace={selectedPlace}
           selectedCategory={selectedCategory}
+          favorites={favorites}
+          onToggleFavorite={toggleFavorite}
+          loadingFavorite={loadingFavorite}
           onClose={() => setShowPlaceModal(false)}
           onWriteReview={(placeName, placeId) => {
             setShowPlaceModal(false);
@@ -1291,11 +1379,28 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.divider,
   },
+  modalTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
   modalTitle: {
     ...typography.h4,
     color: colors.textPrimary,
     fontWeight: 'bold',
-    flex: 1,
+    marginLeft: 8,
+  },
+  favoriteButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+  },
+  favoriteButtonText: {
+    fontSize: 20,
+    opacity: 0.7,
+  },
+  favoriteButtonTextActive: {
+    opacity: 1,
   },
   closeButton: {
     padding: 8,

@@ -1,9 +1,10 @@
-import { firestore, storage } from './firebaseConfig';
+import { firestore, storage, auth } from './firebaseConfig';
 import { Review, ReviewInput } from '../types/review';
 
 class FirestoreService {
   private placesCollection = firestore().collection('places');
   private reviewsCollection = firestore().collection('reviews');
+  private favoritesCollection = firestore().collection('favorites');
 
   /**
    * XSS 방지를 위한 텍스트 정제
@@ -14,6 +15,25 @@ class FirestoreService {
       .replace(/javascript:/gi, '') // JavaScript 프로토콜 제거
       .replace(/on\w+=/gi, '') // 이벤트 핸들러 제거
       .trim();
+  }
+
+  /**
+   * 현재 로그인한 사용자 ID 가져오기
+   */
+  private getCurrentUserId(): string {
+    const currentUser = auth().currentUser;
+    console.log('현재 사용자 상태:', {
+      user: currentUser,
+      uid: currentUser?.uid,
+      isAnonymous: currentUser?.isAnonymous,
+      email: currentUser?.email
+    });
+    
+    if (!currentUser) {
+      console.warn('로그인된 사용자가 없습니다!');
+      return 'anonymous-user';
+    }
+    return currentUser.uid;
   }
 
   // 장소 제보 관련 함수들은 임시로 주석 처리
@@ -287,6 +307,115 @@ class FirestoreService {
   }
 
   // 평점 통계 업데이트 함수 제거 - 각 리뷰를 독립적으로 처리
+
+  /**
+   * 즐겨찾기 추가
+   */
+  async addFavorite(placeId: string): Promise<void> {
+    try {
+      const userId = this.getCurrentUserId();
+      
+      const favoriteData = {
+        userId: userId,
+        placeId: placeId,
+        createdAt: new Date()
+      };
+
+      console.log('즐겨찾기 추가 시도:', favoriteData);
+      await this.favoritesCollection.add(favoriteData);
+      console.log('즐겨찾기 추가 성공');
+    } catch (error: any) {
+      console.error('즐겨찾기 추가 에러:', error);
+      if (error.code === 'permission-denied') {
+        throw new Error('권한이 없습니다. Firestore 규칙을 확인해주세요.');
+      } else if (error.code === 'unavailable') {
+        throw new Error('네트워크 연결을 확인해주세요.');
+      } else {
+        throw new Error(`즐겨찾기 추가에 실패했습니다: ${error.message || error.code}`);
+      }
+    }
+  }
+
+  /**
+   * 즐겨찾기 제거
+   */
+  async removeFavorite(placeId: string): Promise<void> {
+    try {
+      const userId = this.getCurrentUserId();
+      
+      console.log('즐겨찾기 제거 시도:', { userId, placeId });
+      const snapshot = await this.favoritesCollection
+        .where('userId', '==', userId)
+        .where('placeId', '==', placeId)
+        .get();
+
+      const batch = firestore().batch();
+      snapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      
+      await batch.commit();
+      console.log('즐겨찾기 제거 성공');
+    } catch (error: any) {
+      console.error('즐겨찾기 제거 에러:', error);
+      if (error.code === 'permission-denied') {
+        throw new Error('권한이 없습니다. Firestore 규칙을 확인해주세요.');
+      } else if (error.code === 'unavailable') {
+        throw new Error('네트워크 연결을 확인해주세요.');
+      } else {
+        throw new Error(`즐겨찾기 제거에 실패했습니다: ${error.message || error.code}`);
+      }
+    }
+  }
+
+  /**
+   * 사용자의 즐겨찾기 목록 조회
+   */
+  async getFavorites(): Promise<string[]> {
+    try {
+      const userId = this.getCurrentUserId();
+      
+      console.log('즐겨찾기 목록 조회 시도:', userId);
+      const snapshot = await this.favoritesCollection
+        .where('userId', '==', userId)
+        .get();
+
+      const favorites: string[] = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        favorites.push(data.placeId);
+      });
+
+      console.log('즐겨찾기 목록 조회 성공:', favorites);
+      return favorites;
+    } catch (error: any) {
+      console.error('즐겨찾기 목록 조회 에러:', error);
+      if (error.code === 'permission-denied') {
+        console.warn('권한 없음 - 빈 배열 반환');
+        return []; // 권한 없으면 빈 배열 반환
+      } else {
+        throw new Error(`즐겨찾기 목록 조회에 실패했습니다: ${error.message || error.code}`);
+      }
+    }
+  }
+
+  /**
+   * 특정 장소가 즐겨찾기에 있는지 확인
+   */
+  async isFavorite(placeId: string): Promise<boolean> {
+    try {
+      const userId = this.getCurrentUserId();
+      
+      const snapshot = await this.favoritesCollection
+        .where('userId', '==', userId)
+        .where('placeId', '==', placeId)
+        .get();
+
+      return !snapshot.empty;
+    } catch (error) {
+      return false;
+    }
+  }
 }
 
 export default new FirestoreService();
