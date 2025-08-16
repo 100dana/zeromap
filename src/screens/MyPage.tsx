@@ -17,6 +17,7 @@ import { spacing } from '../styles/spacing';
 import { shadows } from '../styles/shadows';
 import displayUserName from "../components/UserDisplay";
 import { AuthService } from "../services/authService";
+import firestore from '@react-native-firebase/firestore';
 
 type RootStackParamList = {
   Home: undefined;
@@ -25,13 +26,7 @@ type RootStackParamList = {
   Campaign: undefined;
   PolicyInfo: undefined;
   SignIn: undefined;
-};
-
-const defaultUserData = {
-  name: "사용자",
-  level: 3,
-  points: 1200,
-  avatar: "https://via.placeholder.com/80x80/4CAF50/FFFFFF?text=User"
+  MyReview: undefined;
 };
 
 const savedPlaces = [
@@ -52,20 +47,18 @@ const savedPlaces = [
   }
 ];
 
-const reviewedPlaces = [
-  {
-    id: 1,
-    name: "장소 이름",
-    review: "왜 좋았는지... 어쩌구 저쩌구",
-    rating: 4
-  },
-  {
-    id: 2,
-    name: "장소 이름",
-    review: "왜 좋았는지... 어쩌구 저쩌구",
-    rating: 4
-  }
-];
+// 리뷰 데이터 타입 정의
+interface ReviewData {
+  id: string;
+  placeName: string;
+  content: string;
+  rating: number;
+  createdAt: any;
+}
+
+const defaultUserData = {
+  avatar: "https://via.placeholder.com/60x60/4CAF50/FFFFFF?text=User"
+};
 
 function SavedPlaceCard({ place }: { place: typeof savedPlaces[0] }) {
   return (
@@ -88,41 +81,62 @@ function SavedPlaceCard({ place }: { place: typeof savedPlaces[0] }) {
   );
 }
 
-function ReviewedPlaceItem({ place }: { place: typeof reviewedPlaces[0] }) {
+function ReviewedPlaceItem({ place, onPress }: { place: ReviewData; onPress: () => void }) {
   return (
-    <View style={styles.reviewedPlaceItem}>
+    <TouchableOpacity style={styles.reviewedPlaceItem} onPress={onPress}>
       <View style={styles.placeIcon}>
         <Text style={styles.placeIconText}>🏠</Text>
       </View>
       <View style={styles.reviewedPlaceInfo}>
-        <Text style={styles.reviewedPlaceName}>{place.name}</Text>
-        <Text style={styles.reviewText}>{place.review}</Text>
+        <Text style={styles.reviewedPlaceName}>{place.placeName}</Text>
+        <Text style={styles.reviewText}>{place.content}</Text>
         <View style={styles.ratingContainer}>
           <Text style={styles.star}>⭐</Text>
           <Text style={styles.ratingText}>{place.rating} stars</Text>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
 export default function MyPage() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'MyPage'>>();
   const [userName, setUserName] = useState("사용자");
+  const [userReviews, setUserReviews] = useState<ReviewData[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
 
   useEffect(() => {
-    const loadUserName = async () => {
+    const loadUserData = async () => {
       try {
         const currentUser = AuthService.getCurrentUser();
         if (currentUser) {
+          // 사용자 이름 로드
           const name = await displayUserName(currentUser.uid);
           setUserName(name);
+          
+          // 서브컬렉션에서 사용자 리뷰 데이터 로드
+          const reviewsSnapshot = await firestore()
+            .collection('users')
+            .doc(currentUser.uid)
+            .collection('reviews')
+            .orderBy('createdAt', 'desc')
+            .limit(3) // 최근 3개만 표시
+            .get();
+          
+          const reviews = reviewsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          })) as ReviewData[];
+          
+          setUserReviews(reviews);
         }
       } catch (error) {
-        console.error('사용자 이름 로드 오류:', error);
+        console.error('사용자 데이터 로드 오류:', error);
+      } finally {
+        setLoadingReviews(false);
       }
     };
-    loadUserName();
+    loadUserData();
   }, []);
 
   const handleLogout = () => {
@@ -148,7 +162,7 @@ export default function MyPage() {
   };
 
   const handleReviews = () => {
-    // 리뷰 보기
+    navigation.navigate('MyReview');
   };
 
   const handleViewPolicyInfo = () => {
@@ -224,9 +238,23 @@ export default function MyPage() {
             </TouchableOpacity>
           </View>
           <View style={styles.reviewedPlacesContainer}>
-            {reviewedPlaces.map((place) => (
-              <ReviewedPlaceItem key={place.id} place={place} />
-            ))}
+            {loadingReviews ? (
+              <View style={styles.loadingContainer}>
+                <Text style={styles.loadingText}>리뷰를 불러오는 중...</Text>
+              </View>
+            ) : userReviews.length > 0 ? (
+              userReviews.map((review) => (
+                <ReviewedPlaceItem 
+                  key={review.id} 
+                  place={review} 
+                  onPress={handleReviews}
+                />
+              ))
+            ) : (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>작성한 리뷰가 없습니다.</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -485,5 +513,21 @@ const styles = StyleSheet.create({
   },
   settingsIcon: {
     fontSize: 20,
+  },
+  loadingContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  emptyContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#666666',
   },
 }); 

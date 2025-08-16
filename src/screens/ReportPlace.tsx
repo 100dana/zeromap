@@ -26,7 +26,6 @@ import { GeocodingService } from '../services/geocodingService';
 import storage from '@react-native-firebase/storage';
 
 type RootStackParamList = {
-  Home: undefined;
   Map: undefined;
   ReportPlace: undefined;
 };

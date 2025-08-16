@@ -8,12 +8,10 @@ import {
   TouchableOpacity, 
   StyleSheet, 
   Alert,
-  Image
 } from "react-native";
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors } from '../styles/colors';
-import { typography } from '../styles/typography';
 import { spacing } from '../styles/spacing';
 import { shadows } from '../styles/shadows';
 import FirestoreService from '../services/firestoreService';
@@ -23,7 +21,6 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import storage from '@react-native-firebase/storage';
 
 type RootStackParamList = {
-  Home: undefined;
   Map: undefined;
   MapDetail: undefined;
   WriteReview: { 

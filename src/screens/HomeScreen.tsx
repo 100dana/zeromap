@@ -11,7 +11,6 @@ import { spacing } from '../styles/spacing';
 import { shadows } from '../styles/shadows';
 
 type RootStackParamList = {
-  Home: undefined;
   Map: undefined;
   Campaign: undefined;
 };

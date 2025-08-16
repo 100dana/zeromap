@@ -19,7 +19,6 @@ import { shadows } from '../styles/shadows';
 import { CampaignData, getCampaignList } from '../services/newsService';
 
 type RootStackParamList = {
-  Home: undefined;
   Campaign: undefined;
   CampaignDetail: { articleId: string; title?: string };
 };

@@ -17,7 +17,6 @@ import { shadows } from '../styles/shadows';
 
 type RootStackParamList = {
   PolicyInfo: undefined;
-  Home: undefined;
 };
 
 type PolicyInfoNavigationProp = NativeStackNavigationProp<RootStackParamList, 'PolicyInfo'>;
