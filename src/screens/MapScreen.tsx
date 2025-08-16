@@ -457,17 +457,6 @@ export default function MapScreen() {
     setShowSearchResults(false);
   };
 
-
-  // 검색 제안 아이템 컴포넌트
-  const SearchSuggestionItem = ({ suggestion }: { suggestion: string }) => (
-    <TouchableOpacity
-      style={styles.searchSuggestionItem}
-      onPress={() => handleSuggestionSelect(suggestion)}
-    >
-      <Text style={styles.searchSuggestionText}>💡 {suggestion}</Text>
-    </TouchableOpacity>
-  );
-
   const ReviewBar = () => {
     if (!barVisible || !selectedPlace) return null;
     const avgRating = reviews.length ? (reviews.reduce((a, b) => a + b.rating, 0) / reviews.length).toFixed(1) : '-';
@@ -758,46 +747,6 @@ export default function MapScreen() {
   const allPlaces = [...places, ...localPlaces, ...storePlaces];
   const displayPlaces = getDisplayPlaces();
   
-  // 기존 ReviewListModal 관련 코드(컴포넌트, 상태 등) 삭제 또는 주석처리
-  // const ReviewListModal = () => (
-  //   <Modal
-  //     visible={showReviewListModal}
-  //     transparent={true}
-  //     animationType="slide"
-  //     onRequestClose={() => setShowReviewListModal(false)}
-  //   >
-  //     <View style={styles.modalOverlay}>
-  //       <View style={[styles.modalContent, { maxHeight: '90%' }]}> 
-  //         <View style={styles.modalHeader}>
-  //           <Text style={styles.modalTitle}>전체 리뷰</Text>
-  //           <TouchableOpacity style={styles.closeButton} onPress={() => setShowReviewListModal(false)}>
-  //             <Text style={styles.closeButtonText}>✕</Text>
-  //           </TouchableOpacity>
-  //         </View>
-  //         <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={true}>
-  //           {loadingReviews ? (
-  //             <Text>리뷰 불러오는 중...</Text>
-  //           ) : reviews.length === 0 ? (
-  //             <Text>아직 리뷰가 없습니다.</Text>
-  //           ) : (
-  //             reviews.map(r => (
-  //               <React.Fragment key={r.id}>
-  //                 <View style={{ marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#eee', paddingBottom: 8 }}>
-  //                   <Text style={{ fontWeight: 'bold' }}>
-  //                     {r.userName} <Text style={{ color: '#f5b50a' }}>{'★'.repeat(r.rating)}</Text>
-  //                   </Text>
-  //                   <Text style={{ marginVertical: 2 }}>{r.reviewText}</Text>
-  //                   <Text style={{ fontSize: 12, color: '#888' }}>{new Date(r.createdAt).toISOString().slice(0, 10)}</Text>
-  //                 </View>
-  //               </React.Fragment>
-  //             ))
-  //           )}
-  //         </ScrollView>
-  //       </View>
-  //     </View>
-  //   </Modal>
-  // );
-
   // handleCategoryPress 함수 추가
   const handleCategoryPress = (type: string) => {
     setSelectedCategory(type);
@@ -959,8 +908,9 @@ export default function MapScreen() {
                   <>
                     <View style={styles.listHeader}>
                       <Text style={styles.listHeaderTitle}>
-                        {showSearchResults ? '검색 결과' : categories.find(cat => cat.type === selectedCategory)?.label}
-                        <Text> ({displayPlaces.length}곳)</Text>
+                        {showSearchResults
+                          ? `검색 결과 (${displayPlaces.length}곳)`
+                          : `${categories.find(cat => cat.type === selectedCategory)?.label || ''} (${displayPlaces.length}곳)`}
                       </Text>
                     </View>
                     {displayPlaces.map((place, index) => (

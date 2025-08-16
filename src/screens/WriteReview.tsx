@@ -166,19 +166,6 @@ export default function WriteReview({ route }: { route: { params?: { placeName?:
         {/* 가게 이름 + 리뷰쓰기 버튼 섹션 */}
         <View style={styles.placeSectionRow}>
           <Text style={styles.placeName}>{placeName}</Text>
-          <TouchableOpacity
-            style={styles.inlineWriteButton}
-            onPress={handleSubmitReview}
-            disabled={!isFormValid || isSubmitting}
-            activeOpacity={0.85}
-          >
-            <Text style={[
-              styles.inlineWriteButtonText,
-              (!isFormValid || isSubmitting) && styles.inlineWriteButtonTextDisabled
-            ]}>
-              {isSubmitting ? '저장 중...' : '✍️ 리뷰쓰기'}
-            </Text>
-          </TouchableOpacity>
         </View>
 
         {/* 별점 섹션 */}
@@ -271,23 +258,14 @@ export default function WriteReview({ route }: { route: { params?: { placeName?:
             <Text style={styles.cancelButtonText}>취소</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[
-              styles.submitButton,
-              (!isFormValid || isSubmitting) && styles.submitButtonDisabled,
-              isSubmitting && { opacity: 0.7 }
-            ]}
+            style={[styles.reportButton, (!isFormValid || isSubmitting) && { opacity: 0.5 }]}
             onPress={handleSubmitReview}
             disabled={!isFormValid || isSubmitting}
             activeOpacity={0.85}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={[
-                styles.submitButtonText,
-                (!isFormValid || isSubmitting) && styles.submitButtonTextDisabled
-              ]}>
-                {isSubmitting ? '저장 중...' : '✍️ 리뷰 작성하기'}
-              </Text>
-            </View>
+            <Text style={styles.reportButtonText}>
+              {isSubmitting ? '저장 중...' : '리뷰 작성하기'}
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -518,7 +496,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: colors.textPrimary,
   },
-  submitButton: {
+  reportButton: {
     flex: 1,
     backgroundColor: colors.primary,
     borderRadius: 24, // 더 둥글게
@@ -531,16 +509,10 @@ const styles = StyleSheet.create({
     elevation: 4,
     marginTop: 8,
   },
-  submitButtonDisabled: {
-    backgroundColor: colors.divider,
-  },
-  submitButtonText: {
+  reportButtonText: {
     fontSize: 18,
     fontWeight: "bold",
     color: colors.background,
     letterSpacing: 0.5,
-  },
-  submitButtonTextDisabled: {
-    color: colors.textDisabled,
   },
 }); 
