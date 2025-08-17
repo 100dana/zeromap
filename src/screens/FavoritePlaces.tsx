@@ -36,7 +36,7 @@ interface FavoritePlaceData {
 }
 
 function FavoritePlaceCard({ place }: { place: FavoritePlaceData }) {
-  const getCategoryIcon = (category: string) => {
+  const getCategoryIcon = (category: string): string => {
     switch (category) {
       case '제로식당':
         return '🍽️';
@@ -84,8 +84,8 @@ export default function FavoritePlaces() {
         setLoading(true);
         const favorites = await firestoreService.getFavoritePlaces();
         setFavoritePlaces(favorites);
-      } catch (error) {
-        console.error('찜한 장소 로드 오류:', error);
+      } catch (err) {
+        console.error('찜한 장소 로드 오류:', err);
         setError('찜한 장소를 불러오지 못했습니다');
       } finally {
         setLoading(false);

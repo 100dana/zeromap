@@ -32,7 +32,7 @@
 		<true/>
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
+	<string/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>장소 사진을 첨부하기 위해 갤러리 접근 권한이 필요합니다.</string>
 	<key>NSCameraUsageDescription</key>
@@ -53,5 +53,11 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>UIAppFonts</key>
+	<array>
+		<string>NanumGothic-Bold.ttf</string>
+		<string>NanumGothic-ExtraBold.ttf</string>
+		<string>NanumGothic-Regular.ttf</string>
+	</array>
 </dict>
 </plist>

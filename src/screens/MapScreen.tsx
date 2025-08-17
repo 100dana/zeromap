@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, ScrollView, Image, Text, TouchableOpacity, ImageBackground, StyleSheet, Alert, TextInput, FlatList, Modal, StatusBar, Animated, PanResponder, Dimensions, ActivityIndicator } from "react-native";
+import { View, ScrollView, Text, TouchableOpacity, Alert, TextInput, Modal, StatusBar, Animated, PanResponder, Dimensions, ActivityIndicator } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
@@ -9,7 +9,6 @@ import { SeoulApiService, PlaceData } from '../services/seoulApi';
 import { LocalDataService, LocalPlaceData } from '../services/localDataService';
 import { SearchService, SearchResult } from '../services/searchService';
 import StoreDataService, { StoreData } from '../services/storeDataService';
-import { GeocodingService } from '../services/geocodingService';
 import { mapScreenStyles } from '../styles/mapScreenStyles';
 import { colors } from '../styles/colors';
 import firestoreService from '../services/firestoreService';
@@ -179,7 +178,6 @@ const PlaceDetailModal = ({
 // 리스트 아이템 컴포넌트
 function PlaceListItem({
   place,
-  index,
   onPress,
   calculateDistance,
   currentLocation
@@ -243,16 +241,16 @@ const categories = [
     iconBgMargin: 38,
     textMargin: 3,
     type: 'cupDiscountCafe',
-    color: '#FF9800',
+    color: '#4CAF50',
     description: '개인 컵 할인을 제공하는 카페 (159곳)'
   },
   {
     icon: "🍽️",
-    label: "비건",
+    label: "비건 식당",
     iconBgMargin: 38,
     textMargin: 3,
     type: 'zeroRestaurant',
-    color: '#2196F3',
+    color: '#4CAF50',
     description: '친환경 식당 및 카페 (1,300곳)'
   },
   {
@@ -261,17 +259,17 @@ const categories = [
     iconBgMargin: 38,
     textMargin: 3,
     type: 'refillShop',
-    color: '#9C27B0',
+    color: '#4CAF50',
     description: '리필 제품을 판매하는 상점'
   },
 
   {
     icon: "🧴",
-    label: "친환경생필품점",
+    label: "친환경\n생필품점",
     iconBgMargin: 38,
     textMargin: 3,
     type: 'ecoSupplies',
-    color: '#795548',
+    color: '#4CAF50',
     description: '친환경 생필품을 판매하는 곳'
   },
   {
@@ -280,7 +278,7 @@ const categories = [
     iconBgMargin: 38,
     textMargin: 3,
     type: 'others',
-    color: '#9E9E9E',
+    color: '#4CAF50',
     description: '기타 친환경 시설'
   },
 ];
@@ -300,19 +298,46 @@ type CategoryCardProps = {
 };
 
 function CategoryCard({ icon, label, iconBgMargin, textMargin, type, color, description, style, isSelected, onPress, disabled }: CategoryCardProps) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    if (!disabled) {
+      Animated.spring(scaleAnim, {
+        toValue: 0.95,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }).start();
+    }
+  };
+
+  const handlePressOut = () => {
+    if (!disabled) {
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }).start();
+    }
+  };
+
   return (
-    <TouchableOpacity 
-      style={[
-        mapScreenStyles.categoryCard, 
-        style, 
-        isSelected && mapScreenStyles.selectedCategoryCard,
-        disabled && mapScreenStyles.categoryCardDisabled
-      ]} 
-      onPress={disabled ? undefined : onPress}
-      disabled={disabled}
-      accessibilityLabel={`${label} 카테고리 선택`}
-      accessibilityHint={description}
-    >
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <TouchableOpacity 
+        style={[
+          mapScreenStyles.categoryCard, 
+          style, 
+          isSelected && mapScreenStyles.selectedCategoryCard,
+          disabled && mapScreenStyles.categoryCardDisabled
+        ]} 
+        onPress={disabled ? undefined : onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        disabled={disabled}
+        accessibilityLabel={`${label} 카테고리 선택`}
+        accessibilityHint={description}
+      >
       <View style={[mapScreenStyles.categoryIconWrap, { marginHorizontal: iconBgMargin }]}> 
         <View style={[
           mapScreenStyles.categoryIconBg, 
@@ -323,16 +348,17 @@ function CategoryCard({ icon, label, iconBgMargin, textMargin, type, color, desc
         </View>
       </View>
       {/* label에 줄바꿈(\n)이 있으면 각 줄을 <Text>로 감싸서 렌더링 */}
-      <View style={{alignItems:'center'}}>
+      <View style={{alignItems:'center', justifyContent: 'center', flex: 1}}>
         {label.split('\n').map((line, idx) => (
           <Text key={idx} style={[
             mapScreenStyles.categoryLabel, 
-            { marginHorizontal: textMargin },
+            { marginHorizontal: textMargin, marginBottom: idx < label.split('\n').length - 1 ? 0 : undefined },
             isSelected && { color: color }
           ]}>{line}</Text>
         ))}
       </View>
     </TouchableOpacity>
+    </Animated.View>
   );
 }
 
@@ -691,7 +717,7 @@ export default function MapScreen() {
             return;
           } catch (error) {
             setStorePlaces([]);
-            Alert.alert('알림', '제로식당 데이터를 불러오는데 실패했습니다.');
+            Alert.alert('알림', '비건 식당 데이터를 불러오는데 실패했습니다.');
             setLoading(false);
             return;
           }
@@ -1029,17 +1055,17 @@ export default function MapScreen() {
                     <ActivityIndicator size="large" color={colors.primary} />
                     <Text style={mapScreenStyles.loadingText}>데이터를 불러오는 중...</Text>
                     <Text style={mapScreenStyles.loadingSubText}>
-                      {selectedCategory === 'zeroWaste' && '제로웨이스트 상점 정보를 가져오고 있습니다'}
-                      {selectedCategory === 'cupDiscountCafe' && '개인컵 할인 카페 정보를 가져오고 있습니다'}
-                      {selectedCategory === 'zeroRestaurant' && '제로식당 정보를 가져오고 있습니다'}
-                      {!['zeroWaste', 'cupDiscountCafe', 'zeroRestaurant'].includes(selectedCategory) && '지역 데이터를 불러오고 있습니다'}
+                      {selectedCategory === 'zeroWaste' && '제로웨이스트 상점 정보를 가져오는 중'}
+                      {selectedCategory === 'cupDiscountCafe' && '개인컵 할인 카페 정보를 가져오는 중'}
+                      {selectedCategory === 'zeroRestaurant' && '제로식당 정보를 가져오는 중'}
+                      {!['zeroWaste', 'cupDiscountCafe', 'zeroRestaurant'].includes(selectedCategory) && '지역 데이터를 불러오는 중'}
                     </Text>
                   </View>
                 ) : displayPlaces.length > 0 ? (
                   <>
                     <View style={mapScreenStyles.listHeader}>
                       <Text style={mapScreenStyles.listHeaderTitle}>
-                        {showSearchResults ? `검색 결과 (${displayPlaces.length}곳)` : `${categories.find(cat => cat.type === selectedCategory)?.label || ''} (${displayPlaces.length}곳)`}
+                        {showSearchResults ? `검색 결과 (${displayPlaces.length}개)` : `${categories.find(cat => cat.type === selectedCategory)?.label || ''} (${displayPlaces.length}개)`}
                       </Text>
                     </View>
                     {displayPlaces.map((place, index) => (

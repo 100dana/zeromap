@@ -1,0 +1,21 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "assets/fonts/Nanum_Gothic/NanumGothic-Bold.ttf",
+      "sha1": "21309f0279ea928e2d54ff5235166bfddbb1250a"
+    },
+    {
+      "path": "assets/fonts/Nanum_Gothic/NanumGothic-ExtraBold.ttf",
+      "sha1": "2d9f0ceabd10e47a6944c7c195031de1c1313260"
+    },
+    {
+      "path": "assets/fonts/Nanum_Gothic/NanumGothic-Regular.ttf",
+      "sha1": "5d2f8e5f7813f53c342e822b207e3919a89e3250"
+    },
+    {
+      "path": "assets/fonts/Nanum_Gothic/OFL.txt",
+      "sha1": "7aa8066dd6a05325e61154448de4729105518cde"
+    }
+  ]
+}

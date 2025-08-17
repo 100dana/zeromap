@@ -5,6 +5,9 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
+import { colors } from '../styles/colors';
+import { shadows } from '../styles/shadows';
+import { spacing } from '../styles/spacing';
 
 type RootStackParamList = {
   MyPage: undefined;
@@ -92,7 +95,7 @@ const MyReview = () => {
                 >
                     <Text style={styles.backButtonText}>‹</Text>
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>내 리뷰</Text>
+                <Text style={styles.headerTitle}>내가 쓴 리뷰</Text>
                 <View style={styles.backButton} />
             </View>
             
@@ -114,14 +117,16 @@ const styles = StyleSheet.create({
     },
     header: {
         flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingTop: 12,
-        paddingBottom: 16,
-        backgroundColor: '#FFFFFF',
-        borderBottomWidth: 1,
-        borderBottomColor: '#E0E0E0',
+            textAlign: 'center',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: spacing.screenPaddingHorizontal,
+            paddingTop: 12,
+            paddingBottom: spacing.paddingMedium,
+            backgroundColor: colors.card,
+            borderBottomWidth: 2,
+            borderBottomColor: colors.divider,
+            ...shadows.header,
     },
     backButton: {
         padding: 8,
@@ -136,13 +141,13 @@ const styles = StyleSheet.create({
         color: "#000000",
     },
     listContainer: {
-        padding: 16,
+        padding: 20,
     },
     reviewedPlaceItem: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: 12,
-        paddingHorizontal: 16,
+        paddingVertical: 16,
+        paddingHorizontal: 20,
         backgroundColor: '#F8F8F8',
         borderRadius: 8,
         marginBottom: 8,
@@ -166,7 +171,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: "bold",
         color: "#000000",
-        marginBottom: 2,
+        marginBottom: 4,
         flex: 1,
     },
     reviewHeader: {
@@ -180,9 +185,10 @@ const styles = StyleSheet.create({
         color: "#999999",
     },
     reviewText: {
-        fontSize: 12,
+        fontSize: 14,
         color: "#666666",
         marginBottom: 4,
+        marginLeft: 6,
     },
     ratingContainer: {
         flexDirection: "row",
@@ -191,6 +197,7 @@ const styles = StyleSheet.create({
     star: {
         fontSize: 12,
         marginRight: 4,
+        marginLeft: 4,
     },
     ratingText: {
         fontSize: 12,
