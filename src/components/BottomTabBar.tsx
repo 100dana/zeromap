@@ -23,7 +23,7 @@ type TabItem = {
 
 const tabItems: TabItem[] = [
   { key: 'home', title: '홈', icon: '🏠', route: 'Map' },
-  { key: 'campaign', title: '뉴스', icon: '🎯', route: 'Campaign' },
+  { key: 'campaign', title: '뉴스', icon: '📢', route: 'Campaign' },
   { key: 'mypage', title: '마이페이지', icon: '👤', route: 'MyPage' },
   { key: 'settings', title: '설정', icon: '⚙', route: 'Settings' }
 ];
@@ -76,36 +76,33 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderTopWidth: 1,
     borderTopColor: colors.divider,
-    paddingBottom: 15, // 높이 줄임
-    paddingTop: 8, // 높이 줄임
+    paddingBottom: 15, 
+    paddingTop: 8,
     ...shadows.header,
   },
   tabItem: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 6, // 높이 줄임
+    paddingVertical: 6,
   },
   activeTabItem: {
-    // 활성 탭 스타일링
   },
   tabIcon: {
-    fontSize: 20, // 아이콘 크기 줄임
-    marginBottom: 2, // 간격 줄임
+    fontSize: 20,
+    marginBottom: 2,
     color: colors.textSecondary,
   },
   activeTabIcon: {
     color: colors.primary,
   },
   tabTitle: {
-    ...typography.caption,
-    fontWeight: "500",
-    fontSize: 10, // 폰트 크기 줄임
+    fontWeight: "100",
+    fontSize: 12,
   },
   activeTabTitle: {
-    ...typography.caption,
     color: colors.primary,
-    fontWeight: "bold",
-    fontSize: 10, // 폰트 크기 줄임
+    fontWeight: "500",
+    fontSize: 13,
   },
 }); 

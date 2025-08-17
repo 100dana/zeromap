@@ -9,14 +9,13 @@ import {
   StyleSheet, 
   Alert,
   Image,
-  ActivityIndicator,
   FlatList,
   Platform,
   PermissionsAndroid
 } from "react-native";
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
-import { launchImageLibrary, ImagePickerResponse, MediaType } from 'react-native-image-picker';
+import { launchImageLibrary } from 'react-native-image-picker';
 import KakaoMap from '../components/KakaoMap';
 import AddressSearchModal from '../components/AddressSearchModal';
 import { colors } from '../styles/colors';
@@ -43,12 +42,12 @@ const categories = [
   },
   {
     id: 'zeroRestaurant',
-    label: "제로식당",
+    label: "비건 식당",
     icon: "🍽️"
   },
   {
     id: 'refillStation',
-    label: "리필스테이션",
+    label: "리필 스테이션",
     icon: "🔄"
   },
   {
@@ -71,7 +70,7 @@ type CategoryCardProps = {
   onPress: () => void;
 };
 
-function CategoryCard({ id, label, icon, isSelected, onPress }: CategoryCardProps) {
+function CategoryCard({ label, icon, isSelected, onPress }: CategoryCardProps) {
   return (
     <TouchableOpacity 
       style={[
@@ -104,7 +103,6 @@ export default function ReportPlace() {
   const [isAddressModalVisible, setIsAddressModalVisible] = useState(false);
 
 
-  // 지도 클릭 처리
   const handleMapClick = async (coordinates: { latitude: number; longitude: number }) => {
     setSelectedLocation({ lat: coordinates.latitude, lng: coordinates.longitude });
     
@@ -118,7 +116,6 @@ export default function ReportPlace() {
       if (addressResult) {
         setAddress(addressResult);
       } else {
-        // API 실패 시 오류 메시지 표시
         setAddress('주소 변환에 실패했습니다. 다시 시도해주세요.');
       }
     } catch (error) {
@@ -156,7 +153,7 @@ export default function ReportPlace() {
         return false;
       }
     }
-    return true; // iOS는 기본적으로 허용
+    return true;
   };
 
   // 이미지 선택 처리
@@ -455,14 +452,14 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   inputSection: {
-    marginTop: 20,
+    marginTop: 10,
     marginBottom: 10,
     marginHorizontal: 24,
   },
   inputLabel: {
     color: "#000000",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "normal",
     marginBottom: 10,
     marginLeft: 6,
   },
@@ -499,6 +496,7 @@ const styles = StyleSheet.create({
   },
   mapContainer: {
     marginTop: 6,
+    marginHorizontal: 2,
     height: 200,
     borderRadius: 6,
     overflow: 'hidden',
@@ -511,7 +509,7 @@ const styles = StyleSheet.create({
   categoryCard: {
     width: 100,
     height: 100,
-    borderColor: "#0000001A",
+    borderColor: "#00000030",
     borderWidth: 1,
     borderRadius: 6,
     paddingVertical: 12,
@@ -529,15 +527,15 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   categoryLabel: {
-    color: "#000000",
+    color: "#000000a6",
     fontSize: 12,
     textAlign: "center",
-    fontWeight: "500",
+    fontWeight: "400",
     marginTop: 4,
   },
   selectedCategoryLabel: {
     color: "#4CAF50",
-    fontWeight: "bold",
+    fontWeight: "500",
   },
   descriptionInput: {
     height: 100,
@@ -610,6 +608,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FAFAFA",
     width: '100%',
     minHeight: 160,
+    marginBottom: 12,
   },
   uploadIconContainer: {
     flexDirection: 'row',

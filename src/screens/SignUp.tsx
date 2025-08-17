@@ -47,38 +47,32 @@ export default function SignUp() {
   // 입력 필드 변경 핸들러
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // 에러 메시지 초기화
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
 
-  // 유효성 검사
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {};
 
-    // 이메일 검증
     if (!formData.email) {
       newErrors.email = '이메일을 입력해주세요.';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = '올바른 이메일 형식을 입력해주세요.';
     }
 
-    // 비밀번호 검증
     if (!formData.password) {
       newErrors.password = '비밀번호를 입력해주세요.';
     } else if (formData.password.length < 8) {
       newErrors.password = '비밀번호는 8자 이상이어야 합니다.';
     }
 
-    // 비밀번호 확인 검증
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = '비밀번호를 다시 입력해주세요.';
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = '비밀번호가 일치하지 않습니다.';
     }
 
-    // 닉네임 검증
     if (!formData.nickname) {
       newErrors.nickname = '닉네임을 입력해주세요.';
     } else if (formData.nickname.length < 2) {
@@ -105,7 +99,6 @@ export default function SignUp() {
     }
   };
 
-  // 로그인 페이지로 이동
   const handleSignIn = () => {
     navigation.navigate('SignIn');
   };
@@ -170,26 +163,13 @@ export default function SignUp() {
 
     try {
       setIsLoading(true);
+      // TODO: 이메일 회원가입 로직 구현
       await AuthService.signUpWithEmail(formData.email, formData.password);
       Alert.alert('회원가입 성공', '회원가입이 완료되었습니다.', [
         { text: '확인', onPress: () => navigation.navigate('Map') }
       ]);
     } catch (error: any) {
       Alert.alert('회원가입 실패', error.message || '회원가입에 실패했습니다.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleSignUp = async () => {
-    try {
-      setIsLoading(true);
-      await AuthService.signInWithGoogle();
-      Alert.alert('회원가입 성공', 'Google 계정으로 회원가입이 완료되었습니다.', [
-        { text: '확인', onPress: () => navigation.navigate('Map') }
-      ]);
-    } catch (error: any) {
-      Alert.alert('회원가입 실패', error.message || 'Google 회원가입에 실패했습니다.');
     } finally {
       setIsLoading(false);
     }
@@ -220,18 +200,12 @@ export default function SignUp() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.header}>
-            <TouchableOpacity 
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Text style={styles.backButtonText}>←</Text>
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>회원가입</Text>
-            <View style={styles.headerRight} />
-          </View>
-
           <View style={styles.content}>
+            <View style={styles.header}>
+              <View style={styles.headerLeft} />
+              <Text style={styles.headerTitle}>회원가입</Text>
+              <View style={styles.headerRight} />
+            </View>
             <View style={styles.welcomeSection}>
               <Text style={styles.welcomeTitle}>Zero Map에 오신 것을 환영합니다!</Text>
               <Text style={styles.welcomeSubtitle}>
@@ -247,7 +221,7 @@ export default function SignUp() {
                 onPress={handleEmailSignUp}
                 disabled={isLoading}
               >
-                <Text style={styles.emailButtonText}>📧 이메일로 계속하기</Text>
+                <Text style={styles.emailButtonText}>📧 이메일로 가입하기</Text>
               </TouchableOpacity>
 
               <View style={styles.dividerContainer}>
@@ -399,6 +373,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingBottom: spacing.xl,
+    justifyContent: 'center',
+    minHeight: '100%',
   },
   header: {
     flexDirection: 'row',
@@ -407,18 +383,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     backgroundColor: colors.background,
-  },
-  backButton: {
-    padding: spacing.sm,
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: colors.primary,
+    marginBottom: spacing.xl,
+    width: '100%',
   },
   headerTitle: {
     fontSize: typography.h3.fontSize,
-    fontWeight: typography.h3.fontWeight,
+    fontWeight: 'bold',
     color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  headerLeft: {
+    width: 40,
   },
   headerRight: {
     width: 40,
@@ -426,25 +401,29 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: spacing.md,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   welcomeSection: {
     alignItems: 'center',
     marginBottom: spacing.xl,
+    width: '100%',
   },
   welcomeTitle: {
     fontSize: typography.h2.fontSize,
-    fontWeight: typography.h2.fontWeight,
     color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
   welcomeSubtitle: {
-    fontSize: typography.body1.fontSize,
+    fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
   },
   selectionContainer: {
     marginBottom: spacing.xl,
+    width: '100%',
+    alignItems: 'center',
   },
   selectionButton: {
     paddingVertical: spacing.md,
@@ -465,12 +444,10 @@ const styles = StyleSheet.create({
   emailButtonText: {
     color: colors.background,
     fontSize: typography.button.fontSize,
-    fontWeight: typography.button.fontWeight,
   },
   googleButtonText: {
     color: colors.textPrimary,
     fontSize: typography.button.fontSize,
-    fontWeight: typography.button.fontWeight,
   },
   disabledButton: {
     opacity: 0.6,
@@ -535,7 +512,6 @@ const styles = StyleSheet.create({
   },
   modalHeaderTitle: {
     fontSize: typography.h3.fontSize,
-    fontWeight: typography.h3.fontWeight,
     color: colors.textPrimary,
   },
   modalHeaderRight: {
@@ -554,7 +530,6 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: typography.body1.fontSize,
-    fontWeight: typography.body1.fontWeight,
     color: colors.textPrimary,
     marginBottom: spacing.xs,
   },
@@ -587,6 +562,5 @@ const styles = StyleSheet.create({
   signUpButtonText: {
     color: colors.background,
     fontSize: typography.button.fontSize,
-    fontWeight: typography.button.fontWeight,
   },
 });

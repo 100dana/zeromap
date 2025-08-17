@@ -25,6 +25,12 @@ type RootStackParamList = {
 
 type CampaignNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Campaign'>;
 
+// 제목에 줄바꿈을 추가하는 함수
+function addLineBreaksToTitle(title: string): string {
+  // 문장 끝에 마침표, 느낌표, 물음표가 있으면 줄바꿈 추가
+  return title.replace(/([.!?])\s+/g, '$1\n');
+}
+
 function CampaignListItem({ campaign }: { campaign: CampaignData }) {
   const navigation = useNavigation<CampaignNavigationProp>();
 
@@ -36,7 +42,7 @@ function CampaignListItem({ campaign }: { campaign: CampaignData }) {
       >
         <Image source={{ uri: campaign.thumbnail }} style={styles.listItemThumbnail} resizeMode="cover" />
         <View style={styles.listItemContent}>
-          <Text style={styles.listItemTitle}>{campaign.title}</Text>
+          <Text style={styles.listItemTitle}>{addLineBreaksToTitle(campaign.title)}</Text>
         </View>
       </TouchableOpacity>
       <View style={styles.divider} />
@@ -70,16 +76,16 @@ export default function Campaign() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      {/* 제목 */}
-      <View style={styles.titleContainer}>
+      {/* 상단 헤더 */}
+      <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
           <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>서울시 환경 뉴스</Text>
-        <View style={styles.titleRight} />
+        <Text style={styles.headerTitle}>서울시 환경 뉴스</Text>
+        <View style={styles.backButton} />
       </View>
 
       {/* 캠페인 리스트 */}
@@ -116,32 +122,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  titleContainer: {
-    paddingHorizontal: spacing.screenPaddingHorizontal,
-    paddingTop: 12,
-    paddingBottom: spacing.paddingMedium,
-    backgroundColor: colors.card,
-    borderBottomWidth: 2,
-    borderBottomColor: colors.divider,
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: spacing.screenPaddingHorizontal,
+    paddingVertical: spacing.paddingMedium,
+    backgroundColor: colors.card,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+    ...shadows.header,
   },
   backButton: {
-    padding: spacing.paddingSmall,
+    padding: 8,
   },
   backButtonText: {
-    ...typography.h3,
-    color: colors.textPrimary,
+    fontSize: 24,
+    color: "#000000",
   },
-  title: {
-    ...typography.h2,
-    color: colors.textPrimary,
-    flex: 1,
+  headerTitle: {
     textAlign: 'center',
-  },
-  titleRight: {
-    width: spacing.paddingSmall,
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#000000",
   },
   scrollView: {
     flex: 1,
@@ -159,31 +162,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: colors.card,
     borderRadius: spacing.borderRadiusLarge,
-    padding: spacing.paddingMedium,
+    padding: spacing.paddingSmall,
     alignItems: 'center',
     ...shadows.card,
   },
   divider: {
     height: 1,
     backgroundColor: colors.divider,
-    marginTop: spacing.paddingMedium,
+    marginTop: spacing.paddingSmall,
     marginHorizontal: spacing.paddingLarge,
   },
   listItemThumbnail: {
-    width: 80,
-    height: 80,
+    width: 90,
+    height: 90,
     borderRadius: spacing.borderRadiusMedium,
     marginRight: spacing.paddingLarge,
     backgroundColor: colors.divider,
+    marginBottom: 4,
   },
   listItemContent: {
     flex: 1,
   },
   listItemTitle: {
-    ...typography.body1,
+    fontSize: 16,
     color: colors.textPrimary,
-    fontWeight: '600',
+    fontWeight: '500',
     marginBottom: spacing.xs,
+    marginLeft: 4,
   },
   centered: {
     padding: spacing.paddingLarge,
@@ -197,41 +202,5 @@ const styles = StyleSheet.create({
   emptyText: {
     ...typography.body1,
     color: colors.textSecondary,
-  },
-  bottomButtons: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing.screenPaddingHorizontal,
-    paddingVertical: spacing.paddingMedium,
-    backgroundColor: colors.card,
-    borderTopWidth: 1,
-    borderTopColor: colors.divider,
-  },
-  filterButton: {
-    flex: 1,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: spacing.borderRadiusMedium,
-    paddingVertical: spacing.paddingMedium,
-    alignItems: 'center',
-    marginRight: spacing.paddingSmall,
-  },
-  filterButtonText: {
-    ...typography.body1,
-    color: colors.textPrimary,
-    fontWeight: '600',
-  },
-  addCampaignButton: {
-    flex: 1,
-    backgroundColor: colors.textPrimary,
-    borderRadius: spacing.borderRadiusMedium,
-    paddingVertical: spacing.paddingMedium,
-    alignItems: 'center',
-    marginLeft: spacing.paddingSmall,
-  },
-  addCampaignButtonText: {
-    ...typography.body1,
-    color: colors.background,
-    fontWeight: '600',
   },
 }); 

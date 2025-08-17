@@ -140,25 +140,27 @@ export default function SignIn() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* 헤더 */}
-          <View style={styles.header}>
+          {/* 메인 컨텐츠 */}
+          <View style={styles.content}>
+            {/* 헤더 */}
+            <View style={styles.header}>
+              <View style={styles.headerLeft} />
+              <Text style={styles.headerTitle}>로그인</Text>
+              <View style={styles.headerRight} />
+            </View>
+            
+            {/* 뒤로가기 버튼 */}
             <TouchableOpacity 
               style={styles.backButton}
               onPress={() => navigation.goBack()}
             >
-              <Text style={styles.backButtonText}>←</Text>
+              <Text style={styles.backButtonText}>‹</Text>
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>로그인</Text>
-            <View style={styles.headerRight} />
-          </View>
-
-          {/* 메인 컨텐츠 */}
-          <View style={styles.content}>
             {/* 환영 메시지 */}
             <View style={styles.welcomeSection}>
               <Text style={styles.welcomeTitle}>다시 오신 것을 환영합니다!</Text>
               <Text style={styles.welcomeSubtitle}>
-                Zero Map에 로그인하여 친환경 라이프스타일을 이어가세요
+                Zeromap에 로그인하고{'\n'}친환경적인 라이프스타일을 이어가세요
               </Text>
             </View>
 
@@ -251,6 +253,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingBottom: spacing.xl,
+    justifyContent: 'center',
+    minHeight: '100%',
   },
   header: {
     flexDirection: 'row',
@@ -259,18 +263,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     backgroundColor: colors.background,
+    marginBottom: spacing.xl,
+    width: '100%',
   },
   backButton: {
-    padding: spacing.sm,
+    padding: 8,
+    position: 'absolute',
+    top: 60,
+    left: spacing.md,
+    zIndex: 1,
   },
   backButtonText: {
     fontSize: 24,
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   headerTitle: {
     fontSize: typography.h3.fontSize,
-    fontWeight: typography.h3.fontWeight,
     color: colors.textPrimary,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  headerLeft: {
+    width: 40,
   },
   headerRight: {
     width: 40,
@@ -278,14 +292,16 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: spacing.md,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   welcomeSection: {
     alignItems: 'center',
     marginBottom: spacing.xl,
+    width: '100%',
   },
   welcomeTitle: {
     fontSize: typography.h2.fontSize,
-    fontWeight: typography.h2.fontWeight,
     color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.sm,
@@ -297,15 +313,21 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     marginBottom: spacing.xl,
+    width: '100%',
+    alignItems: 'center',
   },
   inputGroup: {
     marginBottom: spacing.md,
+    width: '100%',
+    alignItems: 'center',
   },
   inputLabel: {
     fontSize: typography.body1.fontSize,
-    fontWeight: typography.body1.fontWeight,
     color: colors.textPrimary,
-    marginBottom: spacing.xs,
+    marginBottom: 8,
+    marginLeft: 4,
+    width: '80%',
+    textAlign: 'left',
   },
   textInput: {
     borderWidth: 1,
@@ -316,6 +338,8 @@ const styles = StyleSheet.create({
     fontSize: typography.body1.fontSize,
     color: colors.textPrimary,
     backgroundColor: colors.background,
+    height: 42,
+    width: '80%',
   },
   inputError: {
     borderColor: colors.error,
@@ -327,17 +351,16 @@ const styles = StyleSheet.create({
   },
   signInButton: {
     backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
     borderRadius: spacing.sm,
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.sm,
     ...shadows.button,
   },
   signInButtonText: {
     color: colors.background,
     fontSize: typography.button.fontSize,
-    fontWeight: typography.button.fontWeight,
   },
   disabledButton: {
     opacity: 0.6,
@@ -371,7 +394,6 @@ const styles = StyleSheet.create({
   googleButtonText: {
     color: colors.textPrimary,
     fontSize: typography.button.fontSize,
-    fontWeight: typography.button.fontWeight,
   },
   signUpSection: {
     flexDirection: 'row',

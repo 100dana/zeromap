@@ -95,7 +95,6 @@ function ReviewedPlaceItem({ place, onPress }: { place: ReviewData; onPress: () 
       </View>
       <View style={styles.reviewedPlaceInfo}>
         <Text style={styles.reviewedPlaceName}>{place.placeName}</Text>
-        <Text style={styles.reviewText}>{place.content}</Text>
         <View style={styles.ratingContainer}>
           <Text style={styles.star}>⭐</Text>
           <Text style={styles.ratingText}>{place.rating} stars</Text>
@@ -118,7 +117,6 @@ export default function MyPage() {
       try {
         const currentUser = AuthService.getCurrentUser();
         if (currentUser) {
-          // 사용자 이름 로드
           const name = await displayUserName(currentUser.uid);
           setUserName(name);
           
@@ -128,7 +126,6 @@ export default function MyPage() {
             .doc(currentUser.uid)
             .collection('reviews')
             .orderBy('createdAt', 'desc')
-            .limit(3) // 최근 3개만 표시
             .get();
           
           const reviews = reviewsSnapshot.docs.map(doc => ({
@@ -138,7 +135,6 @@ export default function MyPage() {
           
           setUserReviews(reviews);
 
-          // 찜한 장소 데이터 로드 (최대 5개)
           try {
             const favorites = await firestoreService.getFavoritePlaces(5);
             setFavoritePlaces(favorites);
@@ -158,21 +154,12 @@ export default function MyPage() {
   }, []);
 
   const handleLogout = () => {
-    // 로그아웃 처리
     try {
       AuthService.signOut();
       navigation.navigate('SignIn');
     } catch (error) {
       console.error('로그아웃 오류:', error);
     }
-  };
-
-  const handleSettings = () => {
-    // 설정 화면으로 이동
-  };
-
-  const handleNotifications = () => {
-    // 알림 설정
   };
 
   const handleSavedPlaces = () => {
@@ -256,7 +243,6 @@ export default function MyPage() {
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleContainer}>
               <Text style={styles.sectionTitle}>리뷰한 장소 목록</Text>
-              <Text style={styles.sectionSubtitle}>Active Campaigns</Text>
             </View>
             <TouchableOpacity
               style={styles.viewMoreButton}
@@ -291,7 +277,7 @@ export default function MyPage() {
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleContainer}>
               <Text style={styles.sectionTitle}>지역 정책 정보</Text>
-              <Text style={styles.sectionSubtitle}>Local Policy Information</Text>
+              <Text style={styles.sectionSubtitle}>우리 구의 정책 알아보기</Text>
             </View>
             <TouchableOpacity
               style={styles.viewMoreButton}
@@ -366,7 +352,8 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    marginRight: 16,
+    marginHorizontal: 16,
+    backgroundColor: "#00000016",
   },
   userInfo: {
     flex: 1,
@@ -383,12 +370,13 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     backgroundColor: "#F8F8F8",
-    paddingHorizontal: 12,
+    paddingHorizontal: 18,
     paddingVertical: 6,
+    marginRight: 6,
     borderRadius: 6,
   },
   logoutButtonText: {
-    fontSize: 12,
+    fontSize: 14,
     color: "#666666",
     fontWeight: "500",
   },
@@ -401,6 +389,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 8,
     marginBottom: 16,
   },
   sectionTitleContainer: {
@@ -432,6 +421,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F8F8F8",
     borderRadius: 8,
+    marginHorizontal: 8,
     overflow: "hidden",
     position: "relative",
   },
@@ -473,6 +463,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 8,
+    paddingHorizontal: 20,
   },
   placeIcon: {
     width: 32,
@@ -481,7 +472,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    marginRight: 16,
   },
   placeIconText: {
     fontSize: 16,
@@ -493,7 +484,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
     color: "#000000",
-    marginBottom: 2,
+    marginBottom: 4,
   },
   reviewText: {
     fontSize: 12,
@@ -519,6 +510,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 8,
+    paddingHorizontal: 20,
   },
   policyIcon: {
     fontSize: 16,

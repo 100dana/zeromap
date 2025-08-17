@@ -5,8 +5,8 @@
  * @format
  */
 
-import React, { useState, useEffect } from "react";
-import { View, Text } from "react-native";
+import React, { useState, useEffect, useRef } from "react";
+import { View, Text, Animated } from "react-native";
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -24,9 +24,11 @@ import SignIn from "./src/screens/SignIn";
 import ReviewListScreen from './src/screens/ReviewListScreen';
 import MyReview from './src/screens/MyReview';
 import FavoritePlaces from './src/screens/FavoritePlaces';
+import SplashScreen from './src/screens/Splash';
 
 
 type RootStackParamList = {
+  Splash: undefined;
   SignUp: undefined;
   SignIn: undefined;
   Map: undefined;
@@ -71,14 +73,21 @@ export default function App() {
     );
   }
 
+
+
   return (
     <SafeAreaProvider>
       {/* @ts-ignore */}
       <NavigationContainer>
         <Stack.Navigator 
-          initialRouteName="SignIn"
-          screenOptions={{ headerShown: false }}
+          initialRouteName="Splash"
+          screenOptions={{ 
+            headerShown: false,
+            animation: 'fade',
+            animationDuration: 300
+          }}
         >
+          <Stack.Screen name="Splash" component={SplashScreen} />
           <Stack.Screen name="SignUp" component={SignUp} />
           <Stack.Screen name="SignIn" component={SignIn} />
           <Stack.Screen name="Map" component={MapScreen} />

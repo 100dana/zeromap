@@ -4,10 +4,9 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Image,
   StyleSheet,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors } from '../styles/colors';
@@ -74,7 +73,7 @@ export default function PolicyInfo() {
   const navigation = useNavigation<PolicyInfoNavigationProp>();
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       {/* 상단 헤더 */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -84,12 +83,7 @@ export default function PolicyInfo() {
           <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>지역 정책 정보</Text>
-        <View style={styles.headerRight}>
-          <Text style={styles.backText}>BACK</Text>
-          <TouchableOpacity style={styles.refreshButton}>
-            <Text style={styles.refreshIcon}>↻</Text>
-          </TouchableOpacity>
-        </View>
+        <View style={styles.backButton} />
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -142,20 +136,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screenPaddingHorizontal,
     paddingVertical: spacing.paddingMedium,
     backgroundColor: colors.card,
-    borderBottomWidth: 2,
+    borderBottomWidth: 1,
     borderBottomColor: colors.divider,
     ...shadows.header,
   },
   backButton: {
-    padding: spacing.paddingSmall,
+    padding: 8,
   },
   backButtonText: {
-    fontSize: spacing.iconSizeLarge,
-    color: colors.textPrimary,
+    fontSize: 24,
+    color: "#000000",
   },
   headerTitle: {
-    ...typography.h3,
-    color: colors.textPrimary,
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#000000",
   },
   headerRight: {
     flexDirection: 'row',
