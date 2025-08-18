@@ -614,7 +614,7 @@ export const mapScreenStyles = StyleSheet.create({
     borderColor: "#7c7c7c2b",
     borderWidth: 1,
     overflow: 'hidden',
-    minHeight: 300, // TODO: 현재는 최소 크기 정해놨지만 나중에 비율로 설정하기
+    minHeight: 300, // TODO: 현재는 최소 크기 정해놓음 -> 비율로 수정
   },
   listContainer: {
     flex: 1,

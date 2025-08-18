@@ -94,6 +94,8 @@ export default function ReportPlace() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'ReportPlace'>>();
   const mapRef = useRef<any>(null);
   
+  // 장소 제보 폼 상태 관리
+  
   const [placeName, setPlaceName] = useState('');
   const [address, setAddress] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -103,6 +105,7 @@ export default function ReportPlace() {
   const [isAddressModalVisible, setIsAddressModalVisible] = useState(false);
 
 
+  // 지도 클릭 시 위치 선택 및 주소 변환
   const handleMapClick = async (coordinates: { latitude: number; longitude: number }) => {
     setSelectedLocation({ lat: coordinates.latitude, lng: coordinates.longitude });
     
@@ -124,7 +127,7 @@ export default function ReportPlace() {
     }
   };
 
-  // 주소 검색 모달에서 주소 선택 처리
+  // 주소 검색 모달에서 선택된 주소 처리
   const handleAddressSelect = (selectedAddress: string, coordinates: { latitude: number; longitude: number }) => {
     setAddress(selectedAddress);
     setSelectedLocation({ lat: coordinates.latitude, lng: coordinates.longitude });
@@ -175,6 +178,7 @@ export default function ReportPlace() {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-shadow
   const uploadImageAsync = async (uri: string, placeName: string) => {
     const filename = `report/${placeName}_${Date.now()}.jpg`;
     const reference = storage().ref(filename);
@@ -189,6 +193,7 @@ export default function ReportPlace() {
     setSelectedImages(selectedImages.filter((_, i) => i !== idx));
   };
 
+  // 장소 제보 저장 처리
   const handleSave = async () => {
     if (!placeName.trim()) {
       Alert.alert('알림', '장소 이름을 입력해주세요.');

@@ -1,3 +1,7 @@
+// 지역 정책 관련 페이지
+// 추후 데이터 확보시 업데이트 예정
+// 현재는 더미데이터로 하드 코딩 되어있음
+
 import React from 'react';
 import {
   View,

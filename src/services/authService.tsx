@@ -7,7 +7,6 @@ GoogleSignin.configure({
   webClientId: '143037001238-kadtrtrsmuqiovctg6k4sbh92uquq16p.apps.googleusercontent.com',
   offlineAccess: true,
   forceCodeForRefreshToken: true,
-  // 추가 설정으로 안정성 향상
   scopes: ['profile', 'email'],
 });
 
@@ -139,7 +138,6 @@ export class AuthService {
         await GoogleSignin.signOut();
         console.log('기존 로그인 상태 정리 완료');
       } catch (error) {
-        // 이미 로그아웃된 상태일 수 있음
         console.log('기존 로그인 상태 정리 중:', error);
       }
       
@@ -201,7 +199,6 @@ export class AuthService {
     try {
       await auth().signOut();
     } catch (error) {
-      // 오류 무시
     }
   }
 
@@ -253,7 +250,6 @@ export class AuthService {
           updatedAt: firestore.FieldValue.serverTimestamp()
         });
     } catch (error) {
-      // 오류 무시
     }
   }
 
@@ -267,7 +263,6 @@ export class AuthService {
           updatedAt: firestore.FieldValue.serverTimestamp()
         });
     } catch (error) {
-      // 오류 무시
     }
   }
 }

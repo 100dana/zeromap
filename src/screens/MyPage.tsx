@@ -1,3 +1,5 @@
+// 마이페이지 화면
+
 import React, { useEffect, useState } from "react";
 import { 
   View, 
@@ -31,7 +33,6 @@ type RootStackParamList = {
   FavoritePlaces: undefined;
 };
 
-// 찜한 장소 데이터 타입 정의
 interface FavoritePlaceData {
   id: string;
   name: string;
@@ -42,7 +43,6 @@ interface FavoritePlaceData {
   favoriteId: string;
 }
 
-// 리뷰 데이터 타입 정의
 interface ReviewData {
   id: string;
   placeName: string;

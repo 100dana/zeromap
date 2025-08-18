@@ -1,3 +1,5 @@
+// 앱 시작 시 실행되는 splash 화면
+
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, StyleSheet, } from 'react-native';
 import { useNavigation } from '@react-navigation/native';

@@ -2,6 +2,7 @@ import { firestore, storage } from './firebaseConfig';
 import { Review, ReviewInput } from '../types/review';
 import auth from '@react-native-firebase/auth';
 
+// Firestore 데이터베이스 서비스 클래스
 class FirestoreService {
   private placesCollection = firestore().collection('places');
   private reviewsCollection = firestore().collection('reviews');
@@ -18,17 +19,10 @@ class FirestoreService {
       .trim();
   }
 
-  /**
-   * 현재 로그인한 사용자 ID 가져오기
-   */
+  // 현재 로그인한 사용자 ID 반환
   private getCurrentUserId(): string {
     const currentUser = auth().currentUser;
-    console.log('현재 사용자 상태:', {
-      user: currentUser,
-      uid: currentUser?.uid,
-      isAnonymous: currentUser?.isAnonymous,
-      email: currentUser?.email
-    });
+
     
     if (!currentUser) {
       console.warn('로그인된 사용자가 없습니다!');
@@ -40,9 +34,7 @@ class FirestoreService {
   // 장소 제보 관련 함수들은 임시로 주석 처리
   // TODO: place.ts 타입 파일 생성 후 활성화
 
-  /**
-   * 리뷰를 Firestore에 저장
-   */
+  // 리뷰를 Firestore에 저장
   async addReview(reviewData: ReviewInput): Promise<string> {
     const currentUser = auth().currentUser;
     if (!currentUser){
@@ -108,9 +100,7 @@ class FirestoreService {
   }
 
 
-  /**
-   * 특정 장소의 모든 리뷰 조회 (각 리뷰는 고유한 인덱스)
-   */
+  // 특정 장소의 모든 리뷰 조회
   async getReviewsByPlaceId(placeId: string): Promise<Review[]> {
     try {
       
@@ -321,9 +311,7 @@ class FirestoreService {
 
   // 평점 통계 업데이트 함수 제거 - 각 리뷰를 독립적으로 처리
 
-  /**
-   * 즐겨찾기 추가
-   */
+  // 즐겨찾기 추가
   async addFavorite(placeId: string, placeData?: any): Promise<void> {
     try {
       const userId = this.getCurrentUserId();
@@ -339,9 +327,7 @@ class FirestoreService {
         createdAt: new Date()
       };
 
-      console.log('즐겨찾기 추가 시도:', favoriteData);
-      await this.favoritesCollection.add(favoriteData);
-      console.log('즐겨찾기 추가 성공');
+          await this.favoritesCollection.add(favoriteData);
     } catch (error: any) {
       console.error('즐겨찾기 추가 에러:', error);
       if (error.code === 'permission-denied') {
@@ -354,14 +340,12 @@ class FirestoreService {
     }
   }
 
-  /**
-   * 즐겨찾기 제거
-   */
+  // 즐겨찾기 제거
   async removeFavorite(placeId: string): Promise<void> {
     try {
       const userId = this.getCurrentUserId();
       
-      console.log('즐겨찾기 제거 시도:', { userId, placeId });
+  
       const snapshot = await this.favoritesCollection
         .where('userId', '==', userId)
         .where('placeId', '==', placeId)
@@ -373,7 +357,7 @@ class FirestoreService {
       });
       
       await batch.commit();
-      console.log('즐겨찾기 제거 성공');
+  
     } catch (error: any) {
       console.error('즐겨찾기 제거 에러:', error);
       if (error.code === 'permission-denied') {
@@ -386,14 +370,12 @@ class FirestoreService {
     }
   }
 
-  /**
-   * 사용자의 즐겨찾기 목록 조회
-   */
+  // 사용자의 즐겨찾기 목록 조회
   async getFavorites(): Promise<string[]> {
     try {
       const userId = this.getCurrentUserId();
       
-      console.log('즐겨찾기 목록 조회 시도:', userId);
+  
       const snapshot = await this.favoritesCollection
         .where('userId', '==', userId)
         .get();
@@ -404,7 +386,7 @@ class FirestoreService {
         favorites.push(data.placeId);
       });
 
-      console.log('즐겨찾기 목록 조회 성공:', favorites);
+  
       return favorites;
     } catch (error: any) {
       console.error('즐겨찾기 목록 조회 에러:', error);
@@ -442,12 +424,12 @@ class FirestoreService {
     try {
       const userId = this.getCurrentUserId();
       
-      console.log('즐겨찾기 장소 상세 정보 조회 시도:', userId);
+  
       const snapshot = await this.favoritesCollection
         .where('userId', '==', userId)
         .get();
 
-      console.log('찜한 장소 개수:', snapshot.docs.length);
+  
       
       // 클라이언트에서 정렬 (최신순)
       const sortedDocs = snapshot.docs.sort((a, b) => {
@@ -463,7 +445,7 @@ class FirestoreService {
       
       for (const doc of limitedDocs) {
         const data = doc.data();
-        console.log('favorites 컬렉션 데이터:', data);
+    
         
         // favorites 컬렉션에서 직접 장소 정보 가져오기
         const placeData = {
@@ -479,7 +461,7 @@ class FirestoreService {
         favoritePlaces.push(placeData);
       }
 
-      console.log('최종 찜한 장소 개수:', favoritePlaces.length);
+  
       return favoritePlaces;
     } catch (error: any) {
       console.error('즐겨찾기 장소 상세 정보 조회 에러:', error);

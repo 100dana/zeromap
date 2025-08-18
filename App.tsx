@@ -50,12 +50,13 @@ type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
+  // Firebase 인증 상태 관리
   const [initializing, setInitializing] = useState(true);
   const [user, setUser] = useState<any>(null);
 
+  // Firebase 인증 상태 변경 감지
   useEffect(() => {
     const unsubscribe = auth().onAuthStateChanged((user) => {
-      console.log('Auth state changed:', user ? 'User logged in' : 'No user');
       setUser(user);
       if (initializing) setInitializing(false);
     });
