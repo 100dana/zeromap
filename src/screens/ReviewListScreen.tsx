@@ -5,10 +5,7 @@ import firestoreService from '../services/firestoreService';
 import { Review } from '../types/review';
 import { colors } from '../styles/colors';
 import { typography } from '../styles/typography';
-import { spacing } from '../styles/spacing';
 
-// 네비게이션 파라미터 타입
-// RootStackParamList에 ReviewList 추가 필요
 
 type ReviewListScreenRouteProp = RouteProp<{
   params: {

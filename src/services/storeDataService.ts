@@ -28,17 +28,16 @@ export interface StoreFilter {
   showZeroRestaurants?: boolean;
 }
 
+// 제로식당 데이터 관리 서비스
 class StoreDataService {
   private stores: StoreData[] = [];
   private static instance: StoreDataService;
 
   constructor() {
-    console.log('🏗️ StoreDataService 생성자 시작');
     this.addZeroRestaurants();
-    console.log('🏗️ StoreDataService 생성자 완료');
   }
 
-  // 싱글톤 인스턴스 가져오기
+  // 싱글톤 패턴으로 인스턴스 반환
   static getInstance(): StoreDataService {
     if (!StoreDataService.instance) {
       StoreDataService.instance = new StoreDataService();
@@ -46,11 +45,12 @@ class StoreDataService {
     return StoreDataService.instance;
   }
 
+  // 제로식당 데이터 로드 및 좌표 변환
   private async addZeroRestaurants() {
     try {
       const zeroRestaurantData = require('../data/서울시 제로식당 목록.json');
       
-      console.log(`📊 제로식당 데이터 로드 시작: ${zeroRestaurantData.length}개`);
+
       
       // 제로식당 데이터를 기존 스토어 데이터에 추가
       const zeroRestaurantsPromises = zeroRestaurantData.map(async (restaurant: any, index: number) => {
@@ -108,7 +108,7 @@ class StoreDataService {
         restaurant.latitude !== 0 && restaurant.longitude !== 0
       );
       
-      console.log(`✅ 제로식당 데이터 로드 완료: ${validRestaurants.length}/${zeroRestaurants.length}개 유효한 좌표`);
+
       
       if (validRestaurants.length < zeroRestaurants.length) {
         console.warn(`⚠️ ${zeroRestaurants.length - validRestaurants.length}개의 제로식당에 유효하지 않은 좌표가 있습니다.`);
@@ -121,11 +121,10 @@ class StoreDataService {
 
   // 모든 매장 데이터 가져오기
   getAllStores(): StoreData[] {
-    console.log(`📋 getAllStores 호출됨 - 현재 저장된 매장 수: ${this.stores.length}개`);
     return this.stores;
   }
 
-  // 필터링된 매장 데이터 가져오기
+  // 필터 조건에 맞는 제로식당 데이터 반환
   getFilteredStores(filters: StoreFilter): StoreData[] {
     return this.stores.filter(store => {
       // 제로식당 필터 (모든 데이터가 제로식당이므로 항상 통과)

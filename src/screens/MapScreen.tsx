@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { View, ScrollView, Text, TouchableOpacity, Alert, TextInput, Modal, StatusBar, Animated, PanResponder, Dimensions, ActivityIndicator } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,7 +18,6 @@ import auth from '@react-native-firebase/auth';
 
 const CURRENT_LOCATION = { latitude: 37.5665, longitude: 126.9780 };
 
-// calculateDistance를 함수 선언부 위로 이동
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -380,10 +380,14 @@ export default function MapScreen() {
   const mapRef = useRef<KakaoMapRef>(null);
   
   // 상태 관리
+  
+  // 카테고리 및 장소 데이터 관리
   const [selectedCategory, setSelectedCategory] = useState('zeroWaste');
   const [places, setPlaces] = useState<PlaceData[]>([]);
   const [localPlaces, setLocalPlaces] = useState<LocalPlaceData[]>([]);
   const [storePlaces, setStorePlaces] = useState<StoreData[]>([]);
+  
+  // 검색 관련 상태
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -391,12 +395,12 @@ export default function MapScreen() {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
-  // 모달 상태 추가
+  // 모달 및 상세 정보 상태
   const [showPlaceModal, setShowPlaceModal] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<PlaceData | LocalPlaceData | StoreData | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
-  const [showReviewListModal, setShowReviewListModal] = useState(false);
+  const [] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [loadingFavorite, setLoadingFavorite] = useState(false);
   const screenHeight = Dimensions.get('window').height;
@@ -437,6 +441,7 @@ export default function MapScreen() {
     },
   })).current;
 
+  // 마커 클릭 시 장소 상세 정보 표시
   const handleMarkerClick = (place: PlaceData | LocalPlaceData | StoreData) => {
     setSelectedPlace(place);
     showBar();
@@ -449,7 +454,7 @@ export default function MapScreen() {
     firestoreService.getReviewsByPlaceId(selectedPlace.id || '').then(setReviews).catch(() => setReviews([])).finally(() => setLoadingReviews(false));
   }, [selectedPlace]);
 
-  // 검색 처리
+  // 장소 검색 처리
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     
@@ -498,7 +503,7 @@ export default function MapScreen() {
     handleSearch(suggestion);
   };
 
-  // 즐겨찾기 토글 함수
+  // 즐겨찾기 추가/제거 토글
   const toggleFavorite = async (placeId: string) => {
     if (loadingFavorite) return;
     
@@ -652,7 +657,7 @@ export default function MapScreen() {
     
     // 제로식당의 경우 storePlaces를 PlaceData 형식으로 변환
     if (selectedCategory === 'zeroRestaurant') {
-      console.log(`🗺️ 제로식당 표시 데이터: ${storePlaces.length}개`);
+  
       return storePlaces.map(store => ({
         id: store.id,
         name: store.name,
@@ -801,7 +806,7 @@ export default function MapScreen() {
         const currentUser = auth().currentUser;
         if (!currentUser) {
           await auth().signInAnonymously();
-          console.log('익명 로그인 성공');
+  
         }
         
         // 즐겨찾기 목록 로드

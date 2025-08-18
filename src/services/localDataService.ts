@@ -31,7 +31,7 @@ export class LocalDataService {
   static async getRefillStations(): Promise<LocalPlaceData[]> {
     try {
       // 현재 리필스테이션 데이터가 없으므로 빈 배열 반환
-      console.log('리필스테이션 데이터: 데이터가 없습니다.');
+  
       return [];
     } catch (error) {
       console.error('리필스테이션 데이터 읽기 실패:', error);

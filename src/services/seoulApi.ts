@@ -37,7 +37,7 @@ export class SeoulApiService {
   
   // 테마 ID 상수 정의
   private static THEME_IDS = {
-    ZERO_WASTE_SHOPS: '11103395',        // [착한소비]제로웨이스트상점
+    ZERO_WASTE_SHOPS: '11103395',        // [착한소비] 제로웨이스트상점
     CUP_DISCOUNT_CAFES: '1693986134109'  // [착한소비] 개인 컵 할인 카페
   };
   
